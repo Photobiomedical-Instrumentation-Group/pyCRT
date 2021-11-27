@@ -25,9 +25,17 @@ def readVideo(filePath, **kwargs):
         status, frame = cap.read()
         if status:
             if displayVideo:
-                if roi is not None and not isinstance(roi, str):
-                    frame = drawRoi(frame, roi)
                 frame = rescaleFrame(frame, rescaleFactor)
+
+                if roi is not None:
+                    if roi == 'all':
+                        channelsAvgInten = cv.mean(frame)[:3]
+                    else:
+                        frame = drawRoi(frame, roi)
+                        channelsAvgInten = calcAvgInten(frame, roi)
+                    timeMillis = cap.get(cv.CAP_PROP_POS_MSEC)
+                    avgIntenList.append(channelsAvgInten)
+                    timeMillisList.append(timeMillis)
 
                 cv.imshow(windowName, frame)
 
@@ -39,14 +47,8 @@ def readVideo(filePath, **kwargs):
                 elif key == ord("q"):
                     break
 
-            timeMillis = cap.get(cv.CAP_PROP_POS_MSEC)
-            channelsAvgInten = calcAvgInten(frame, roi, rescaleFactor)
         else:
             break
-
-        if roi is not None:
-            avgIntenList.append(channelsAvgInten)
-            timeMillisList.append(timeMillis)
 
     cap.release()
     cv.destroyAllWindows()
@@ -334,18 +336,11 @@ def separateChannels(avgIntenArr):
 # }}}
 
 
-def calcAvgInten(frame, roi, scale=1):
+def calcAvgInten(frame, roi):
     # {{{
-    if roi == 'all':
-        channelsAvgInten = cv.mean(frame)[:3]
-        return channelsAvgInten
-    elif roi is None:
-        pass
-    else:
-        roi = tuple((int(scale * x) for x in roi))
-        croppedFrame = cropFrame(frame, roi)
-        channelsAvgInten = cv.mean(croppedFrame)[:3]
-        return channelsAvgInten
+    croppedFrame = cropFrame(frame, roi)
+    channelsAvgInten = cv.mean(croppedFrame)[:3]
+    return channelsAvgInten
 
 
 # }}}
@@ -379,7 +374,7 @@ if __name__ == "__main__":
     calcRCRT(
         argv[1],
         displayVideo=True,
-        rescale=1.0,
+        rescale=0.5,
         plotAllChannels=True,
         roi='all',
         channelToUse="g",
