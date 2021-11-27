@@ -6,7 +6,6 @@ from scipy.optimize import curve_fit  # NOQA
 from scipy.signal import find_peaks  # NOQA
 import os
 
-matplotlib.use("TKAgg", force=True)
 
 def readVideo(filePath, **kwargs):
     # {{{
@@ -28,7 +27,7 @@ def readVideo(filePath, **kwargs):
                 frame = rescaleFrame(frame, rescaleFactor)
 
                 if roi is not None:
-                    if roi == 'all':
+                    if roi == "all":
                         channelsAvgInten = cv.mean(frame)[:3]
                     else:
                         frame = drawRoi(frame, roi)
@@ -60,12 +59,12 @@ def readVideo(filePath, **kwargs):
         )
 
     avgIntenArr = np.array(avgIntenList)
-    timeScdsArray = np.array(timeMillisList) / 1000
+    timeScdsArr = np.array(timeMillisList) / 1000
 
     if kwargs.get("plotAllChannels", False):
-        plotAvgIntens(timeScdsArray, avgIntenArr, **kwargs)
+        plotAvgIntens(timeScdsArr, avgIntenArr, **kwargs)
 
-    return timeScdsArray, avgIntenArr
+    return timeScdsArr, avgIntenArr
 
 
 # }}}
@@ -79,9 +78,9 @@ def fitFuncs(timeScdsArr, avgIntenArr, **kwargs):
     channelsDict = {"b": B, "g": G, "r": R}
     channelAvgIntenArr = channelsDict[channelToUse]
 
-    indexMax = np.argmax(channelAvgIntenArr)
-    timeScdsArr = shiftArr(timeScdsArr, indexMax)
-    channelAvgIntenArr = shiftArr(channelAvgIntenArr, indexMax)
+    timeScdsArr, channelAvgIntenArr = shiftArr(
+        timeScdsArr, channelAvgIntenArr, **kwargs
+    )
 
     expGuesses = kwargs.get("expGuesses", ["maxInten", -0.5, 0])
     if isinstance(expGuesses[0], str):
@@ -194,9 +193,7 @@ def plotRCRT(funcParamsDict, **kwargs):
     rcrtY = exponential(timeScdsArr, *rcrtParams)
     rcrt, rcrtUncertainty = -1 / rcrtParams[1], rcrtStdDev[1]
 
-    plt.plot(
-        timeScdsArr, channelAvgIntenArr, f"{channelToUse}-", label="avgIntens"
-    )
+    plt.plot(timeScdsArr, channelAvgIntenArr, f"{channelToUse}-", label="avgIntens")
     plt.plot(timeScdsArr, expY, "--", label="exp")
     plt.plot(timeScdsArr, polyY, "--", label="poly")
     plt.plot(timeScdsArr, rcrtY, "c-", label="crtExp")
@@ -240,12 +237,31 @@ def plotRCRT(funcParamsDict, **kwargs):
 # }}}
 
 
-def shiftArr(arr, cutoff):
-    return arr[cutoff:] - np.amin(arr[cutoff:])
+def shiftArr(timeArr, arr, **kwargs):
+    # {{{
+    fromTime = kwargs.get("fromTime", "channel max")
+    if fromTime == "channel max":
+        fromIndex = np.argmax(arr)
+    elif isinstance(fromTime, int):
+        fromIndex = np.where(timeArr >= fromTime)[0][0]
+
+    toTime = kwargs.get("toTime", "end")
+    if toTime == "end":
+        toIndex = len(timeArr)
+    elif isinstance(toTime, int):
+        toIndex = np.where(timeArr <= toTime)[0][0]
+
+    return (
+        timeArr[fromIndex:toIndex] - np.amin(timeArr[fromIndex:toIndex]),
+        arr[fromIndex:toIndex] - np.amin(arr[fromIndex:toIndex]),
+    )
+
+
+# }}}
 
 
 def covToStdDev(cov):
-    return 4*np.sqrt(np.diag(cov))
+    return 4 * np.sqrt(np.diag(cov))
 
 
 def findMaxDivergencePeaks(timeScdsArr, expParams, polyParams):
@@ -371,11 +387,12 @@ def rescaleFrame(frame, factor):
 
 if __name__ == "__main__":
     from sys import argv
+
     calcRCRT(
         argv[1],
         displayVideo=True,
         rescale=0.5,
         plotAllChannels=True,
-        roi='all',
+        roi="all",
         channelToUse="g",
     )
