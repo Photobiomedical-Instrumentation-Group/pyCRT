@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import cv2 as cv  # NOQA
 import numpy as np  # NOQA
 import matplotlib.pyplot as plt  # NOQA
@@ -6,6 +7,7 @@ from scipy.optimize import curve_fit  # NOQA
 from scipy.signal import find_peaks  # NOQA
 import os
 
+plt.switch_backend('TkAgg')
 
 def readVideo(filePath, **kwargs):
     # {{{
@@ -392,7 +394,7 @@ if __name__ == "__main__":
     calcRCRT(
         argv[1],
         displayVideo=True,
-        rescale=0.5,
+        rescale=1.0,
         plotAllChannels=True,
         roi="all",
         channelToUse="g",
