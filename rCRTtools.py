@@ -25,16 +25,7 @@ def readVideo(filePath, **kwargs):
         if status:
             if displayVideo:
                 frame = rescaleFrame(frame, rescaleFactor)
-
-                if roi is not None:
-                    if roi == "all":
-                        channelsAvgInten = cv.mean(frame)[:3]
-                    else:
-                        frame = drawRoi(frame, roi)
-                        channelsAvgInten = calcAvgInten(frame, roi)
-                    timeMillis = cap.get(cv.CAP_PROP_POS_MSEC)
-                    avgIntenList.append(channelsAvgInten)
-                    timeMillisList.append(timeMillis)
+                frame = drawRoi(frame, roi)
 
                 cv.imshow(windowName, frame)
 
@@ -45,6 +36,15 @@ def readVideo(filePath, **kwargs):
                     print(roi)
                 elif key == ord("q"):
                     break
+
+            if roi is not None:
+                if roi == "all":
+                    channelsAvgInten = cv.mean(frame)[:3]
+                else:
+                    channelsAvgInten = calcAvgInten(frame, roi)
+                timeMillis = cap.get(cv.CAP_PROP_POS_MSEC)
+                avgIntenList.append(channelsAvgInten)
+                timeMillisList.append(timeMillis)
 
         else:
             break
@@ -373,8 +373,9 @@ def cropFrame(frame, roi):
 
 def drawRoi(frame, roi):
     # {{{
-    x1, y1, sideX, sideY = roi
-    x2, y2 = x1 + sideX, y1 + sideY
+    if isinstance(roi, tuple):
+        x1, y1, sideX, sideY = roi
+        x2, y2 = x1 + sideX, y1 + sideY
     return cv.rectangle(frame, (x1, y1), (x2, y2), [0, 0, 255], 2)
 
 
