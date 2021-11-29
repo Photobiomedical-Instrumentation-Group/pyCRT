@@ -378,9 +378,9 @@ def drawRoi(frame, roi):
     if isinstance(roi, tuple):
         x1, y1, sideX, sideY = roi
         x2, y2 = x1 + sideX, y1 + sideY
-    return cv.rectangle(frame, (x1, y1), (x2, y2), [0, 0, 255], 2)
-
-
+        return cv.rectangle(frame, (x1, y1), (x2, y2), [0, 0, 255], 2)
+    else:
+        return frame
 # }}}
 
 
