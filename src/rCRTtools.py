@@ -154,6 +154,7 @@ def readCamera(cameraNum, **kwargs):    # NOQA
 def fitFuncs(timeScdsArr, avgIntenArr, **kwargs):
     # {{{
     channelToUse = kwargs.get("channelToUse", "g")
+    exclusionCriterion = kwargs.get("exclusionCriteria", 0.1)
 
     B, G, R = separateChannels(avgIntenArr)
     channelsDict = {"b": B, "g": G, "r": R}
@@ -185,8 +186,14 @@ def fitFuncs(timeScdsArr, avgIntenArr, **kwargs):
                 timeScdsArr, channelAvgIntenArr, i, p0=rcrtGuesses
             )
             maxDivergenceIndex = i
+            if exclusionCriterion:
+                criterion = abs(4*rcrtStdDev[1]/rcrtParams[1])
+                print(f"criterion = {criterion}, criteria = {exclusionCriterion}")
+                if criterion >= exclusionCriterion:
+                    continue
             break
         except RuntimeError:
+            print("rcrt fit failed")
             continue
 
     if rcrtParams is None or rcrtStdDev is None:
@@ -215,7 +222,7 @@ def calcRCRT(arg, **kwargs):
         timeScdsArr, avgIntenArr = readVideo(arg, **kwargs)
     funcParamsDict = fitFuncs(timeScdsArr, avgIntenArr, **kwargs)
 
-    rcrt, rcrtUncertainty = rCRTFromParams(funcParamsDict["rCRT"])
+    rcrt, rcrtUncertainty = rcrtFromParams(funcParamsDict["rCRT"])
 
     if kwargs.get("plotRCRT", True):
         plotRCRT(funcParamsDict, **kwargs)
@@ -226,15 +233,15 @@ def calcRCRT(arg, **kwargs):
 # }}}
 
 
-def rCRTFromParams(rcrtParams):
+def rcrtFromParams(rcrtParams):
 # {{{
     inverseRCRT = rcrtParams[0][1]
     inverseRCRTStdDev = rcrtParams[1][1]
 
     rcrt = -1 / inverseRCRT
-    rcrtStdDev = -2 * rcrt * (inverseRCRTStdDev/inverseRCRT)
+    rcrtUncertainty = -2 * rcrt * (inverseRCRTStdDev/inverseRCRT)
 
-    return (rcrt, rcrtStdDev)
+    return (rcrt, rcrtUncertainty)
 # }}}
 
 
@@ -308,7 +315,7 @@ def plotRCRT(funcParamsDict, **kwargs):
     expY = exponential(timeScdsArr, *expParams)
     polyY = polynomial(timeScdsArr, *polyParams)
     rcrtY = exponential(timeScdsArr, *rcrtParams)
-    rcrt, rcrtUncertainty = rCRTFromParams(funcParamsDict["rCRT"])
+    rcrt, rcrtUncertainty = rcrtFromParams(funcParamsDict["rCRT"])
 
     plt.plot(timeScdsArr, channelAvgIntenArr, f"{channelToUse}-", label="avgIntens")
     plt.plot(timeScdsArr, expY, "--", label="exp")
@@ -327,9 +334,9 @@ def plotRCRT(funcParamsDict, **kwargs):
     plt.legend(
         [
             f"Channel {channelToUse}",
-            f"exp params: {expParams} +- {expStdDev}",
-            f"poly params: {polyParams} +- {polyStdDev}",
-            f"crt params: {rcrtParams} +- {rcrtStdDev}",
+            f"exp params: {expParams}",
+            f"poly params: {polyParams}",
+            f"crt params: {rcrtParams}",
             "Máxima divergência",
             f"rCRT: {round(rcrt, 2)} +- {round(rcrtUncertainty, 2)}",
         ],
