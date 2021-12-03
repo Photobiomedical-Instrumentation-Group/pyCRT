@@ -133,15 +133,26 @@ def calcRCRT(filePath, **kwargs):
     timeScdsArr, avgIntenArr = readVideo(filePath, **kwargs)
     funcParamsDict = fitFuncs(timeScdsArr, avgIntenArr, **kwargs)
 
-    rcrt = -1 / funcParamsDict["rCRT"][0][1]
-    rcrtStdDev = funcParamsDict["rCRT"][1][1]
+    rcrt, rcrtUncertainty = rCRTFromParams(funcParamsDict["rCRT"])
 
     if kwargs.get("plotRCRT", True):
         plotRCRT(funcParamsDict, **kwargs)
 
-    return rcrt, rcrtStdDev
+    return rcrt, rcrtUncertainty
 
 
+# }}}
+
+
+def rCRTFromParams(rcrtParams):
+# {{{
+    inverseRCRT = rcrtParams[0][1]
+    inverseRCRTStdDev = rcrtParams[1][1]
+
+    rcrt = -1 / inverseRCRT
+    rcrtStdDev = -4 * rcrt * (inverseRCRTStdDev/inverseRCRT)
+
+    return (rcrt, rcrtStdDev)
 # }}}
 
 
@@ -193,7 +204,7 @@ def plotRCRT(funcParamsDict, **kwargs):
     expY = exponential(timeScdsArr, *expParams)
     polyY = polynomial(timeScdsArr, *polyParams)
     rcrtY = exponential(timeScdsArr, *rcrtParams)
-    rcrt, rcrtUncertainty = -1 / rcrtParams[1], rcrtStdDev[1]
+    rcrt, rcrtUncertainty = rCRTFromParams(funcParamsDict["rCRT"])
 
     plt.plot(timeScdsArr, channelAvgIntenArr, f"{channelToUse}-", label="avgIntens")
     plt.plot(timeScdsArr, expY, "--", label="exp")
