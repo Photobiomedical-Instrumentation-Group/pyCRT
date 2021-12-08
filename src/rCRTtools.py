@@ -232,7 +232,7 @@ def rCRTFromParams(rcrtParams):
     inverseRCRTStdDev = rcrtParams[1][1]
 
     rcrt = -1 / inverseRCRT
-    rcrtStdDev = -4 * rcrt * (inverseRCRTStdDev/inverseRCRT)
+    rcrtStdDev = -2 * rcrt * (inverseRCRTStdDev/inverseRCRT)
 
     return (rcrt, rcrtStdDev)
 # }}}
@@ -378,7 +378,7 @@ def shiftArr(timeArr, arr, **kwargs):
 
 
 def covToStdDev(cov):
-    return 4 * np.sqrt(np.diag(cov))
+    return np.sqrt(np.diag(cov))
 
 
 def findMaxDivergencePeaks(timeScdsArr, expParams, polyParams):
