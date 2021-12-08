@@ -72,6 +72,85 @@ def readVideo(filePath, **kwargs):
 # }}}
 
 
+def readCamera(cameraNum, **kwargs):    # NOQA
+# {{{
+    cap = cv.VideoCapture(cameraNum)
+
+    cameraRes = kwargs.get("cameraRes", (cap.get(3), cap.get(4)))
+    windowName = kwargs.get("windowName", f"Cam {cameraNum} at {cameraRes}")
+    waitKeyTime = kwargs.get("waitKeyTime", 1)
+    recordVideo = kwargs.get("recordVideo", False)
+    filePath = kwargs.get("filePath", os.getcwd() + "/")
+    fileName = kwargs.get("fileName", "")
+    roi = kwargs.get("roi", None)
+
+    if recordVideo:
+        writer = cv.VideoWriter(
+            filePath + fileName + 'capture.wmv',
+            cv.VideoWriter_fourcc(*'DIVX'), 30, cameraRes
+        )
+
+    avgIntenList = []
+    timeMillisList = []
+    startTime = False
+
+    while True:
+        status, frame = cap.read()
+        if status:
+            if recordVideo:
+                writer.write(frame)
+
+            frame = drawRoi(frame, roi)
+            cv.imshow(windowName, frame)
+
+            key = cv.waitKey(waitKeyTime)
+
+            if key == 32:
+                roi = cv.selectROI(windowName, frame)
+                print(roi)
+            elif key == ord("s"):
+                if not startTime:
+                    kwargs['fromTime'] = cap.get(cv.CAP_PROP_POS_MSEC)/1000
+                    print(f"from time: {kwargs['fromTime']}")
+                    startTime = True
+                else:
+                    kwargs['toTime'] = cap.get(cv.CAP_PROP_POS_MSEC)/1000
+                    print(f"to time: {kwargs['toTime']}")
+                    startTime = False
+            elif key == ord("q"):
+                break
+
+            if roi is not None:
+                if roi == "all":
+                    channelsAvgInten = cv.mean(frame)[:3]
+                else:
+                    channelsAvgInten = calcAvgInten(frame, roi)
+                timeMillis = cap.get(cv.CAP_PROP_POS_MSEC)
+                avgIntenList.append(channelsAvgInten)
+                timeMillisList.append(timeMillis)
+
+        else:
+            break
+
+    cap.release()
+    cv.destroyAllWindows()
+
+    if avgIntenList == []:
+        raise RuntimeError(
+            "Array of average intensities is empty! Did you select or pass"
+            "as an argument a region of interest (roi)?"
+        )
+
+    avgIntenArr = np.array(avgIntenList)
+    timeScdsArr = np.array(timeMillisList) / 1000
+
+    if kwargs.get("plotAllChannels", False):
+        plotAvgIntens(timeScdsArr, avgIntenArr, **kwargs)
+
+    return timeScdsArr, avgIntenArr
+# }}}
+
+
 def fitFuncs(timeScdsArr, avgIntenArr, **kwargs):
     # {{{
     channelToUse = kwargs.get("channelToUse", "g")
@@ -128,9 +207,12 @@ def fitFuncs(timeScdsArr, avgIntenArr, **kwargs):
 # }}}
 
 
-def calcRCRT(filePath, **kwargs):
+def calcRCRT(arg, **kwargs):
     # {{{
-    timeScdsArr, avgIntenArr = readVideo(filePath, **kwargs)
+    try:
+        timeScdsArr, avgIntenArr = readCamera(int(arg), **kwargs)
+    except ValueError:
+        timeScdsArr, avgIntenArr = readVideo(arg, **kwargs)
     funcParamsDict = fitFuncs(timeScdsArr, avgIntenArr, **kwargs)
 
     rcrt = -1 / funcParamsDict["rCRT"][0][1]
@@ -167,6 +249,9 @@ def plotAvgIntens(timeArr, avgIntenArr, **kwargs):
     filePath = kwargs.get("filePath", os.getcwd() + "/")
     fileName = kwargs.get("fileName", "")
 
+    plotBoundaries(timeArr, **kwargs)
+    plt.legend()
+
     if kwargs.get("saveFigs", False):
         plt.savefig(filePath + fileName + "all-channels.png", bbox_inches="tight")
     if kwargs.get("showPlots", True):
@@ -176,6 +261,25 @@ def plotAvgIntens(timeArr, avgIntenArr, **kwargs):
         plt.close("all")
 
 
+# }}}
+
+
+def plotBoundaries(timeArr, **kwargs):
+# {{{
+    if kwargs.get("fromTime", False):
+        plt.axvline(
+            kwargs["fromTime"],
+            c="k",
+            ls=":",
+            label="start",
+        )
+    if kwargs.get("toTime", False):
+        plt.axvline(
+            kwargs["toTime"],
+            c="k",
+            ls=":",
+            label="end",
+        )
 # }}}
 
 
@@ -388,14 +492,31 @@ def rescaleFrame(frame, factor):
     return cv.resize(frame, (0, 0), fx=factor, fy=factor)
 
 
+def changeCameraRes(cap, width, height):
+# {{{
+    cap.set(3, width)
+    cap.set(4, height)
+# }}}
+
+
 if __name__ == "__main__":
     from sys import argv
 
-    calcRCRT(
-        argv[1],
-        displayVideo=True,
-        rescale=1.0,
-        plotAllChannels=True,
-        roi="all",
-        channelToUse="g",
-    )
+    try:
+        calcRCRT(
+            argv[1],
+            displayVideo=True,
+            rescale=1.0,
+            plotAllChannels=True,
+            roi="all",
+            channelToUse="g",
+        )
+    except IndexError:
+        calcRCRT(
+            0,
+            displayVideo=True,
+            rescale=1.0,
+            plotAllChannels=True,
+            roi="all",
+            channelToUse="g",
+        )
