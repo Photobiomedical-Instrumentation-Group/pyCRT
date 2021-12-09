@@ -7,12 +7,13 @@ from scipy.optimize import curve_fit  # NOQA
 from scipy.signal import find_peaks  # NOQA
 import os
 
-#TODO: Lembrar de passar o black
-#TODO: Lembrar de escolher o resultado com menor coeficiente de trolagem, caso
+# TODO: Lembrar de passar o black
+# TODO: Lembrar de escolher o resultado com menor coeficiente de trolagem, caso
 # nenhum fit dê certo
 
 
-plt.switch_backend('TkAgg')
+plt.switch_backend("TkAgg")
+
 
 def readVideo(filePath, **kwargs):
     # {{{
@@ -77,8 +78,8 @@ def readVideo(filePath, **kwargs):
 # }}}
 
 
-def readCamera(cameraNum, **kwargs):    # NOQA
-# {{{
+def readCamera(cameraNum, **kwargs):  # NOQA
+    # {{{
     cap = cv.VideoCapture(cameraNum)
 
     cameraRes = kwargs.get("cameraRes", (cap.get(3), cap.get(4)))
@@ -91,8 +92,10 @@ def readCamera(cameraNum, **kwargs):    # NOQA
 
     if recordVideo:
         writer = cv.VideoWriter(
-            filePath + fileName + 'capture.wmv',
-            cv.VideoWriter_fourcc(*'DIVX'), 30, cameraRes
+            filePath + fileName + "capture.wmv",
+            cv.VideoWriter_fourcc(*"DIVX"),
+            30,
+            cameraRes,
         )
 
     avgIntenList = []
@@ -115,11 +118,11 @@ def readCamera(cameraNum, **kwargs):    # NOQA
                 print(roi)
             elif key == ord("s"):
                 if not startTime:
-                    kwargs['fromTime'] = cap.get(cv.CAP_PROP_POS_MSEC)/1000
+                    kwargs["fromTime"] = cap.get(cv.CAP_PROP_POS_MSEC) / 1000
                     print(f"from time: {kwargs['fromTime']}")
                     startTime = True
                 else:
-                    kwargs['toTime'] = cap.get(cv.CAP_PROP_POS_MSEC)/1000
+                    kwargs["toTime"] = cap.get(cv.CAP_PROP_POS_MSEC) / 1000
                     print(f"to time: {kwargs['toTime']}")
                     startTime = False
             elif key == ord("q"):
@@ -153,6 +156,8 @@ def readCamera(cameraNum, **kwargs):    # NOQA
         plotAvgIntens(timeScdsArr, avgIntenArr, **kwargs)
 
     return timeScdsArr, avgIntenArr
+
+
 # }}}
 
 
@@ -165,8 +170,7 @@ def fitFuncs(timeScdsArr, avgIntenArr, **kwargs):
     channelsDict = {"b": B, "g": G, "r": R}
     channelAvgIntenArr = channelsDict[channelToUse]
 
-    timeScdsArr, channelAvgIntenArr = shiftArr(
-    )
+    timeScdsArr, channelAvgIntenArr = shiftArr()
 
     expGuesses = kwargs.get("expGuesses", ["maxInten", -0.5, 0])
     if isinstance(expGuesses[0], str):
@@ -191,7 +195,7 @@ def fitFuncs(timeScdsArr, avgIntenArr, **kwargs):
             )
             maxDivergenceIndex = i
             if exclusionCriterion:
-                criterion = abs(4*rcrtStdDev[1]/rcrtParams[1])
+                criterion = abs(4 * rcrtStdDev[1] / rcrtParams[1])
                 print(f"criterion = {criterion}, criteria = {exclusionCriterion}")
                 if criterion >= exclusionCriterion:
                     continue
@@ -238,14 +242,16 @@ def calcRCRT(arg, **kwargs):
 
 
 def rcrtFromParams(rcrtParams):
-# {{{
+    # {{{
     inverseRCRT = rcrtParams[0][1]
     inverseRCRTStdDev = rcrtParams[1][1]
 
     rcrt = -1 / inverseRCRT
-    rcrtUncertainty = -2 * rcrt * (inverseRCRTStdDev/inverseRCRT)
+    rcrtUncertainty = -2 * rcrt * (inverseRCRTStdDev / inverseRCRT)
 
     return (rcrt, rcrtUncertainty)
+
+
 # }}}
 
 
@@ -289,7 +295,7 @@ def plotAvgIntens(timeArr, avgIntenArr, **kwargs):
 
 
 def plotBoundaries(timeArr, **kwargs):
-# {{{
+    # {{{
     if kwargs.get("fromTime", False):
         plt.axvline(
             kwargs["fromTime"],
@@ -304,6 +310,8 @@ def plotBoundaries(timeArr, **kwargs):
             ls=":",
             label="end",
         )
+
+
 # }}}
 
 
@@ -356,9 +364,7 @@ def plotRCRT(funcParamsDict, **kwargs):
     saveFileName = kwargs.get("saveFileName", "")
 
     if kwargs.get("saveFigs", False):
-        plt.savefig(
-            saveFilePath + saveFileName + "rCRT.png", bbox_inches="tight"
-        )
+        plt.savefig(saveFilePath + saveFileName + "rCRT.png", bbox_inches="tight")
     if kwargs.get("showPlots", True):
         plt.tight_layout()
         plt.show()
@@ -511,6 +517,8 @@ def drawRoi(frame, roi):
         return cv.rectangle(frame, (x1, y1), (x2, y2), [0, 0, 255], 2)
     else:
         return frame
+
+
 # }}}
 
 
@@ -519,9 +527,11 @@ def rescaleFrame(frame, factor):
 
 
 def changeCameraRes(cap, width, height):
-# {{{
+    # {{{
     cap.set(3, width)
     cap.set(4, height)
+
+
 # }}}
 
 
