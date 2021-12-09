@@ -170,7 +170,9 @@ def fitFuncs(timeScdsArr, avgIntenArr, **kwargs):
     channelsDict = {"b": B, "g": G, "r": R}
     channelAvgIntenArr = channelsDict[channelToUse]
 
-    timeScdsArr, channelAvgIntenArr = shiftArr()
+    timeScdsArr, channelAvgIntenArr = shiftArr(
+        timeScdsArr, channelAvgIntenArr, **kwargs
+    )
 
     expGuesses = kwargs.get("expGuesses", ["maxInten", -0.5, 0])
     if isinstance(expGuesses[0], str):
@@ -196,7 +198,6 @@ def fitFuncs(timeScdsArr, avgIntenArr, **kwargs):
             maxDivergenceIndex = i
             if exclusionCriterion:
                 criterion = abs(4 * rcrtStdDev[1] / rcrtParams[1])
-                print(f"criterion = {criterion}, criteria = {exclusionCriterion}")
                 if criterion >= exclusionCriterion:
                     continue
             break
