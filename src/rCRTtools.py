@@ -7,6 +7,11 @@ from scipy.optimize import curve_fit  # NOQA
 from scipy.signal import find_peaks  # NOQA
 import os
 
+#TODO: Lembrar de passar o black
+#TODO: Lembrar de escolher o resultado com menor coeficiente de trolagem, caso
+# nenhum fit dê certo
+
+
 plt.switch_backend('TkAgg')
 
 def readVideo(filePath, **kwargs):
@@ -161,7 +166,6 @@ def fitFuncs(timeScdsArr, avgIntenArr, **kwargs):
     channelAvgIntenArr = channelsDict[channelToUse]
 
     timeScdsArr, channelAvgIntenArr = shiftArr(
-        timeScdsArr, channelAvgIntenArr, **kwargs
     )
 
     expGuesses = kwargs.get("expGuesses", ["maxInten", -0.5, 0])
@@ -264,14 +268,16 @@ def plotAvgIntens(timeArr, avgIntenArr, **kwargs):
     plt.ylabel("Average intensity (a.u.)")
     plt.title("Channels b, g and r")
 
-    filePath = kwargs.get("filePath", os.getcwd() + "/")
-    fileName = kwargs.get("fileName", "")
+    saveFilePath = kwargs.get("saveFilePath", os.getcwd() + "/")
+    saveFileName = kwargs.get("saveFileName", "")
 
     plotBoundaries(timeArr, **kwargs)
     plt.legend()
 
     if kwargs.get("saveFigs", False):
-        plt.savefig(filePath + fileName + "all-channels.png", bbox_inches="tight")
+        plt.savefig(
+            saveFilePath + saveFileName + "all-channels.png", bbox_inches="tight"
+        )
     if kwargs.get("showPlots", True):
         plt.tight_layout()
         plt.show()
@@ -346,11 +352,13 @@ def plotRCRT(funcParamsDict, **kwargs):
     plt.ylabel("Intensidade média (u.a.)")
     plt.title(f"Channel {channelToUse} and functions")
 
-    filePath = kwargs.get("filePath", os.getcwd() + "/")
-    fileName = kwargs.get("fileName", "")
+    saveFilePath = kwargs.get("saveFilePath", os.getcwd() + "/")
+    saveFileName = kwargs.get("saveFileName", "")
 
     if kwargs.get("saveFigs", False):
-        plt.savefig(filePath + fileName + "rCRT.png", bbox_inches="tight")
+        plt.savefig(
+            saveFilePath + saveFileName + "rCRT.png", bbox_inches="tight"
+        )
     if kwargs.get("showPlots", True):
         plt.tight_layout()
         plt.show()
