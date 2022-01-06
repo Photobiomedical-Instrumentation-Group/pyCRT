@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 import cv2 as cv  # NOQA
 import numpy as np  # NOQA
 import matplotlib.pyplot as plt  # NOQA
