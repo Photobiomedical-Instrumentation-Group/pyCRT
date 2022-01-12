@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
-import cv2 as cv  # NOQA
-import numpy as np  # NOQA
-import matplotlib.pyplot as plt  # NOQA
-import matplotlib  # NOQA
-from scipy.optimize import curve_fit  # NOQA
-from scipy.signal import find_peaks  # NOQA
 import os
 
-# TODO: Lembrar de passar o black
+import cv2 as cv  # pylint: disable=import-error
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.optimize import curve_fit
+from scipy.signal import find_peaks
+
 # TODO: Lembrar de escolher o resultado com menor coeficiente de trolagem, caso
 # nenhum fit dê certo
-
 
 plt.switch_backend("TkAgg")
 
@@ -60,7 +58,7 @@ def readVideo(filePath, **kwargs):
     cap.release()
     cv.destroyAllWindows()
 
-    if avgIntenList == []:
+    if not avgIntenList:
         raise RuntimeError(
             "Array of average intensities is empty! Did you select or pass"
             "as an argument a region of interest (roi)?"
@@ -78,7 +76,7 @@ def readVideo(filePath, **kwargs):
 # }}}
 
 
-def readCamera(cameraNum, **kwargs):  # NOQA
+def readCamera(cameraNum, **kwargs):
     # {{{
     cap = cv.VideoCapture(cameraNum)
 
@@ -143,7 +141,7 @@ def readCamera(cameraNum, **kwargs):  # NOQA
     cap.release()
     cv.destroyAllWindows()
 
-    if avgIntenList == []:
+    if not avgIntenList:
         raise RuntimeError(
             "Array of average intensities is empty! Did you select or pass"
             "as an argument a region of interest (roi)?"
@@ -258,8 +256,10 @@ def rcrtFromParams(rcrtParams):
 
 def setFigureSizePx(figSizePx):
     # {{{
-    px = 1 / plt.rcParams["figure.dpi"]
-    plt.rcParams["figure.figsize"] = (figSizePx[0] * px, figSizePx[1] * px)
+    pixels = 1 / plt.rcParams["figure.dpi"]
+    plt.rcParams["figure.figsize"] = (
+        figSizePx[0] * pixels, figSizePx[1] * pixels
+    )
 
 
 # }}}
@@ -504,7 +504,7 @@ def calcAvgInten(frame, roi):
 def cropFrame(frame, roi):
     # {{{
     x1, y1, sideX, sideY = roi
-    return frame[y1 : y1 + sideY, x1 : x1 + sideX]
+    return frame[y1:y1 + sideY, x1:x1 + sideX]
 
 
 # }}}
