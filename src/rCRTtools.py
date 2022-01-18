@@ -19,7 +19,7 @@ def readVideo(filePath, **kwargs):
 
     displayVideo = kwargs.get("displayVideo", True)
     rescaleFactor = kwargs.get("rescale", 1.0)
-    windowName = kwargs.get("windowName", filePath)
+    windowName = str(kwargs.get("windowName", filePath))
     waitKeyTime = kwargs.get("waitKeyTime", 1)
 
     avgIntenList = []
@@ -29,6 +29,14 @@ def readVideo(filePath, **kwargs):
     while True:
         status, frame = cap.read()
         if status:
+            if roi is not None:
+                if roi == "all":
+                    channelsAvgInten = cv.mean(frame)[:3]
+                else:
+                    channelsAvgInten = calcAvgInten(frame, roi)
+                timeMillis = cap.get(cv.CAP_PROP_POS_MSEC)
+                avgIntenList.append(channelsAvgInten)
+                timeMillisList.append(timeMillis)
             if displayVideo:
                 frame = rescaleFrame(frame, rescaleFactor)
                 frame = drawRoi(frame, roi)
@@ -42,16 +50,6 @@ def readVideo(filePath, **kwargs):
                     print(roi)
                 elif key == ord("q"):
                     break
-
-            if roi is not None:
-                if roi == "all":
-                    channelsAvgInten = cv.mean(frame)[:3]
-                else:
-                    channelsAvgInten = calcAvgInten(frame, roi)
-                timeMillis = cap.get(cv.CAP_PROP_POS_MSEC)
-                avgIntenList.append(channelsAvgInten)
-                timeMillisList.append(timeMillis)
-
         else:
             break
 
@@ -195,7 +193,7 @@ def fitFuncs(timeScdsArr, avgIntenArr, **kwargs):
             )
             maxDivergenceIndex = i
             if exclusionCriterion:
-                criterion = abs(4 * rcrtStdDev[1] / rcrtParams[1])
+                criterion = abs(2 * rcrtStdDev[1] / rcrtParams[1])
                 if criterion >= exclusionCriterion:
                     continue
             break
@@ -257,9 +255,7 @@ def rcrtFromParams(rcrtParams):
 def setFigureSizePx(figSizePx):
     # {{{
     pixels = 1 / plt.rcParams["figure.dpi"]
-    plt.rcParams["figure.figsize"] = (
-        figSizePx[0] * pixels, figSizePx[1] * pixels
-    )
+    plt.rcParams["figure.figsize"] = (figSizePx[0] * pixels, figSizePx[1] * pixels)
 
 
 # }}}
@@ -323,9 +319,9 @@ def plotRCRT(funcParamsDict, **kwargs):
 
     timeScdsArr = funcParamsDict["timeScdsArr"]
     channelAvgIntenArr = funcParamsDict["avgIntenArr"]
-    expParams, expStdDev = funcParamsDict["exp"]
-    polyParams, polyStdDev = funcParamsDict["poly"]
-    rcrtParams, rcrtStdDev = funcParamsDict["rCRT"]
+    expParams, _ = funcParamsDict["exp"]
+    polyParams, _ = funcParamsDict["poly"]
+    rcrtParams, _ = funcParamsDict["rCRT"]
 
     expY = exponential(timeScdsArr, *expParams)
     polyY = polynomial(timeScdsArr, *polyParams)
@@ -504,7 +500,7 @@ def calcAvgInten(frame, roi):
 def cropFrame(frame, roi):
     # {{{
     x1, y1, sideX, sideY = roi
-    return frame[y1:y1 + sideY, x1:x1 + sideX]
+    return frame[y1 : y1 + sideY, x1 : x1 + sideX]
 
 
 # }}}
