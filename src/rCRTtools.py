@@ -29,6 +29,8 @@ def readVideo(filePath, **kwargs):
     while True:
         status, frame = cap.read()
         if status:
+            frame = rescaleFrame(frame, rescaleFactor)
+
             if roi is not None:
                 if roi == "all":
                     channelsAvgInten = cv.mean(frame)[:3]
@@ -37,10 +39,9 @@ def readVideo(filePath, **kwargs):
                 timeMillis = cap.get(cv.CAP_PROP_POS_MSEC)
                 avgIntenList.append(channelsAvgInten)
                 timeMillisList.append(timeMillis)
-            if displayVideo:
-                frame = rescaleFrame(frame, rescaleFactor)
-                frame = drawRoi(frame, roi)
 
+            if displayVideo:
+                frame = drawRoi(frame, roi)
                 cv.imshow(windowName, frame)
 
                 key = cv.waitKey(waitKeyTime)
@@ -64,6 +65,8 @@ def readVideo(filePath, **kwargs):
 
     avgIntenArr = np.array(avgIntenList)
     timeScdsArr = np.array(timeMillisList) / 1000
+
+    timeScdsArr, avgIntenArr = stripArr(timeScdsArr, avgIntenArr)
 
     if kwargs.get("plotAllChannels", False):
         plotAvgIntens(timeScdsArr, avgIntenArr, **kwargs)
@@ -390,6 +393,18 @@ def shiftArr(timeArr, arr, **kwargs):
         timeArr[fromIndex:toIndex] - np.amin(timeArr[fromIndex:toIndex]),
         arr[fromIndex:toIndex] - np.amin(arr[fromIndex:toIndex]),
     )
+
+
+# }}}
+
+
+def stripArr(timeArr, arr):
+    # {{{
+    """Ridiculous workaround for mp4 files"""
+
+    timeArr = np.trim_zeros(timeArr, trim="b")
+    arr = arr[: len(timeArr)]
+    return timeArr, arr
 
 
 # }}}
