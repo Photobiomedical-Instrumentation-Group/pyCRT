@@ -402,15 +402,16 @@ def shiftArr(timeArr, arr, **kwargs):
     fromTime = kwargs.get("fromTime", "channel max")
     if fromTime == "channel max":
         fromIndex = np.argmax(arr)
-    elif isinstance(fromTime, int):
-        # fromIndex = np.where(timeArr >= fromTime)[0][0]
-        fromIndex = np.argmax(arr[fromTime:])
+    elif isinstance(fromTime, (int, float)):
+        fromIndex = np.where(timeArr >= fromTime)[0][0]
 
     toTime = kwargs.get("toTime", "end")
     if toTime == "end":
         toIndex = len(timeArr)
-    elif isinstance(toTime, int):
-        toIndex = np.where(timeArr <= toTime)[0][0]
+    elif isinstance(toTime, (int, float)):
+        toIndex = np.where(timeArr >= toTime)[0][0]
+
+    fromIndex += np.argmax(arr[fromIndex:toIndex])
 
     return (
         timeArr[fromIndex:toIndex] - np.amin(timeArr[fromIndex:toIndex]),
