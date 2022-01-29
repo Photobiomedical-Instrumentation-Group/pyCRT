@@ -21,6 +21,8 @@ def readVideo(filePath, **kwargs):
     rescaleFactor = kwargs.get("rescale", 1.0)
     windowName = str(kwargs.get("windowName", filePath))
     waitKeyTime = kwargs.get("waitKeyTime", 1)
+    filePath = kwargs.get("filePath", os.getcwd() + "/")
+    fileName = kwargs.get("fileName", "")
 
     avgIntenList = []
     timeMillisList = []
