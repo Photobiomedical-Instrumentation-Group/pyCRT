@@ -91,8 +91,8 @@ def readCamera(cameraNum, **kwargs):
 
     if recordVideo:
         writer = cv.VideoWriter(
-            filePath + fileName + "capture.wmv",
-            cv.VideoWriter_fourcc(*"DIVX"),
+            f"{filePath}{fileName}.mp4",
+            cv.VideoWriter_fourcc(*"mp4v"),
             30,
             cameraRes,
         )
@@ -151,8 +151,19 @@ def readCamera(cameraNum, **kwargs):
     avgIntenArr = np.array(avgIntenList)
     timeScdsArr = np.array(timeMillisList) / 1000
 
+    timeScdsArr, avgIntenArr = stripArr(timeScdsArr, avgIntenArr)
+
     if kwargs.get("plotAllChannels", False):
         plotAvgIntens(timeScdsArr, avgIntenArr, **kwargs)
+
+    if kwargs.get("saveNpz", False):
+        np.savez_compressed(
+            f"{filePath}{fileName}.npz",
+            timeScds=timeScdsArr,
+            avgInten=avgIntenArr,
+            fromTime=kwargs["fromTime"],
+            toTime=kwargs["toTime"],
+        )
 
     return timeScdsArr, avgIntenArr
 
@@ -381,7 +392,8 @@ def shiftArr(timeArr, arr, **kwargs):
     if fromTime == "channel max":
         fromIndex = np.argmax(arr)
     elif isinstance(fromTime, int):
-        fromIndex = np.where(timeArr >= fromTime)[0][0]
+        # fromIndex = np.where(timeArr >= fromTime)[0][0]
+        fromIndex = np.argmax(arr[fromTime:])
 
     toTime = kwargs.get("toTime", "end")
     if toTime == "end":
