@@ -71,6 +71,15 @@ def readVideo(filePath, **kwargs):
     if kwargs.get("plotAllChannels", False):
         plotAvgIntens(timeScdsArr, avgIntenArr, **kwargs)
 
+    if kwargs.get("saveNpz", False):
+        np.savez_compressed(
+            f"{filePath}{fileName}.npz",
+            timeScds=timeScdsArr,
+            avgInten=avgIntenArr,
+            fromTime=kwargs["fromTime"],
+            toTime=kwargs["toTime"],
+        )
+
     return timeScdsArr, avgIntenArr
 
 
