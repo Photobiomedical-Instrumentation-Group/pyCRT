@@ -21,8 +21,8 @@ def readVideo(filePath, **kwargs):
     rescaleFactor = kwargs.get("rescale", 1.0)
     windowName = str(kwargs.get("windowName", filePath))
     waitKeyTime = kwargs.get("waitKeyTime", 1)
-    filePath = kwargs.get("filePath", os.getcwd() + "/")
-    fileName = kwargs.get("fileName", "")
+    saveFilePath = kwargs.get("saveFilePath", os.getcwd() + "/")
+    saveFileName = kwargs.get("saveFileName", "")
 
     avgIntenList = []
     timeMillisList = []
@@ -75,7 +75,7 @@ def readVideo(filePath, **kwargs):
 
     if kwargs.get("saveNpz", False):
         np.savez_compressed(
-            f"{filePath}{fileName}.npz",
+            f"{saveFilePath}{saveFileName}.npz",
             timeScds=timeScdsArr,
             avgInten=avgIntenArr,
             fromTime=kwargs["fromTime"],
@@ -96,13 +96,13 @@ def readCamera(cameraNum, **kwargs):
     windowName = kwargs.get("windowName", f"Cam {cameraNum} at {cameraRes}")
     waitKeyTime = kwargs.get("waitKeyTime", 1)
     recordVideo = kwargs.get("recordVideo", False)
-    filePath = kwargs.get("filePath", os.getcwd() + "/")
-    fileName = kwargs.get("fileName", "")
+    saveFilePath = kwargs.get("saveFilePath", os.getcwd() + "/")
+    saveFileName = kwargs.get("saveFileName", "")
     roi = kwargs.get("roi", None)
 
     if recordVideo:
         writer = cv.VideoWriter(
-            f"{filePath}{fileName}.mp4",
+            f"{saveFilePath}{saveFileName}.mp4",
             cv.VideoWriter_fourcc(*"mp4v"),
             30,
             cameraRes,
@@ -169,7 +169,7 @@ def readCamera(cameraNum, **kwargs):
 
     if kwargs.get("saveNpz", False):
         np.savez_compressed(
-            f"{filePath}{fileName}.npz",
+            f"{saveFilePath}{saveFileName}.npz",
             timeScds=timeScdsArr,
             avgInten=avgIntenArr,
             fromTime=kwargs["fromTime"],
