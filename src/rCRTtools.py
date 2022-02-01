@@ -182,6 +182,10 @@ def readCamera(cameraNum, **kwargs):
 # }}}
 
 
+def calcExclusionCriterion(rcrtParams, rcrtStdDev):
+    return abs(2 * rcrtStdDev[1] / rcrtParams[1])
+
+
 def fitFuncs(timeScdsArr, avgIntenArr, **kwargs):
     # {{{
     channelToUse = kwargs.get("channelToUse", "g")
@@ -211,20 +215,20 @@ def fitFuncs(timeScdsArr, avgIntenArr, **kwargs):
 
     rcrtGuesses = kwargs.get("rcrtGuesses", expParams)
     rcrtParams, rcrtStdDev = None, None
+    maxDivResultsDict = {}
     for i in maxDivergenceIndexList:
         try:
-            rcrtParams, rcrtStdDev = fitRCRT(
+            maxDivResultsDict[i] = fitRCRT(
                 timeScdsArr, channelAvgIntenArr, i, p0=rcrtGuesses
             )
-            maxDivergenceIndex = i
-            if exclusionCriterion:
-                criterion = abs(2 * rcrtStdDev[1] / rcrtParams[1])
-                if criterion >= exclusionCriterion:
-                    continue
-            break
-        except RuntimeError:
-            print("rcrt fit failed")
+        except (RuntimeError, TypeError):
+            print(f"rcrt fit failed with maxDiv = timeScdsArr[i]")
             continue
+
+    maxDivergenceIndex = min(
+        maxDivResultsDict, key=lambda x: calcExclusionCriterion(*maxDivResultsDict[x])
+    )
+    rcrtParams, rcrtStdDev = maxDivResultsDict[maxDivergenceIndex]
 
     if rcrtParams is None or rcrtStdDev is None:
         raise RuntimeError(f"rcrt fit failed with p0={rcrtGuesses}")
@@ -407,7 +411,7 @@ def shiftArr(timeArr, arr, **kwargs):
 
     toTime = kwargs.get("toTime", "end")
     if toTime == "end":
-        toIndex = len(timeArr)
+        toIndex = -1
     elif isinstance(toTime, (int, float)):
         toIndex = np.where(timeArr >= toTime)[0][0]
 
