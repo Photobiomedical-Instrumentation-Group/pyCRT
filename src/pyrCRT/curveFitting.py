@@ -194,7 +194,7 @@ def fitRCRT(
     y: np.ndarray,
     p0: Optional[List[Real]] = None,
     maxDiv: Optional[Union[List[Integer], Integer]] = None,
-) -> Tuple[FitParametersTuple, int]:
+) -> Tuple[FitParametersTuple, Integer]:
     # {{{
     # {{{
     """
@@ -258,7 +258,7 @@ def fitRCRT(
 
             try:
                 return (
-                    fitExponential(x[:maxDivIndex], y[:maxDivIndex], p0=p0),
+                    fitExponential(x[:int(maxDivIndex)], y[:int(maxDivIndex)], p0=p0),
                     maxDivIndex,
                 )
             except RuntimeError as err:
@@ -283,14 +283,14 @@ def fitRCRT(
 
 
 @overload
-def findMaxDivergencePeaks(x: np.ndarray, y: np.ndarray) -> List[int]:
+def findMaxDivergencePeaks(x: np.ndarray, y: np.ndarray) -> List[Integer]:
     ...
 
 
 @overload
 def findMaxDivergencePeaks(
     x: np.ndarray, expTuple: FitParametersTuple, polyTuple: FitParametersTuple
-) -> List[int]:
+) -> List[Integer]:
     ...
 
 
@@ -298,7 +298,7 @@ def findMaxDivergencePeaks(
     x: np.ndarray,
     *args: Union[np.ndarray, FitParametersTuple],
     **kwargs: Union[np.ndarray, FitParametersTuple],
-) -> List[int]:
+) -> List[Integer]:
     # {{{
     # {{{
     """
