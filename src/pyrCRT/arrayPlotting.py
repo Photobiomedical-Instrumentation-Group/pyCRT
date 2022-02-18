@@ -63,14 +63,24 @@ def plotAvgIntens(
     if legendOptions is None:
         legendOptions = {}
 
-    for channel in channelsToUse.strip().lower():
+    channelsToUse = channelsToUse.strip().lower()
+    if len(avgIntenArr.shape) == 1 and len(channelsToUse) == 1:
         ax.plot(
             timeScdsArr,
-            avgIntenArr[:, CHANNEL_INDICES_DICT[channel]],
-            color=channel,
-            label=f"Channel {channel.upper()}",
+            avgIntenArr,
+            color=channelsToUse,
+            label=f"Channel {channelsToUse.upper()}",
             **plotOptions,
         )
+    else:
+        for channel in channelsToUse:
+            ax.plot(
+                timeScdsArr,
+                avgIntenArr[:, CHANNEL_INDICES_DICT[channel]],
+                color=channel,
+                label=f"Channel {channel.upper()}",
+                **plotOptions,
+            )
     ax.legend(**legendOptions)
 
 
@@ -117,7 +127,7 @@ def plotRCRT(
     plotOptions = kwargs.get("plotOptions", None)
     legendOptions = kwargs.get("legendOptions", None)
     if plotOptions is None:
-        plotOptions = {"label": "rCRT Exp", "fmt": "c-"}
+        plotOptions = {"label": "rCRT Exp", "color": "cyan"}
     if legendOptions is None:
         legendOptions = {}
     ax.plot(timeScdsArr, funcY, **plotOptions)
@@ -185,35 +195,37 @@ def figVisualizationFactory(
     figTitle: Optional[str] = None,
     axisLabels: Tuple[str, str] = ("Time (s)", "Average Intensities (a.u.)"),
     figSizePx: Tuple[int, int] = (960, 600),
-    figAxTuple: Optional[FigAxTuple] = None,
-    *args: Any,
-    **kwargs: Any,
 ) -> Tuple[Callable, Callable]:
     # {{{
 
-    xlabel, ylabel = axisLabels
+    def makePlot(*args, **kwargs) -> FigAxTuple:
+        xlabel, ylabel = axisLabels
 
-    if figAxTuple is None:
         fig, ax = plt.subplots()
-    else:
-        fig, ax = figAxTuple
+        func((fig, ax), *args, **kwargs)
 
-    setFigSizePx(fig, figSizePx)
+        setFigSizePx(fig, figSizePx)
 
-    func((fig, ax), *args, **kwargs)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.autoscale(enable=True, axis="x", tight=True)
 
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
-    ax.autoscale(enable=True, axis="x", tight=True)
+        fig.suptitle(figTitle)
+        fig.set_constrained_layout(True)
 
-    fig.suptitle(figTitle)
-    fig.set_tight_layout(True)
+        return fig, ax
 
-    def showPlot() -> None:
-        fig.show()
+    def showPlot(*args, **kwargs) -> None:
+        fig, _ = makePlot(*args, **kwargs)
+        if not plt.isinteractive():
+            plt.show()
+            plt.close(fig)
 
-    def saveFig(figPath: str) -> None:
-        fig.save(figPath)
+    def saveFig(figPath: str, *args, **kwargs) -> None:
+        fig, _ = makePlot(*args, **kwargs)
+        plt.savefig(figPath)
+        if not plt.isinteractive():
+            plt.close(fig)
 
     return showPlot, saveFig
 
@@ -221,10 +233,10 @@ def figVisualizationFactory(
 # }}}
 
 
-showAvgIntens, saveAvgIntens = figVisualizationFactory(
+showAvgInten, saveAvgInten = figVisualizationFactory(
     plotAvgIntens, "Channel average intensities"
 )
 
-showAvgIntensAndFunctions, saveAvgIntensAndFunctions = figVisualizationFactory(
+showAvgIntenAndFunctions, saveAvgIntensAndFunctions= figVisualizationFactory(
     plotAvgIntensAndFunctions, "Average Intensities and fitted functions"
 )
