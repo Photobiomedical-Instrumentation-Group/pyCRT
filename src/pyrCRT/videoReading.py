@@ -25,7 +25,7 @@ import numpy as np
 from arrayOperations import stripArr
 
 # pylint: disable=import-error
-from videoReading import rescaleFrame, drawRoi, calcAvgInten
+from frameOperations import rescaleFrame, drawRoi, calcAvgInten
 
 # Type aliases for commonly used types
 # {{{
@@ -35,11 +35,15 @@ RoiTuple = Tuple[int, int, int, int]
 # Either a RoiTuple, or "all"
 RoiType = Union[RoiTuple, str]
 
+# Used just as a shorthand
+Array = np.ndarray
+
 # Tuples of two numpy arrays, typically an array of the timestamp for each frame and an
 # array of average intensities within a given ROI
-ArrayTuple = Tuple[np.ndarray, np.ndarray]
+ArrayTuple = Tuple[Array, Array]
 
 Real = Union[float, int, np.float_, np.int_]
+Integer = Union[int, np.int_]
 # }}}
 
 
@@ -49,7 +53,7 @@ def readVideo(
     displayVideo: bool = True,
     recordingPath: Optional[str] = None,
     rescaleFactor: Real = 1.0,
-    waitKeyTime: float = 1.0,
+    waitKeyTime: Integer = 1,
     cameraResolution: Optional[Tuple[int, int]] = None,
     codecFourcc: str = "mp4v",
     recordingFps: float = 30.0,
@@ -145,7 +149,7 @@ def readVideo(
     # have to change this later.
 
     timeScdsList: List[float] = []
-    avgIntenList: List[np.ndarray] = []
+    avgIntenList: List[Array] = []
 
     with videoCapture(videoSource, cameraResolution, **kwargs) as cap:
         for frame in frameReader(cap, rescaleFactor):

@@ -18,13 +18,16 @@ filterwarnings("error")
 
 # Type aliases for commonly used types
 # {{{
+# Used just as a shorthand
+Array = np.ndarray
+
 # Tuples of two numpy arrays, typically an array of the timestamp for each frame and an
 # array of average intensities within a given ROI
-ArrayTuple = Tuple[np.ndarray, np.ndarray]
+ArrayTuple = Tuple[Array, Array]
 
 # Tuple of two lists, the first being the fitted parameters and the second their
 # standard deviations
-FitParametersTuple = Tuple[np.ndarray, np.ndarray]
+FitParametersTuple = Tuple[Array, Array]
 
 Real = Union[float, int, np.float_, np.int_]
 
@@ -33,7 +36,7 @@ Integer = Union[int, np.int_]
 # }}}
 
 
-def exponential(x: np.ndarray, a: Real, b: Real, c: Real) -> np.ndarray:
+def exponential(x: Array, a: Real, b: Real, c: Real) -> Array:
     # {{{
     """Exponential function of the form a*exp(b*x)+c. Refer to np.exp from the Numpy
     documentation for more information."""
@@ -43,7 +46,7 @@ def exponential(x: np.ndarray, a: Real, b: Real, c: Real) -> np.ndarray:
 # }}}
 
 
-def polynomial(x: np.ndarray, *coefs: Real) -> np.ndarray:
+def polynomial(x: Array, *coefs: Real) -> Array:
     # {{{
     """Polynomial of the form coefs[0] + coefs[0]*x + coefs[1]*x**2 + ... Refer to the
     Numpy documentation for more information."""
@@ -53,7 +56,7 @@ def polynomial(x: np.ndarray, *coefs: Real) -> np.ndarray:
 # }}}
 
 
-def covToStdDev(cov: np.ndarray) -> np.ndarray:
+def covToStdDev(cov: Array) -> Array:
     # {{{
     """Converts the covariance matrix returned by SciPy parameter optimization functions
     into an array with the standard deviation of each parameter. Refer to the
@@ -66,8 +69,8 @@ def covToStdDev(cov: np.ndarray) -> np.ndarray:
 
 
 def fitExponential(
-    x: np.ndarray,
-    y: np.ndarray,
+    x: Array,
+    y: Array,
     p0: Optional[List[Real]] = None,
 ) -> FitParametersTuple:
     # {{{
@@ -121,8 +124,8 @@ def fitExponential(
 
 
 def fitPolynomial(
-    x: np.ndarray,
-    y: np.ndarray,
+    x: Array,
+    y: Array,
     p0: Optional[List[Real]] = None,
 ) -> FitParametersTuple:
     # {{{
@@ -177,8 +180,8 @@ def fitPolynomial(
 
 
 def diffExpPoly(
-    x: np.ndarray, expParams: np.ndarray, polyParams: np.ndarray
-) -> np.ndarray:
+    x: Array, expParams: Array, polyParams: Array
+) -> Array:
     # {{{
     """
     Evaluates the function |exponential(expParams) - polynomial(polyParams)| over x
@@ -190,8 +193,8 @@ def diffExpPoly(
 
 
 def fitRCRT(
-    x: np.ndarray,
-    y: np.ndarray,
+    x: Array,
+    y: Array,
     p0: Optional[List[Real]] = None,
     maxDiv: Optional[Union[List[Integer], Integer]] = None,
 ) -> Tuple[FitParametersTuple, Integer]:
@@ -258,7 +261,7 @@ def fitRCRT(
 
             try:
                 return (
-                    fitExponential(x[:int(maxDivIndex)], y[:int(maxDivIndex)], p0=p0),
+                    fitExponential(x[: int(maxDivIndex)], y[: int(maxDivIndex)], p0=p0),
                     maxDivIndex,
                 )
             except RuntimeError as err:
@@ -279,22 +282,61 @@ def fitRCRT(
 # }}}
 
 
+def rCRTFromParameters(rCRTTuple: FitParametersTuple) -> Tuple[np.float_, np.float_]:
+    # {{{
+    # {{{
+    """
+    Calculate the rCRT and its uncertainty with a 95% confidence interval from the rCRT
+    exponential's optimized parameters.
+
+    Parameters
+    ----------
+    rCRTTuple : tuple of np.ndarray
+        A tuple with the fitted parameters and their standard deviations, respectively.
+        See fitRCRT.
+
+    Returns
+    -------
+    rCRT : np.float_
+        The calculated rCRT, which is the negative inverse of the "b" parameter of the
+        exponential function defined in this module (see exponential).
+
+    rCRTUncertainty : np.float_
+        The rCRT's uncertainty with a 95% confidence interval, calculated from the
+        standard deviation of the "b" parameter of the exponential function.
+    """
+    # }}}
+
+    rCRTParams, rCRTStdDev = rCRTTuple
+
+    inverseRCRT: np.float_ = rCRTParams[1]
+    inverseRCRTStdDev: np.float_ = rCRTStdDev[1]
+
+    rCRT = -1 / inverseRCRT
+    rCRTUncertainty = -2 * rCRT * (inverseRCRTStdDev / inverseRCRT)
+
+    return (rCRT, rCRTUncertainty)
+
+
+# }}}
+
+
 @overload
-def findMaxDivergencePeaks(x: np.ndarray, y: np.ndarray) -> List[Integer]:
+def findMaxDivergencePeaks(x: Array, y: Array) -> List[Integer]:
     ...
 
 
 @overload
 def findMaxDivergencePeaks(
-    x: np.ndarray, expTuple: FitParametersTuple, polyTuple: FitParametersTuple
+    x: Array, expTuple: FitParametersTuple, polyTuple: FitParametersTuple
 ) -> List[Integer]:
     ...
 
 
 def findMaxDivergencePeaks(
-    x: np.ndarray,
-    *args: Union[np.ndarray, FitParametersTuple],
-    **kwargs: Union[np.ndarray, FitParametersTuple],
+    x: Array,
+    *args: Union[Array, FitParametersTuple],
+    **kwargs: Union[Array, FitParametersTuple],
 ) -> List[Integer]:
     # {{{
     # {{{
@@ -330,15 +372,15 @@ def findMaxDivergencePeaks(
 
     if "expTuple" in kwargs and "polyTuple" in kwargs:
         expParams, polyParams = kwargs["expTuple"][0], kwargs["polyTuple"][0]
-        assert isinstance(expParams, np.ndarray) and isinstance(polyParams, np.ndarray)
+        assert isinstance(expParams, Array) and isinstance(polyParams, Array)
 
         diffArray = diffExpPoly(x, expParams, polyParams)
         maxIndexes = find_peaks(diffArray)[0]
         maxIndexesSorted = sorted(maxIndexes, key=lambda x: diffArray[x], reverse=True)
         return maxIndexesSorted
 
-    if len(args) == 1 and isinstance(args[0], np.ndarray):
-        y: np.ndarray = args[0]
+    if len(args) == 1 and isinstance(args[0], Array):
+        y: Array = args[0]
         expTuple = fitExponential(x, y)
         polyTuple = fitPolynomial(x, y)
         return findMaxDivergencePeaks(x, expTuple=expTuple, polyTuple=polyTuple)

@@ -8,16 +8,17 @@ from _readTestData import G, timeScdsArr
 from curveFitting import fitExponential, fitPolynomial, fitRCRT, findMaxDivergencePeaks
 
 # pylint: disable=import-error
-from arrayOperations import shiftArr
+from arrayOperations import sliceFromMaxToEnd, minMaxNormalize
 
-timeShifted, GShifted = shiftArr(timeScdsArr, G)
+timeScdsArr, G = sliceFromMaxToEnd(timeScdsArr, G)
+G = minMaxNormalize(G)
 
-expTuple = fitExponential(timeShifted, GShifted)
-polyTuple = fitPolynomial(timeShifted, GShifted)
+expTuple = fitExponential(timeScdsArr, G)
+polyTuple = fitPolynomial(timeScdsArr, G)
 
-maxDiv = findMaxDivergencePeaks(timeShifted, expTuple=expTuple, polyTuple=polyTuple)
+maxDiv = findMaxDivergencePeaks(timeScdsArr, expTuple=expTuple, polyTuple=polyTuple)
 
-rCRTTuple, maxDiv = fitRCRT(timeShifted, GShifted, maxDiv)
+rCRTTuple, maxDiv = fitRCRT(timeScdsArr, G, maxDiv)
 
 expParams, expStdDev = expTuple
 polyParams, polyStdDev = polyTuple

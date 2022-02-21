@@ -18,13 +18,16 @@ from curveFitting import exponential, polynomial
 
 # Type aliases for commonly used types
 # {{{
+# Used just as a shorthand
+Array = np.ndarray
+
 # Tuples of two numpy arrays, typically an array of the timestamp for each frame and an
 # array of average intensities within a given ROI
-ArrayTuple = Tuple[np.ndarray, np.ndarray]
+ArrayTuple = Tuple[Array, Array]
 
 # Tuple of two lists, the first being the fitted parameters and the second their
 # standard deviations
-FitParametersTuple = Tuple[np.ndarray, np.ndarray]
+FitParametersTuple = Tuple[Array, Array]
 
 Real = Union[float, int, np.float_, np.int_]
 
@@ -40,8 +43,8 @@ CHANNEL_INDICES_DICT = {"b": 0, "g": 1, "r": 2}
 
 def plotAvgIntens(
     figAxTuple: FigAxTuple,
-    timeScdsArr: np.ndarray,
-    avgIntenArr: np.ndarray,
+    timeScdsArr: Array,
+    avgIntenArr: Array,
     channels: Optional[str] = None,
     **kwargs: Any,
 ) -> None:
@@ -121,7 +124,7 @@ def plotAvgIntens(
 
 def plotFunction(
     figAxTuple: FigAxTuple,
-    timeScdsArr: np.ndarray,
+    timeScdsArr: Array,
     func: Callable,
     funcParams: List[Real],
     **kwargs: Any,
@@ -174,7 +177,7 @@ def plotFunction(
 
 def plotRCRT(
     figAxTuple: FigAxTuple,
-    timeScdsArr: np.ndarray,
+    timeScdsArr: Array,
     rCRTParams: List[Real],
     maxDiv: Optional[Integer] = None,
     **kwargs: Any,
@@ -210,9 +213,9 @@ def plotRCRT(
 # This is a filthy hack
 def _plotAvgIntensAndFunctions(
     figAxTuple: FigAxTuple,
-    timeScdsArr: np.ndarray,
-    avgIntenArr: np.ndarray,
-    funcParams: Dict[str, List[Real]],
+    timeScdsArr: Array,
+    avgIntenArr: Array,
+    funcParams: Dict[List[Real]],
     maxDiv: Optional[Integer] = None,
     funcOptions: Optional[Dict[str, Any]] = None,
 ) -> None:
