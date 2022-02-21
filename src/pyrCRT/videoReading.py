@@ -21,6 +21,12 @@ from typing import Any, Generator, List, Optional, Tuple, Union
 import cv2 as cv  # type: ignore
 import numpy as np
 
+# pylint: disable=import-error
+from arrayOperations import stripArr
+
+# pylint: disable=import-error
+from videoReading import rescaleFrame, drawRoi, calcAvgInten
+
 # Type aliases for commonly used types
 # {{{
 # Standard ROI tuple used by OpenCV
@@ -43,6 +49,7 @@ def readVideo(
     displayVideo: bool = True,
     recordingPath: Optional[str] = None,
     rescaleFactor: Real = 1.0,
+    waitKeyTime: float = 1.0,
     cameraResolution: Optional[Tuple[int, int]] = None,
     codecFourcc: str = "mp4v",
     recordingFps: float = 30.0,
@@ -60,6 +67,7 @@ def readVideo(
         The first argument to cv2.VideoCapture. If an int, it will take the
         corresponding detected camera as the video source. If a str, It'll take it as a
         path in the filesystem for a video file.
+
     roi : Tuple[int, int, int, int] or "all"
         The region of interest, inside which the average of each pixel will be computed.
         This tuple must contain 4 integers: (x, y, length_x, and length_y), where x and
@@ -72,6 +80,11 @@ def readVideo(
         Factor by which each frame will be scaled. This can help reduce the load on the
         hardware and speed up computation. By default the video won't be scaled.
 
+    waitKeyTime : float, optional
+        How many milliseconds to wait for user input between each frame. The default
+        value is 1, so on most machines the video will appear "sped up" relative to it
+        being played on a regular video player. See cv2.waitKey for more information.
+
     cameraResolution : tuple of 2 ints, default=None
         Used to optionally change the camera resolution before handing over the
         VideoCapture instance. If reading from a video file, it does nothing.
@@ -79,9 +92,11 @@ def readVideo(
     recordingPath : str, default=None
         The path (with the extension!) in the filesystem wherein to save the recording.
         If falsy, it won't record the video.
+
     codecFourcc : str, default='mp4v'
         The fourcc identifier for the video codec to be used for the recording. Refer to
         www.fourcc.org/codecs.php for a list of possible codes.
+
     recordingFps : int, default=None
         The FPS (frames per second) for the recording, which doesn't need to correspond
         to the FPS of the camera or the source video.
@@ -146,7 +161,7 @@ def readVideo(
             if displayVideo:
                 frame = drawRoi(frame, roi)
                 cv.imshow("Video stream", frame)
-                key = cv.waitKey(1)
+                key = cv.waitKey(waitKeyTime)
 
                 if key == ord(" "):
                     roi = cv.selectROI("Video stream", frame)
@@ -189,9 +204,11 @@ def videoCapture(
         The first argument to cv2.VideoCapture. If an int, it will take the
         corresponding detected camera as the video source. If a str, It'll take it as a
         path in the filesystem for a video file.
+
     cameraResolution : tuple of 2 ints, default=None
         Used to optionally change the camera resolution before handing over the
         VideoCapture instance. If reading from a video file, it does nothing.
+
     **kwargs : any type
         Additional arguments to pass to cv2.VideoCapture
 
@@ -203,6 +220,7 @@ def videoCapture(
     ------
     ValueError
         If videoSource is a str but there isn't any file in the specified path.
+
     TypeError
         If videoSource isn't a str or an int
 
@@ -264,6 +282,7 @@ def frameReader(
     capture : cv.VideoCapture
         The OpenCV VideoCapture instance from which to extract the frames. See
         pyrCRT.videoReading.videoCapture
+
     rescaleFactor : int or float, default=1.0
         Factor by which each frame will be scaled. This can help reduce the load on the
         hardware and speed up computation. By default the video won't be scaled.
@@ -304,9 +323,11 @@ def frameWriter(
     ----------
     recordingPath : str, default=None
         The path (with the extension!) in the filesystem wherein to save the recording.
+
     codecFourcc : str, default='mp4v'
         The fourcc identifier for the video codec to be used for the recording. Refer to
         www.fourcc.org/codecs.php for a list of possible codes.
+
     recordingFps : int, default=None
         The FPS (frames per second) for the recording, which doesn't need to correspond
         to the FPS of the camera or the source video.
@@ -327,75 +348,6 @@ def frameWriter(
     while True:
         frame = yield
         writer.write(frame)
-
-
-# }}}
-
-
-# TODO: Move these functions to .frameManipulation as soon as you're finished testing
-# this module.
-
-
-def rescaleFrame(frame: np.ndarray, rescaleFactor: Real) -> np.ndarray:
-    # {{{
-    """Simply rescales the frame, uses bilinear interpolation."""
-
-    return cv.resize(frame, (0, 0), fx=rescaleFactor, fy=rescaleFactor)
-
-
-# }}}
-
-
-def drawRoi(frame: np.ndarray, roi: Optional[RoiType]) -> np.ndarray:
-    # {{{
-    """Simply draws a red rectangle on the frame to highlight the ROI"""
-
-    if isinstance(roi, tuple):
-        x1, y1, sideX, sideY = roi
-        x2, y2 = x1 + sideX, y1 + sideY
-        return cv.rectangle(frame, (x1, y1), (x2, y2), [0, 0, 255], 2)
-    return frame  # in this case, roi will *prolly* be == "all", or None
-
-
-# }}}
-
-
-def cropFrame(frame: np.ndarray, roi: Optional[RoiType]) -> np.ndarray:
-    # {{{
-    """Slices the frame matrix and returns only the portion inside the ROI"""
-
-    if isinstance(roi, tuple):
-        x1, y1, sideX, sideY = roi
-        return frame[y1 : y1 + sideY, x1 : x1 + sideX]
-    return frame  # in this case, roi will *prolly* be == "all", or None
-
-
-# }}}
-
-
-def calcAvgInten(frame: np.ndarray, roi: Optional[RoiType]) -> np.ndarray:
-    # {{{
-    """Calculates the average pixel intensity for all pixels inside the ROI and returns
-    an array with the average for each channel."""
-
-    croppedFrame = cropFrame(frame, roi)
-    channelsAvgInten = cv.mean(croppedFrame)[:3]
-    return channelsAvgInten
-
-
-# }}}
-
-# TODO: Move these functions to .arrayOperations as soon as you're finished testing this
-# module.
-
-
-def stripArr(timeArr: np.ndarray, arr: np.ndarray) -> ArrayTuple:
-    # {{{
-    """Ridiculous workaround for mp4 files"""
-
-    timeArr = np.trim_zeros(timeArr, trim="b")
-    arr = arr[: len(timeArr)]
-    return timeArr, arr
 
 
 # }}}
