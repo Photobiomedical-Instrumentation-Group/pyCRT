@@ -22,60 +22,47 @@ Real = Union[float, int, np.float_, np.int_]
 # }}}
 
 
-def sliceFromMaxToEnd(xArr: Array, yArr: Array) -> ArrayTuple:
+def sliceFromMaxToEnd(intenArr: Array) -> slice:
     # {{{
     # {{{
     """
-    Slices the input arrays from the index of the second array's absolute maximum to
-    their end.
-
-    Parameters
-    ----------
-    xArr, yArr : np.ndarray
-        The arrays to be sliced. Only the absolute maximum of yArr will be considered.
-
-    Returns
-    -------
-    xArrSliced, yArrSliced : np.ndarray
-        A view to the input arrays, but sliced.
+    Returns a slice object that slices the input array from the index of its absolute
+    maximum to its end. It's literally just slice(intenArr.argmax(), -1)
     """
     # }}}
-    arrSlice = slice(yArr.argmax(), -1)
-    return (xArr[arrSlice], yArr[arrSlice])
+    return slice(intenArr.argmax(), -1)
 
 
 # }}}
 
 
 def sliceByTime(
-    xArr: Array,
-    yArr: Array,
+    timeArr: Array,
     fromTime: Optional[Real] = None,
     toTime: Optional[Real] = None,
-) -> ArrayTuple:
+) -> slice:
     # {{{
     # {{{
     """
-    Slices the input arrays from the first index whose xArr value is greater than
-    fromTime, up to the first index whose xArr value is less than or equal to toTime.
+    Creates a slice object specifying timeArr's section which is between fromTime and
+    toTime.
 
     Parameters
     ----------
-    xArr, yArr : np.ndarray
-        The arrays to be sliced. Only xArr is actually used for calculating the slice.
+    timeArr : np.ndarray
+        The array whose slice is to be calculated
 
     fromTime : real number or None, default=None
-        xArr and yArr will be sliced from the first index whose xArr's value is greater
-        than this argument. If None, -np.inf will be used.
+        The slice's "start" argument will be the index of the first element of timeArr
+        whose value is greater or equal to fromTime. If None, -np.inf will be used.
 
-    fromTime : real number
-        xArr and yArr will be sliced up to the first index whose xArr's value is less
-        than or equal to this argument. If None, np.inf will be used.
+    toTime : real number or None, default=None
+        The slice's "stop" argument will be the index of the first element of timeArr
+        whose value is less or equal to fromTime. If None, np.inf will be used.
 
     Returns
     -------
-    xArrSliced, yArrSliced : np.ndarray
-        A view to the input arrays, but sliced.
+    A slice object specifying the slice between fromTime to toTime in arr.
     """
     # }}}
 
@@ -85,27 +72,33 @@ def sliceByTime(
         toTime = np.inf
 
     # * is used as a logical And here
-    selectionArray = (xArr >= fromTime) * (xArr <= toTime)
-    return (xArr[selectionArray], yArr[selectionArray])
+    selectionArray = ((timeArr >= fromTime) * (timeArr <= toTime)).nonzero()[0]
+    fromIndex, toIndex = selectionArray[0], selectionArray[-1]
+    return slice(fromIndex, toIndex)
 
 
 # }}}
 
 
 def sliceFromLocalMax(
-    xArr: Array,
-    yArr: Array,
+    timeArr: Array,
+    intenArr: Array,
     fromTime: Optional[Real] = None,
     toTime: Optional[Real] = None,
-) -> ArrayTuple:
+) -> slice:
+    # {{{
     # {{{
     """
-    Applies sliceByTime and sliceFromMaxToEnd respectively to the input arrays with
+    Applies sliceByTime and sliceFromMaxToEnd in this order to the input arrays with
     fromTime and toTime as arguments. Refer to sliceByTime's and sliceFromMaxToEnd's
     docstrings for more information.
     """
     # }}}
-    return sliceFromMaxToEnd(*sliceByTime(xArr, yArr, fromTime, toTime))
+    timeSlice = sliceByTime(timeArr, fromTime, toTime)
+    return sliceFromMaxToEnd(intenArr[timeSlice])
+
+
+# }}}
 
 
 def minMaxNormalize(array: np.ndarray) -> np.ndarray:
