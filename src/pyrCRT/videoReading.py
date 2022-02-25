@@ -53,7 +53,7 @@ def readVideo(
     displayVideo: bool = True,
     recordingPath: Optional[str] = None,
     rescaleFactor: Real = 1.0,
-    waitKeyTime: Integer = 1,
+    waitKeyTime: int = 1,
     cameraResolution: Optional[Tuple[int, int]] = None,
     codecFourcc: str = "mp4v",
     recordingFps: float = 30.0,
@@ -106,7 +106,8 @@ def readVideo(
         to the FPS of the camera or the source video.
 
     kwargs : Any
-        Additional arguments to be passed to cv2.VideoCapture
+        Additional arguments are silently ignored... I made it this way so this function
+        would play nice with the simpleUI.RCRT class implementation.
 
     Returns
     -------
@@ -151,7 +152,7 @@ def readVideo(
     timeScdsList: List[float] = []
     avgIntenList: List[Array] = []
 
-    with videoCapture(videoSource, cameraResolution, **kwargs) as cap:
+    with videoCapture(videoSource, cameraResolution) as cap:
         for frame in frameReader(cap, rescaleFactor):
             if roi is not None:
                 timeScds = cap.get(cv.CAP_PROP_POS_MSEC) / 1000.0
@@ -195,7 +196,6 @@ def readVideo(
 def videoCapture(
     videoSource: Union[int, str],
     cameraResolution: Optional[Tuple[int, int]] = None,
-    **kwargs: Any,
 ) -> cv.VideoCapture:
     # {{{
     # {{{
@@ -212,9 +212,6 @@ def videoCapture(
     cameraResolution : tuple of 2 ints, default=None
         Used to optionally change the camera resolution before handing over the
         VideoCapture instance. If reading from a video file, it does nothing.
-
-    **kwargs : any type
-        Additional arguments to pass to cv2.VideoCapture
 
     Yields
     ------
@@ -253,7 +250,7 @@ def videoCapture(
             "str (for a path to a video in the filesystem."
         )
 
-    cap = cv.VideoCapture(videoSource, **kwargs)
+    cap = cv.VideoCapture(videoSource)
 
     # Set camera resolution
     if cameraResolution:

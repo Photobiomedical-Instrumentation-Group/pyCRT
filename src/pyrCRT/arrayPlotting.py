@@ -179,7 +179,7 @@ def plotRCRT(
     figAxTuple: FigAxTuple,
     timeScdsArr: Array,
     rCRTParams: List[Real],
-    maxDiv: Optional[Integer] = None,
+    maxDiv: Optional[int] = None,
     **kwargs: Any,
 ) -> None:
     # {{{
@@ -215,8 +215,8 @@ def _plotAvgIntensAndFunctions(
     figAxTuple: FigAxTuple,
     timeScdsArr: Array,
     avgIntenArr: Array,
-    funcParams: Dict[List[Real]],
-    maxDiv: Optional[Integer] = None,
+    funcParams: Dict[str, List[Real]],
+    maxDiv: Optional[int] = None,
     funcOptions: Optional[Dict[str, Any]] = None,
 ) -> None:
     # {{{
@@ -355,7 +355,7 @@ def makeFigAxes(
 def figVisualizationFactory(
     func: Callable,
     figTitle: Optional[str] = None,
-    axisLabels: Tuple[str, str] = ("Time (s)", "Average Intensities (a.u.)"),
+    axisLabels: Tuple[str, str] = ("Time (s)", "Average intensities (a.u.)"),
     figSizePx: Tuple[int, int] = (960, 600),
 ) -> Tuple[Callable, Callable]:
     # {{{
@@ -428,5 +428,7 @@ showAvgIntens, saveAvgIntens = figVisualizationFactory(
 )
 
 showAvgIntensAndFunctions, saveAvgIntensAndFunctions = figVisualizationFactory(
-    _plotAvgIntensAndFunctions, "Average Intensities and fitted functions"
+    _plotAvgIntensAndFunctions, 
+    "Average Intensities and fitted functions",
+    ("Time since release of compression (s)", "Average intensities (a.u.)")
 )

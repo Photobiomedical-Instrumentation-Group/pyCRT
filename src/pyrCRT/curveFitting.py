@@ -196,8 +196,8 @@ def fitRCRT(
     x: Array,
     y: Array,
     p0: Optional[List[Real]] = None,
-    maxDiv: Optional[Union[List[Integer], Integer]] = None,
-) -> Tuple[FitParametersTuple, Integer]:
+    maxDiv: Optional[Union[List[int], int]] = None,
+) -> Tuple[FitParametersTuple, int]:
     # {{{
     # {{{
     """
@@ -256,7 +256,7 @@ def fitRCRT(
             raise RuntimeError(
                 f"rCRT fit failed on all maxDivIndexes ({maxDivList})," " with p0={p0}."
             )
-        if isinstance(maxDiv, (int, np.int_)):
+        if isinstance(maxDiv, int):
             maxDivIndex = maxDiv
 
             try:
@@ -321,15 +321,27 @@ def rCRTFromParameters(rCRTTuple: FitParametersTuple) -> Tuple[np.float_, np.flo
 # }}}
 
 
+def calculateRelativeUncertainty(rCRTTuple: FitParametersTuple) -> np.float_:
+# {{{
+    """
+    Calculates the rCRT's relative uncertainty given a tuple with the optimized rCRT
+    exponential parameters and their respective standard deviations.
+    """
+
+    rCRTParams, rCRTStdDev = rCRTTuple
+    return abs(rCRTStdDev[1] / rCRTParams[1])
+# }}}
+
+
 @overload
-def findMaxDivergencePeaks(x: Array, y: Array) -> List[Integer]:
+def findMaxDivergencePeaks(x: Array, y: Array) -> List[int]:
     ...
 
 
 @overload
 def findMaxDivergencePeaks(
     x: Array, expTuple: FitParametersTuple, polyTuple: FitParametersTuple
-) -> List[Integer]:
+) -> List[int]:
     ...
 
 
@@ -337,7 +349,7 @@ def findMaxDivergencePeaks(
     x: Array,
     *args: Union[Array, FitParametersTuple],
     **kwargs: Union[Array, FitParametersTuple],
-) -> List[Integer]:
+) -> List[int]:
     # {{{
     # {{{
     """
@@ -376,6 +388,7 @@ def findMaxDivergencePeaks(
 
         diffArray = diffExpPoly(x, expParams, polyParams)
         maxIndexes = find_peaks(diffArray)[0]
+        maxIndexes = [int(x) for x in maxIndexes]
         maxIndexesSorted = sorted(maxIndexes, key=lambda x: diffArray[x], reverse=True)
         return maxIndexesSorted
 

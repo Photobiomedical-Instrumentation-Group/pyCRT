@@ -95,7 +95,11 @@ def sliceFromLocalMax(
     """
     # }}}
     timeSlice = sliceByTime(timeArr, fromTime, toTime)
-    return sliceFromMaxToEnd(intenArr[timeSlice])
+    timeFrom, timeTo, _ = timeSlice.indices(len(timeArr))
+
+    fromMaxSlice = sliceFromMaxToEnd(intenArr[timeSlice])
+    maxIndex, _, _ = fromMaxSlice.indices(len(timeArr))
+    return slice(timeFrom + maxIndex, timeTo)
 
 
 # }}}

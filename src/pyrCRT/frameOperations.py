@@ -21,7 +21,7 @@ RoiTuple = Tuple[int, int, int, int]
 # Either a RoiTuple, or "all"
 RoiType = Union[RoiTuple, str]
 
-Real = Union[float, int]
+Real = Union[float, int, np.float_, np.int_]
 # }}}
 
 
