@@ -25,7 +25,7 @@ import numpy as np
 from arrayOperations import stripArr
 
 # pylint: disable=import-error
-from frameOperations import rescaleFrame, drawRoi, calcAvgInten
+from frameOperations import calcAvgInten, drawRoi, rescaleFrame
 
 # Type aliases for commonly used types
 # {{{
@@ -136,9 +136,9 @@ def readVideo(
                 "Invalid value for the ROI. The roi parameter should be either a tuple"
                 "of 4 ints or 'all' to use the entire frame."
             )
-    else:
+    elif roi is not None:
         raise TypeError(
-            "Invalid type for the ROI. The roi parameter should be either a tuple of 4"
+            "Invalid type for the ROI. The roi parameter should be either a tuple of 4 "
             "ints or 'all' to use the entire frame."
         )
 

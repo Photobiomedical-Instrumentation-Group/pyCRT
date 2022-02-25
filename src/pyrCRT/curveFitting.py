@@ -112,7 +112,7 @@ def fitExponential(
             xdata=x,
             ydata=y,
             p0=p0,
-            bounds=(-np.inf, np.inf),
+            bounds=([0.0, -np.inf, -np.inf], [np.inf, 0.0, np.inf]),
         )
         expStdDev = covToStdDev(expCov)
         return expParams, expStdDev

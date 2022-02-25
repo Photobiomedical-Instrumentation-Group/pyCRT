@@ -16,6 +16,7 @@ from arrayOperations import (
     sliceByTime,
     sliceFromLocalMax,
     sliceFromMaxToEnd,
+    subtractMinimum,
 )
 
 # pylint: disable=import-error
@@ -322,7 +323,7 @@ class RCRT:
                 "Valid values: 'from local max', 'from max' and 'by time'"
             )
 
-        self.timeScds = self.fullTimeScds[self.slice]
+        self.timeScds = subtractMinimum(self.fullTimeScds[self.slice])
         self.avgIntens = minMaxNormalize(self.channelFullAvgIntens[self.slice])
 
     # }}}

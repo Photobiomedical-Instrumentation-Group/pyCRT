@@ -105,7 +105,7 @@ def sliceFromLocalMax(
 # }}}
 
 
-def minMaxNormalize(array: np.ndarray) -> np.ndarray:
+def minMaxNormalize(array: Array) -> np.ndarray:
     # {{{
     """Performs min-max normalization on array."""
     return (array - array.min()) / (array.max() - array.min())
@@ -114,7 +114,7 @@ def minMaxNormalize(array: np.ndarray) -> np.ndarray:
 # }}}
 
 
-def stripArr(timeArr: np.ndarray, arr: np.ndarray) -> ArrayTuple:
+def stripArr(timeArr: Array, arr: Array) -> ArrayTuple:
     # {{{
     """Ridiculous workaround for mp4 files. Simply removes the trailing zeros from
     timeArr and the corresponding arr elements."""
@@ -124,4 +124,15 @@ def stripArr(timeArr: np.ndarray, arr: np.ndarray) -> ArrayTuple:
     return timeArr, arr
 
 
+# }}}
+
+
+def subtractMinimum(arr: Array) -> Array:
+# {{{
+    """
+    Subtracts the array's elements by the array's minimum value. What else did you
+    expect?
+    """
+
+    return arr - arr.min()
 # }}}
