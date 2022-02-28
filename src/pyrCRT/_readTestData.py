@@ -2,9 +2,11 @@
 # Only meant to be used for testing the other modules on ipython.
 
 import numpy as np
+from simpleUI import RCRT
 
 arq = np.load("_testData.npz")
 
-timeScdsArr = arq["timeScds"]
-avgIntenArr = arq["avgInten"]
-B, G, R = avgIntenArr[:, 0], avgIntenArr[:, 1], avgIntenArr[:, 2]
+fullTimeScds = arq["fullTimeScds"]
+fullAvgIntens = arq["fullAvgIntens"]
+
+rcrt = RCRT(fullTimeScds, fullAvgIntens, exclusionMethod="best fit")
