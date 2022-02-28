@@ -9,9 +9,11 @@ exponential curves on the data.
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
+from matplotlib import patches as mpatches
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+from matplotlib.ticker import AutoLocator, AutoMinorLocator
 
 # pylint: disable=import-error
 from curveFitting import exponential, polynomial
@@ -186,8 +188,8 @@ def plotRCRT(
     """
     Basically a special case of curveFitting.plotFunction that specifically plots an
     exponential function with the given parameters, and a vertical line on
-    timeScdsArr[maxDiv], and sets the line's legend to be about rCRT. See the
-    documentation the aforementioned function for more information.
+    timeScdsArr[maxDiv] (the critical time 'tc'), and sets the line's legend to be about
+    rCRT. See the documentation the aforementioned function for more information.
     """
     _, ax = figAxTuple
 
@@ -201,14 +203,26 @@ def plotRCRT(
         legendOptions = {}
     ax.plot(timeScdsArr, funcY, **plotOptions)
 
+    criticalTime = timeScdsArr[maxDiv]
     if maxDiv is not None:
-        ax.axvline(timeScdsArr[maxDiv], label="maxDiv", c="k", ls=":")
+        ax.axvline(criticalTime, label=f"tc={criticalTime:.3g}", c="k", ls=":")
 
     ax.legend(**legendOptions)
 
 
 # }}}
 
+
+def addTextToLabel(ax: Axes, text: str, **kwargs: Any) -> None:
+    # {{{
+    """Adds some text to the axes' legend and redraws the legend."""
+
+    handles, labels = ax.get_legend_handles_labels()
+    handles.append(mpatches.Patch(color="none", label=text))
+    ax.legend(handles=handles, **kwargs)
+
+
+# }}}
 
 # This is a filthy hack
 def _plotAvgIntensAndFunctions(
@@ -344,6 +358,9 @@ def makeFigAxes(
     ax.set_ylabel(ylabel)
     ax.autoscale(enable=True, axis="x", tight=True)
 
+    ax.xaxis.set_major_locator(AutoLocator())
+    ax.xaxis.set_minor_locator(AutoMinorLocator())
+
     fig.suptitle(figTitle)
 
     return fig, ax
@@ -403,6 +420,8 @@ def figVisualizationFactory(
         try:
             fig, ax = makeFigAxes(axisLabels, figTitle, figSizePx)
             func((fig, ax), *args, **kwargs)
+        except Exception as err:
+            raise err
         finally:
             if not plt.isinteractive():
                 plt.show()
@@ -413,6 +432,8 @@ def figVisualizationFactory(
             fig, ax = makeFigAxes(axisLabels, figTitle, figSizePx)
             func((fig, ax), *args, **kwargs)
             plt.savefig(figPath)
+        except Exception as err:
+            raise err
         finally:
             if not plt.isinteractive():
                 plt.close(fig)
@@ -428,7 +449,7 @@ showAvgIntens, saveAvgIntens = figVisualizationFactory(
 )
 
 showAvgIntensAndFunctions, saveAvgIntensAndFunctions = figVisualizationFactory(
-    _plotAvgIntensAndFunctions, 
-    "Average Intensities and fitted functions",
-    ("Time since release of compression (s)", "Average intensities (a.u.)")
+    _plotAvgIntensAndFunctions,
+    "Average intensities and fitted functions",
+    ("Time since release of compression (s)", "Average intensities (a.u.)"),
 )

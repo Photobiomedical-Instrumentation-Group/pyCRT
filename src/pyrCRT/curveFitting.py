@@ -104,7 +104,7 @@ def fitExponential(
     # }}}
 
     if p0 is None:
-        p0 = [0.0, 0.0, 0.0]
+        p0 = [1.0, -0.3, 0.0]
 
     try:
         expParams, expCov = curve_fit(
@@ -239,7 +239,7 @@ def fitRCRT(
     # }}}
 
     if p0 is None:
-        p0 = [0.0, 0.0, 0.0]
+        p0 = [1.0, -0.3, 0.0]
 
     if maxDiv is not None:
         if isinstance(maxDiv, list):
@@ -324,12 +324,13 @@ def rCRTFromParameters(rCRTTuple: FitParametersTuple) -> Tuple[np.float_, np.flo
 def calculateRelativeUncertainty(rCRTTuple: FitParametersTuple) -> np.float_:
 # {{{
     """
-    Calculates the rCRT's relative uncertainty given a tuple with the optimized rCRT
-    exponential parameters and their respective standard deviations.
+    Calculates the rCRT's relative uncertainty (with a 95% confidence interval) given a
+    tuple with the optimized rCRT exponential parameters and their respective standard
+    deviations.
     """
 
     rCRTParams, rCRTStdDev = rCRTTuple
-    return abs(rCRTStdDev[1] / rCRTParams[1])
+    return 2 * abs(rCRTStdDev[1] / rCRTParams[1])
 # }}}
 
 

@@ -6,9 +6,12 @@ pyrCRT's functions distributed among it's other modules.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple, Union, overload
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
+from matplotlib import pyplot as plt
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 
 # pylint: disable=import-error
 from arrayOperations import (
@@ -20,7 +23,12 @@ from arrayOperations import (
 )
 
 # pylint: disable=import-error
-from arrayPlotting import showAvgIntens, showAvgIntensAndFunctions
+from arrayPlotting import (
+    _plotAvgIntensAndFunctions,
+    addTextToLabel,
+    makeFigAxes,
+    plotAvgIntens,
+)
 
 # pylint: disable=import-error
 from curveFitting import (
@@ -52,11 +60,42 @@ Real = Union[float, int, np.float_, np.int_]
 
 # This accounts for the fact that np.int_ doesn't inherit from int
 Integer = Union[int, np.int_]
+
+FigAxTuple = Tuple[Figure, Axes]
 # }}}
 
 
 # Constants
 CHANNEL_INDICES_DICT = {"b": 0, "g": 1, "r": 2}
+
+
+def figVisualizationFactory(
+    func: Callable[[], FigAxTuple]
+) -> Tuple[Callable[[], None], Callable[[], None]]:
+    # {{{
+    def showPlot(self, *args: Any, **kwargs: Any) -> None:
+        try:
+            fig, _ = func(self, *args, **kwargs)
+        except Exception as err:
+            raise err
+        finally:
+            if not plt.isinteractive():
+                plt.show()
+                plt.close(fig)
+
+    def saveFig(self, figPath: str, *args: Any, **kwargs: Any) -> None:
+        try:
+            fig, _ = func(self, *args, **kwargs)
+            plt.savefig(figPath)
+        except Exception as err:
+            raise err
+        finally:
+            if not plt.isinteractive():
+                plt.close(fig)
+
+    return showPlot, saveFig
+
+    # }}}
 
 
 class RCRT:
@@ -72,7 +111,7 @@ class RCRT:
         exclusionCriteria: float = 0.12,
         criticalTime: Optional[float] = None,
         initialGuesses: Dict[str, List[Real]] = {},
-        exclusionMethod: str = "best fit",
+        exclusionMethod: str = "first that works",
         **kwargs: Any,
     ):
         # {{{
@@ -139,7 +178,7 @@ class RCRT:
                 )
 
             if exclusionMethod == "first that works":
-                return self.calcRCRTBestFit(
+                return self.calcRCRTFirstThatWorks(
                     maxDivPeaks, rCRTInitialGuesses, exclusionCriteria
                 )
 
@@ -150,9 +189,7 @@ class RCRT:
 
         maxDiv = self.criticalTimeToMaxDiv(criticalTime)
 
-        return self.calcRCRTStrict(
-            maxDivPeaks[0], rCRTInitialGuesses, exclusionCriteria
-        )
+        return self.calcRCRTStrict(maxDiv, rCRTInitialGuesses, exclusionCriteria)
 
     # }}}
 
@@ -187,13 +224,14 @@ class RCRT:
         maxDiv = min(
             maxDivResults, key=lambda x: calculateRelativeUncertainty(maxDivResults[x])
         )
+        rCRTTuple = maxDivResults[maxDiv]
 
         relativeUncertainty = calculateRelativeUncertainty(maxDivResults[maxDiv])
 
         if relativeUncertainty > exclusionCriteria:
             raise RuntimeError(
-                f"Resulting rCRT parameters did not pass the exclusion criteria of "
-                "{exclusionCriteria}. Relative uncertainty: {relativeUncertainty}."
+                "Resulting rCRT parameters did not pass the exclusion criteria of "
+                f"{exclusionCriteria}. Relative uncertainty: {relativeUncertainty}."
             )
 
         return rCRTTuple, maxDiv
@@ -234,6 +272,7 @@ class RCRT:
     ) -> Tuple[FitParametersTuple, int]:
         # {{{
 
+        maxDivList = sorted(maxDivList)
         for maxDiv in maxDivList:
             try:
                 rCRTTuple, maxDiv = fitRCRT(
@@ -244,15 +283,15 @@ class RCRT:
                 )
 
                 relativeUncertainty = calculateRelativeUncertainty(rCRTTuple)
-                if relativeUncertainty > exclusionCriteria:
+                if relativeUncertainty < exclusionCriteria:
                     return rCRTTuple, maxDiv
 
             except RuntimeError:
                 pass
 
         raise RuntimeError(
-            f"rCRT fit failed on all maximum divergence indexes: "
-            "{maxDivList} with initial guesses = {[rCRTInitialGuesses]}"
+            "rCRT fit failed on all maximum divergence indexes: "
+            f"{maxDivList} with initial guesses = {[rCRTInitialGuesses]}"
         )
 
     # }}}
@@ -297,6 +336,12 @@ class RCRT:
     def relativeUncertainty(self) -> np.float_:
         return calculateRelativeUncertainty(self.rCRTTuple)
 
+    def __str__(self) -> str:
+        # {{{
+        return f"{self.rCRT[0]:.2f}±{100*self.relativeUncertainty:.2f}%"
+
+    # }}}
+
     def criticalTimeToMaxDiv(self, criticalTime: float) -> int:
         return int(np.where(self.timeScds >= criticalTime)[0][0])
 
@@ -323,24 +368,42 @@ class RCRT:
                 "Valid values: 'from local max', 'from max' and 'by time'"
             )
 
+        fromIndex, toIndex, cum = self.slice.indices(len(self.fullTimeScds))
+        self.fromTime, self.toTime = (
+            self.fullTimeScds[fromIndex],
+            self.fullTimeScds[toIndex],
+        )
         self.timeScds = subtractMinimum(self.fullTimeScds[self.slice])
         self.avgIntens = minMaxNormalize(self.channelFullAvgIntens[self.slice])
 
     # }}}
 
-    def showFullAvgIntens(
-        self,
-    ) -> None:
+    def makeFullAvgIntensPlot(self) -> FigAxTuple:
         # {{{
-        showAvgIntens(self.fullTimeScds, self.fullAvgIntens, "bgr")
+        fig, ax = makeFigAxes(
+            ("Time (s)", "Average intensities (u.a.)"),
+            "Channel average intensities",
+        )
+
+        plotAvgIntens(
+            (fig, ax),
+            self.fullTimeScds,
+            self.fullAvgIntens,
+        )
+
+        return fig, ax
 
     # }}}
 
-    def showRCRTPlot(
-        self,
-    ) -> None:
+    def makeRCRTPlot(self) -> FigAxTuple:
         # {{{
-        showAvgIntensAndFunctions(
+        fig, ax = makeFigAxes(
+            ("Time since release of compression (s)", "Average intensities (u.a.)"),
+            "Average intensities and fitted functions",
+        )
+
+        _plotAvgIntensAndFunctions(
+            (fig, ax),
             self.timeScds,
             self.avgIntens,
             funcParams={
@@ -349,10 +412,20 @@ class RCRT:
                 "rCRT": self.rCRTParams,
             },
             maxDiv=self.maxDiv,
-            funcOptions={"intensities": {"channels": self.usedChannel}}
+            funcOptions={"intensities": {"channels": self.usedChannel}},
         )
 
+        addTextToLabel(ax, f"rCRT={self.__str__()}", loc="upper right")
+
+        return fig, ax
+
     # }}}
+
+    showFullAvgIntens, saveFullAvgIntens = figVisualizationFactory(
+        makeFullAvgIntensPlot
+    )
+
+    showRCRTPlot, saveRCRTPlot = figVisualizationFactory(makeRCRTPlot)
 
     @classmethod
     def fromVideoFile(
@@ -394,8 +467,8 @@ class RCRT:
             fullTimeScds=self.fullTimeScds,
             fullAvgIntens=self.fullAvgIntens,
             channelToUse=self.usedChannel,
-            fromTime=self.timeScds[0],
-            toTime=self.timeScds[-1],
+            fromTime=self.fromTime,
+            toTime=self.toTime,
             expTuple=self.expTuple,
             polyTuple=self.polyTuple,
             rCRTTuple=self.rCRTTuple,
