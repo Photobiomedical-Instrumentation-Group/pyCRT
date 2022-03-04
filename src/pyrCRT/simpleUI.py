@@ -4,17 +4,21 @@ A simplified object-oriented interface for pyrCRT (pyrCRT.simpleUI)
 This module provides the RCRT class, which is meant to be the simplest way to use
 pyrCRT's functions distributed among it's other modules.
 """
+
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Iterable, Optional, Sequence, Tuple, Union
 
 import numpy as np
-from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
+# pylint: disable=no-name-in-module,import-error
+from numpy.typing import NDArray
+
 # pylint: disable=import-error
 from arrayOperations import (
+    findValueIndex,
     minMaxNormalize,
     sliceByTime,
     sliceFromLocalMax,
@@ -24,10 +28,10 @@ from arrayOperations import (
 
 # pylint: disable=import-error
 from arrayPlotting import (
-    _plotAvgIntensAndFunctions,
-    addTextToLabel,
-    makeFigAxes,
-    plotAvgIntens,
+    saveAvgIntensPlot,
+    saveRCRTPlot,
+    showAvgIntensPlot,
+    showRCRTPlot,
 )
 
 # pylint: disable=import-error
@@ -45,23 +49,32 @@ from videoReading import readVideo
 
 # Type aliases for commonly used types
 # {{{
-# Used just as a shorthand
-Array = np.ndarray
+# Array of arbitraty size with float elements.
+Array = NDArray[np.float_]
 
 # Tuples of two numpy arrays, typically an array of the timestamp for each frame and an
 # array of average intensities within a given ROI
-ArrayTuple = Tuple[Array, Array]
+ArrayTuple = tuple[Array, Array]
 
-# Tuple of two lists, the first being the fitted parameters and the second their
-# standard deviations
-FitParametersTuple = Tuple[Array, Array]
+# Type for something that can be used as the parameters for some curve-fitting function
+ParameterSequence = Union[Sequence[float], Array]
+
+# The return type for functions that fit curves. The first element is the optimized
+# parameters and the second their standard deviations
+FitParametersTuple = tuple[ParameterSequence, ParameterSequence]
 
 Real = Union[float, int, np.float_, np.int_]
 
 # This accounts for the fact that np.int_ doesn't inherit from int
 Integer = Union[int, np.int_]
 
-FigAxTuple = Tuple[Figure, Axes]
+FigAxTuple = tuple[Figure, Axes]
+
+# Standard ROI tuple used by OpenCV
+RoiTuple = tuple[int, int, int, int]
+
+# Either a RoiTuple, or "all"
+RoiType = Union[RoiTuple, str]
 # }}}
 
 
@@ -69,33 +82,175 @@ FigAxTuple = Tuple[Figure, Axes]
 CHANNEL_INDICES_DICT = {"b": 0, "g": 1, "r": 2}
 
 
-def figVisualizationFactory(
-    func: Callable[[], FigAxTuple]
-) -> Tuple[Callable[[], None], Callable[[], None]]:
+def calcRCRT(
+    timeScds: Array,
+    avgIntens: Array,
+    criticalTime: Optional[Union[float, list[float]]] = None,
+    expTuple: Optional[FitParametersTuple] = None,
+    polyTuple: Optional[FitParametersTuple] = None,
+    rCRTInitialGuesses: Optional[ParameterSequence] = None,
+    exclusionMethod: str = "best fit",
+    exclusionCriteria: float = np.inf,
+) -> Tuple[FitParametersTuple, float]:
     # {{{
-    def showPlot(self, *args: Any, **kwargs: Any) -> None:
+    """cum"""
+
+    if criticalTime is None and (expTuple is None or polyTuple is None):
+        maxDivList = findMaxDivergencePeaks(timeScds, avgIntens)
+
+    elif expTuple is not None and polyTuple is not None:
+        maxDivList = findMaxDivergencePeaks(
+            timeScds, expTuple=expTuple, polyTuple=polyTuple
+        )
+
+    elif isinstance(criticalTime, list):
+        maxDivList = [findValueIndex(timeScds, x) for x in criticalTime]
+
+    elif isinstance(criticalTime, float):
+        maxDiv = findValueIndex(timeScds, criticalTime)
+        return calcRCRTStrict(
+            timeScds, avgIntens, maxDiv, rCRTInitialGuesses, exclusionCriteria
+        )
+
+    if exclusionMethod == "best fit":
+        return calcRCRTBestFit(
+            timeScds, avgIntens, maxDivList, rCRTInitialGuesses, exclusionCriteria
+        )
+
+    if exclusionMethod == "strict":
+        return calcRCRTStrict(
+            timeScds, avgIntens, maxDivList[0], rCRTInitialGuesses, exclusionCriteria
+        )
+
+    if exclusionMethod == "first that works":
+        return calcRCRTFirstThatWorks(
+            timeScds, avgIntens, maxDivList, rCRTInitialGuesses, exclusionCriteria
+        )
+
+    raise ValueError(
+        f"Invalid value of {exclusionMethod} passed as exclusionMethod. "
+        "Valid values: 'best fit', 'strict' and 'first that works'."
+    )
+
+
+# }}}
+
+
+def calcRCRTBestFit(
+    timeScds: Array,
+    avgIntens: Array,
+    maxDivList: list[int],
+    rCRTInitialGuesses: Optional[ParameterSequence] = None,
+    exclusionCriteria: float = np.inf,
+) -> Tuple[FitParametersTuple, float]:
+    # {{{
+    """cum"""
+
+    # A dictionary whose keys are maximum divergence indexes (maxDivs) and values
+    # the rCRT and its uncertainty calculated with the respective maxDiv
+    maxDivResults: dict[int, FitParametersTuple] = {}
+    for maxDiv in maxDivList:
         try:
-            fig, _ = func(self, *args, **kwargs)
-        except Exception as err:
-            raise err
-        finally:
-            if not plt.isinteractive():
-                plt.show()
-                plt.close(fig)
+            rCRTTuple, maxDiv = fitRCRT(
+                timeScds,
+                avgIntens,
+                rCRTInitialGuesses,
+                maxDiv,
+            )
+            maxDivResults[maxDiv] = rCRTTuple
+        except RuntimeError:
+            pass
 
-    def saveFig(self, figPath: str, *args: Any, **kwargs: Any) -> None:
+    if not maxDivResults:
+        raise RuntimeError(
+            "rCRT fit failed on all maximum divergence indexes: "
+            f"{maxDivList} with initial guesses = {[rCRTInitialGuesses]}"
+        )
+
+    maxDiv = min(
+        maxDivResults, key=lambda x: calculateRelativeUncertainty(maxDivResults[x])
+    )
+    rCRTTuple = maxDivResults[maxDiv]
+
+    relativeUncertainty = calculateRelativeUncertainty(maxDivResults[maxDiv])
+
+    if relativeUncertainty > exclusionCriteria:
+        raise RuntimeError(
+            "Resulting rCRT parameters did not pass the exclusion criteria of "
+            f"{exclusionCriteria}. Relative uncertainty: {relativeUncertainty}."
+        )
+
+    return rCRTTuple, timeScds[maxDiv]
+
+
+# }}}
+
+
+def calcRCRTStrict(
+    timeScds: Array,
+    avgIntens: Array,
+    maxDiv: int,
+    rCRTInitialGuesses: Optional[ParameterSequence] = None,
+    exclusionCriteria: float = np.inf,
+) -> Tuple[FitParametersTuple, float]:
+    # {{{
+    """cum"""
+
+    rCRTTuple, maxDiv = fitRCRT(
+        timeScds,
+        avgIntens,
+        rCRTInitialGuesses,
+        maxDiv,
+    )
+
+    relativeUncertainty = calculateRelativeUncertainty(rCRTTuple)
+
+    if relativeUncertainty > exclusionCriteria:
+        raise RuntimeError(
+            "Resulting rCRT parameters did not pass the exclusion criteria of "
+            f"{exclusionCriteria}. Relative uncertainty: {relativeUncertainty}."
+        )
+
+    return rCRTTuple, timeScds[maxDiv]
+
+
+# }}}
+
+
+def calcRCRTFirstThatWorks(
+    timeScds: Array,
+    avgIntens: Array,
+    maxDivList: Iterable[int],
+    rCRTInitialGuesses: Optional[ParameterSequence] = None,
+    exclusionCriteria: float = np.inf,
+) -> Tuple[FitParametersTuple, float]:
+    # {{{
+    """cum"""
+
+    maxDivList = sorted(maxDivList)
+    for maxDiv in maxDivList:
         try:
-            fig, _ = func(self, *args, **kwargs)
-            plt.savefig(figPath)
-        except Exception as err:
-            raise err
-        finally:
-            if not plt.isinteractive():
-                plt.close(fig)
+            rCRTTuple, maxDiv = fitRCRT(
+                timeScds,
+                avgIntens,
+                rCRTInitialGuesses,
+                maxDiv,
+            )
 
-    return showPlot, saveFig
+            relativeUncertainty = calculateRelativeUncertainty(rCRTTuple)
+            if relativeUncertainty < exclusionCriteria:
+                return rCRTTuple, timeScds[maxDiv]
 
-    # }}}
+        except RuntimeError:
+            pass
+
+    raise RuntimeError(
+        "rCRT fit failed on all maximum divergence indexes: "
+        f"{maxDivList} with initial guesses = {[rCRTInitialGuesses]}"
+    )
+
+
+# }}}
 
 
 class RCRT:
@@ -106,15 +261,16 @@ class RCRT:
         channelToUse: str = "g",
         fromTime: Optional[Real] = None,
         toTime: Optional[Real] = None,
-        funcParams: Dict[str, FitParametersTuple] = {},
+        funcParams: dict[str, FitParametersTuple] = {},
         sliceMethod: str = "from local max",
         exclusionCriteria: float = 0.12,
         criticalTime: Optional[float] = None,
-        initialGuesses: Dict[str, List[Real]] = {},
+        initialGuesses: dict[str, ParameterSequence] = {},
         exclusionMethod: str = "first that works",
-        **kwargs: Any,
     ):
         # {{{
+        """cum"""
+
         self.fullTimeScds = fullTimeScds
         self.fullAvgIntens = fullAvgIntens
         self.usedChannel = channelToUse.strip().lower()
@@ -142,9 +298,9 @@ class RCRT:
 
         if "rCRT" in funcParams and criticalTime is not None:
             self.rCRTParams, self.rCRTStdDev = funcParams["rCRT"]
-            self.maxDiv = self.criticalTimeToMaxDiv(criticalTime)
+            self.criticalTime = criticalTime
         else:
-            (self.rCRTParams, self.rCRTStdDev), self.maxDiv = self.calcRCRT(
+            (self.rCRTParams, self.rCRTStdDev), self.criticalTime = self.calcRCRT(
                 criticalTime,
                 self.initialGuesses.get("rCRT", None),
                 exclusionMethod,
@@ -156,194 +312,131 @@ class RCRT:
     def calcRCRT(
         self,
         criticalTime: Optional[float] = None,
-        rCRTInitialGuesses: Optional[List[Real]] = None,
+        rCRTInitialGuesses: Optional[ParameterSequence] = None,
         exclusionMethod: str = "best fit",
         exclusionCriteria: float = np.inf,
-    ) -> Tuple[FitParametersTuple, int]:
+    ) -> Tuple[FitParametersTuple, float]:
         # {{{
+        """cum"""
 
-        if criticalTime is None:
-            maxDivPeaks = findMaxDivergencePeaks(
-                self.timeScds, expTuple=self.expTuple, polyTuple=self.polyTuple
-            )
-
-            if exclusionMethod == "best fit":
-                return self.calcRCRTBestFit(
-                    maxDivPeaks, rCRTInitialGuesses, exclusionCriteria
-                )
-
-            if exclusionMethod == "strict":
-                return self.calcRCRTStrict(
-                    maxDivPeaks[0], rCRTInitialGuesses, exclusionCriteria
-                )
-
-            if exclusionMethod == "first that works":
-                return self.calcRCRTFirstThatWorks(
-                    maxDivPeaks, rCRTInitialGuesses, exclusionCriteria
-                )
-
-            raise ValueError(
-                f"Invalid value of {exclusionMethod} passed as exclusionMethod. "
-                "Valid values: 'best fit', 'strict' and 'first that works'."
-            )
-
-        maxDiv = self.criticalTimeToMaxDiv(criticalTime)
-
-        return self.calcRCRTStrict(maxDiv, rCRTInitialGuesses, exclusionCriteria)
-
-    # }}}
-
-    def calcRCRTBestFit(
-        self,
-        maxDivList: List[int],
-        rCRTInitialGuesses: Optional[List[Real]] = None,
-        exclusionCriteria: float = np.inf,
-    ) -> Tuple[FitParametersTuple, int]:
-        # {{{
-        # A dictionary whose keys are maximum divergence indexes (maxDivs) and values
-        # the rCRT and its uncertainty calculated with the respective maxDiv
-        maxDivResults: Dict[int, FitParametersTuple] = {}
-        for maxDiv in maxDivList:
-            try:
-                rCRTTuple, maxDiv = fitRCRT(
-                    self.timeScds,
-                    self.avgIntens,
-                    rCRTInitialGuesses,
-                    maxDiv,
-                )
-                maxDivResults[maxDiv] = rCRTTuple
-            except RuntimeError:
-                pass
-
-        if not maxDivResults:
-            raise RuntimeError(
-                "rCRT fit failed on all maximum divergence indexes: "
-                f"{maxDivList} with initial guesses = {[rCRTInitialGuesses]}"
-            )
-
-        maxDiv = min(
-            maxDivResults, key=lambda x: calculateRelativeUncertainty(maxDivResults[x])
-        )
-        rCRTTuple = maxDivResults[maxDiv]
-
-        relativeUncertainty = calculateRelativeUncertainty(maxDivResults[maxDiv])
-
-        if relativeUncertainty > exclusionCriteria:
-            raise RuntimeError(
-                "Resulting rCRT parameters did not pass the exclusion criteria of "
-                f"{exclusionCriteria}. Relative uncertainty: {relativeUncertainty}."
-            )
-
-        return rCRTTuple, maxDiv
-
-    # }}}
-
-    def calcRCRTStrict(
-        self,
-        maxDiv: int,
-        rCRTInitialGuesses: Optional[List[Real]] = None,
-        exclusionCriteria: float = np.inf,
-    ) -> Tuple[FitParametersTuple, int]:
-        # {{{
-        rCRTTuple, maxDiv = fitRCRT(
+        return calcRCRT(
             self.timeScds,
             self.avgIntens,
+            criticalTime,
+            self.expTuple,
+            self.polyTuple,
             rCRTInitialGuesses,
-            maxDiv,
-        )
-
-        relativeUncertainty = calculateRelativeUncertainty(rCRTTuple)
-
-        if relativeUncertainty > exclusionCriteria:
-            raise RuntimeError(
-                "Resulting rCRT parameters did not pass the exclusion criteria of "
-                f"{exclusionCriteria}. Relative uncertainty: {relativeUncertainty}."
-            )
-
-        return rCRTTuple, maxDiv
-
-    # }}}
-
-    def calcRCRTFirstThatWorks(
-        self,
-        maxDivList: List[int],
-        rCRTInitialGuesses: Optional[List[Real]] = None,
-        exclusionCriteria: float = np.inf,
-    ) -> Tuple[FitParametersTuple, int]:
-        # {{{
-
-        maxDivList = sorted(maxDivList)
-        for maxDiv in maxDivList:
-            try:
-                rCRTTuple, maxDiv = fitRCRT(
-                    self.timeScds,
-                    self.avgIntens,
-                    rCRTInitialGuesses,
-                    maxDiv,
-                )
-
-                relativeUncertainty = calculateRelativeUncertainty(rCRTTuple)
-                if relativeUncertainty < exclusionCriteria:
-                    return rCRTTuple, maxDiv
-
-            except RuntimeError:
-                pass
-
-        raise RuntimeError(
-            "rCRT fit failed on all maximum divergence indexes: "
-            f"{maxDivList} with initial guesses = {[rCRTInitialGuesses]}"
+            exclusionMethod,
+            exclusionCriteria,
         )
 
     # }}}
 
     @property
     def B(self) -> Array:
+        # {{{
+        """cum"""
+
         return self.fullAvgIntens[:, 0]
+
+    # }}}
 
     @property
     def G(self) -> Array:
+        # {{{
+        """cum"""
+
         return self.fullAvgIntens[:, 1]
+
+    # }}}
 
     @property
     def R(self) -> Array:
+        # {{{
+        """cum"""
+
         return self.fullAvgIntens[:, 2]
+
+    # }}}
 
     @property
     def channelFullAvgIntens(self) -> Array:
+        # {{{
+        """cum"""
+
         return self.fullAvgIntens[:, CHANNEL_INDICES_DICT[self.usedChannel]]
+
+    # }}}
 
     @property
     def expTuple(self) -> FitParametersTuple:
+        # {{{
+        """cum"""
+
         return (self.expParams, self.expStdDev)
+
+    # }}}
 
     @property
     def polyTuple(self) -> FitParametersTuple:
+        # {{{
+        """cum"""
+
         return (self.polyParams, self.polyStdDev)
+
+    # }}}
 
     @property
     def rCRTTuple(self) -> FitParametersTuple:
+        # {{{
+        """cum"""
+
         return (self.rCRTParams, self.rCRTStdDev)
 
-    @property
-    def rCRT(self) -> Tuple[np.float_, np.float_]:
-        return rCRTFromParameters(self.rCRTTuple)
+    # }}}
 
     @property
-    def criticalTime(self) -> np.float_:
+    def rCRT(self) -> Tuple[float, float]:
+        # {{{
+        """cum"""
+
+        return rCRTFromParameters(self.rCRTTuple)
+
+    # }}}
+
+    @property
+    def criticalTime(self) -> float:
+        # {{{
+        """cum"""
+
+        self.maxDiv: int
         return self.timeScds[self.maxDiv]
+
+    # }}}
+
+    @criticalTime.setter
+    def criticalTime(self, value: Real) -> None:
+        # {{{
+        """cum"""
+
+        self.maxDiv = int(findValueIndex(self.timeScds, value))
+
+    # }}}
 
     @property
     def relativeUncertainty(self) -> np.float_:
+        # {{{
+        """cum"""
+
         return calculateRelativeUncertainty(self.rCRTTuple)
+
+    # }}}
 
     def __str__(self) -> str:
         # {{{
         return f"{self.rCRT[0]:.2f}±{100*self.relativeUncertainty:.2f}%"
 
     # }}}
-
-    def criticalTimeToMaxDiv(self, criticalTime: float) -> int:
-        return int(np.where(self.timeScds >= criticalTime)[0][0])
 
     def setSlice(
         self,
@@ -352,6 +445,8 @@ class RCRT:
         sliceMethod: str = "from local max",
     ) -> None:
         # {{{
+        """cum"""
+
         sliceMethod = sliceMethod.strip().lower()
 
         if sliceMethod == "from max" or (fromTime, toTime) == (None, None):
@@ -368,7 +463,7 @@ class RCRT:
                 "Valid values: 'from local max', 'from max' and 'by time'"
             )
 
-        fromIndex, toIndex, cum = self.slice.indices(len(self.fullTimeScds))
+        fromIndex, toIndex, _ = self.slice.indices(len(self.fullTimeScds))
         self.fromTime, self.toTime = (
             self.fullTimeScds[fromIndex],
             self.fullTimeScds[toIndex],
@@ -378,63 +473,105 @@ class RCRT:
 
     # }}}
 
-    def makeFullAvgIntensPlot(self) -> FigAxTuple:
+    def showAvgIntensPlot(self) -> None:
         # {{{
-        fig, ax = makeFigAxes(
-            ("Time (s)", "Average intensities (u.a.)"),
-            "Channel average intensities",
-        )
+        """cum"""
 
-        plotAvgIntens(
-            (fig, ax),
-            self.fullTimeScds,
-            self.fullAvgIntens,
-        )
-
-        return fig, ax
+        showAvgIntensPlot(self.fullTimeScds, self.fullAvgIntens)
 
     # }}}
 
-    def makeRCRTPlot(self) -> FigAxTuple:
+    def saveAvgIntensPlot(self, figPath: str) -> None:
         # {{{
-        fig, ax = makeFigAxes(
-            ("Time since release of compression (s)", "Average intensities (u.a.)"),
-            "Average intensities and fitted functions",
-        )
+        """cum"""
 
-        _plotAvgIntensAndFunctions(
-            (fig, ax),
+        saveAvgIntensPlot(figPath, self.fullTimeScds, self.fullAvgIntens)
+
+    # }}}
+
+    def showRCRTPlot(self) -> None:
+        # {{{
+        """cum"""
+
+        showRCRTPlot(
             self.timeScds,
             self.avgIntens,
-            funcParams={
-                "exponential": self.expParams,
-                "polynomial": self.polyParams,
-                "rCRT": self.rCRTParams,
+            {
+                "exponential": self.expTuple,
+                "polynomial": self.polyTuple,
+                "rCRT": self.rCRTTuple,
             },
-            maxDiv=self.maxDiv,
-            funcOptions={"intensities": {"channels": self.usedChannel}},
+            self.criticalTime,
+            self.usedChannel,
         )
-
-        addTextToLabel(ax, f"rCRT={self.__str__()}", loc="upper right")
-
-        return fig, ax
 
     # }}}
 
-    showFullAvgIntens, saveFullAvgIntens = figVisualizationFactory(
-        makeFullAvgIntensPlot
-    )
+    def saveRCRTPlot(self, figPath: str) -> None:
+        # {{{
+        """cum"""
 
-    showRCRTPlot, saveRCRTPlot = figVisualizationFactory(makeRCRTPlot)
+        saveRCRTPlot(
+            figPath,
+            self.timeScds,
+            self.avgIntens,
+            {
+                "exponential": self.expTuple,
+                "polynomial": self.polyTuple,
+                "rCRT": self.rCRTTuple,
+            },
+            self.criticalTime,
+            self.usedChannel,
+        )
+
+    # }}}
 
     @classmethod
     def fromVideoFile(
         cls,
         videoPath: str,
+        roi: Optional[RoiType] = None,
+        displayVideo: bool = True,
+        rescaleFactor: Real = 1.0,
+        waitKeyTime: int = 1,
         **kwargs: Any,
     ) -> RCRT:
         # {{{
-        fullTimeScds, fullAvgIntens = readVideo(videoPath, **kwargs)
+        """cum"""
+
+        fullTimeScds, fullAvgIntens = readVideo(
+            videoPath,
+            roi=roi,
+            displayVideo=displayVideo,
+            rescaleFactor=rescaleFactor,
+            waitKeyTime=waitKeyTime,
+        )
+        return cls(fullTimeScds, fullAvgIntens, **kwargs)
+
+    # }}}
+
+    @classmethod
+    def fromCaptureDevice(
+        cls,
+        videoSource: int,
+        roi: Optional[RoiType] = None,
+        cameraResolution: Optional[Tuple[int, int]] = None,
+        recordingPath: Optional[str] = None,
+        codecFourcc: str = "mp4v",
+        recordingFps: float = 30.0,
+        **kwargs: Any,
+    ) -> RCRT:
+        # {{{
+        """cum"""
+
+        fullTimeScds, fullAvgIntens = readVideo(
+            videoSource,
+            roi=roi,
+            cameraResolution=cameraResolution,
+            recordingPath=recordingPath,
+            codecFourcc=codecFourcc,
+            recordingFps=recordingFps,
+        )
         return cls(fullTimeScds, fullAvgIntens, **kwargs)
 
     # }}}
@@ -442,6 +579,8 @@ class RCRT:
     @classmethod
     def fromArchive(cls, filePath: str) -> RCRT:
         # {{{
+        """cum"""
+
         archive = np.load(filePath)
 
         return cls(
@@ -462,6 +601,8 @@ class RCRT:
 
     def save(self, filePath: str) -> None:
         # {{{
+        """cum"""
+
         np.savez(
             filePath,
             fullTimeScds=self.fullTimeScds,
@@ -469,9 +610,9 @@ class RCRT:
             channelToUse=self.usedChannel,
             fromTime=self.fromTime,
             toTime=self.toTime,
-            expTuple=self.expTuple,
-            polyTuple=self.polyTuple,
-            rCRTTuple=self.rCRTTuple,
+            expTuple=np.array(self.expTuple),
+            polyTuple=np.array(self.polyTuple),
+            rCRTTuple=np.array(self.rCRTTuple),
             criticalTime=self.criticalTime,
         )
 

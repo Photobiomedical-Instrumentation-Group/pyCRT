@@ -5,18 +5,21 @@ This module is mostly functions that receive two arrays as input and returns two
 intended to be used with the timeScds and avgInten arrays.
 """
 
-from typing import Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 
+# pylint: disable=no-name-in-module,import-error
+from numpy.typing import NDArray
+
 # Type aliases for commonly used types
 # {{{
-# Used just as a shorthand
-Array = np.ndarray
+# Array of arbitraty size with float elements.
+Array = NDArray[np.float_]
 
 # Tuples of two numpy arrays, typically an array of the timestamp for each frame and an
 # array of average intensities within a given ROI
-ArrayTuple = Tuple[Array, Array]
+ArrayTuple = tuple[Array, Array]
 
 Real = Union[float, int, np.float_, np.int_]
 # }}}
@@ -128,11 +131,26 @@ def stripArr(timeArr: Array, arr: Array) -> ArrayTuple:
 
 
 def subtractMinimum(arr: Array) -> Array:
-# {{{
+    # {{{
     """
     Subtracts the array's elements by the array's minimum value. What else did you
     expect?
     """
 
     return arr - arr.min()
+
+
+# }}}
+
+
+# You should look into mypy generics to avoid the value: Any here
+def findValueIndex(arr: Array, value: Any) -> int:
+    # {{{
+    """Returns the index of the first element in arr which is greater than value."""
+    try:
+        return int(np.where(arr >= float(value))[0][0])
+    except IndexError as err:
+        raise IndexError(f"No value in arr is greater or equal than {value}") from err
+
+
 # }}}

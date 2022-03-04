@@ -6,10 +6,13 @@ intensities array and the frame times array, namely fitting a polynomial and two
 exponential curves on the data.
 """
 
-from typing import List, Optional, Tuple, Union, overload
+from typing import Iterable, Optional, Sequence, Union, overload
 from warnings import filterwarnings
 
 import numpy as np
+
+# pylint: disable=no-name-in-module,import-error
+from numpy.typing import NDArray
 from scipy.optimize import OptimizeWarning, curve_fit
 from scipy.signal import find_peaks
 
@@ -18,16 +21,19 @@ filterwarnings("error")
 
 # Type aliases for commonly used types
 # {{{
-# Used just as a shorthand
-Array = np.ndarray
+# Array of arbitraty size with float elements.
+Array = NDArray[np.float_]
 
 # Tuples of two numpy arrays, typically an array of the timestamp for each frame and an
 # array of average intensities within a given ROI
-ArrayTuple = Tuple[Array, Array]
+ArrayTuple = tuple[Array, Array]
 
-# Tuple of two lists, the first being the fitted parameters and the second their
-# standard deviations
-FitParametersTuple = Tuple[Array, Array]
+# Type for something that can be used as the parameters for some curve-fitting function
+ParameterSequence = Union[Sequence[float], Array]
+
+# The return type for functions that fit curves. The first element is the optimized
+# parameters and the second their standard deviations
+FitParametersTuple = tuple[ParameterSequence, ParameterSequence]
 
 Real = Union[float, int, np.float_, np.int_]
 
@@ -71,7 +77,7 @@ def covToStdDev(cov: Array) -> Array:
 def fitExponential(
     x: Array,
     y: Array,
-    p0: Optional[List[Real]] = None,
+    p0: Optional[ParameterSequence] = None,
 ) -> FitParametersTuple:
     # {{{
     # {{{
@@ -117,7 +123,7 @@ def fitExponential(
         expStdDev = covToStdDev(expCov)
         return expParams, expStdDev
     except (RuntimeError, OptimizeWarning) as err:
-        raise RuntimeError(f"Exponential fit failed with p0={p0}.") from err
+        raise RuntimeError(f"Exponential fit failed with p0={np.array(p0)}.") from err
 
 
 # }}}
@@ -126,7 +132,7 @@ def fitExponential(
 def fitPolynomial(
     x: Array,
     y: Array,
-    p0: Optional[List[Real]] = None,
+    p0: Optional[ParameterSequence] = None,
 ) -> FitParametersTuple:
     # {{{
     # {{{
@@ -173,15 +179,13 @@ def fitPolynomial(
         polyStdDev = covToStdDev(polyCov)
         return polyParams, polyStdDev
     except (RuntimeError, OptimizeWarning) as err:
-        raise RuntimeError(f"Polynomial fit failed with p0={p0}.") from err
+        raise RuntimeError(f"Polynomial fit failed with p0={np.array(p0)}.") from err
 
 
 # }}}
 
 
-def diffExpPoly(
-    x: Array, expParams: Array, polyParams: Array
-) -> Array:
+def diffExpPoly(x: Array, expParams: Array, polyParams: Array) -> Array:
     # {{{
     """
     Evaluates the function |exponential(expParams) - polynomial(polyParams)| over x
@@ -195,9 +199,9 @@ def diffExpPoly(
 def fitRCRT(
     x: Array,
     y: Array,
-    p0: Optional[List[Real]] = None,
-    maxDiv: Optional[Union[List[int], int]] = None,
-) -> Tuple[FitParametersTuple, int]:
+    p0: Optional[ParameterSequence] = None,
+    maxDiv: Optional[Union[Iterable[int], int]] = None,
+) -> tuple[FitParametersTuple, int]:
     # {{{
     # {{{
     """
@@ -266,7 +270,8 @@ def fitRCRT(
                 )
             except RuntimeError as err:
                 raise RuntimeError(
-                    f"rCRT fit failed on maxDivIndex={maxDivIndex} and p0={p0}"
+                    f"rCRT fit failed on maxDivIndex={maxDivIndex} "
+                    f"and p0={np.array(p0)}"
                 ) from err
         raise TypeError(
             f"Invalid type of {type(maxDiv)} for maxDiv. Valid types: int, list of "
@@ -282,7 +287,7 @@ def fitRCRT(
 # }}}
 
 
-def rCRTFromParameters(rCRTTuple: FitParametersTuple) -> Tuple[np.float_, np.float_]:
+def rCRTFromParameters(rCRTTuple: FitParametersTuple) -> tuple[float, float]:
     # {{{
     # {{{
     """
@@ -309,8 +314,8 @@ def rCRTFromParameters(rCRTTuple: FitParametersTuple) -> Tuple[np.float_, np.flo
 
     rCRTParams, rCRTStdDev = rCRTTuple
 
-    inverseRCRT: np.float_ = rCRTParams[1]
-    inverseRCRTStdDev: np.float_ = rCRTStdDev[1]
+    inverseRCRT: float = rCRTParams[1]
+    inverseRCRTStdDev: float = rCRTStdDev[1]
 
     rCRT = -1 / inverseRCRT
     rCRTUncertainty = -2 * rCRT * (inverseRCRTStdDev / inverseRCRT)
@@ -322,7 +327,7 @@ def rCRTFromParameters(rCRTTuple: FitParametersTuple) -> Tuple[np.float_, np.flo
 
 
 def calculateRelativeUncertainty(rCRTTuple: FitParametersTuple) -> np.float_:
-# {{{
+    # {{{
     """
     Calculates the rCRT's relative uncertainty (with a 95% confidence interval) given a
     tuple with the optimized rCRT exponential parameters and their respective standard
@@ -331,18 +336,20 @@ def calculateRelativeUncertainty(rCRTTuple: FitParametersTuple) -> np.float_:
 
     rCRTParams, rCRTStdDev = rCRTTuple
     return 2 * abs(rCRTStdDev[1] / rCRTParams[1])
+
+
 # }}}
 
 
 @overload
-def findMaxDivergencePeaks(x: Array, y: Array) -> List[int]:
+def findMaxDivergencePeaks(x: Array, y: Array) -> list[int]:
     ...
 
 
 @overload
 def findMaxDivergencePeaks(
     x: Array, expTuple: FitParametersTuple, polyTuple: FitParametersTuple
-) -> List[int]:
+) -> list[int]:
     ...
 
 
@@ -350,7 +357,7 @@ def findMaxDivergencePeaks(
     x: Array,
     *args: Union[Array, FitParametersTuple],
     **kwargs: Union[Array, FitParametersTuple],
-) -> List[int]:
+) -> list[int]:
     # {{{
     # {{{
     """
@@ -385,7 +392,12 @@ def findMaxDivergencePeaks(
 
     if "expTuple" in kwargs and "polyTuple" in kwargs:
         expParams, polyParams = kwargs["expTuple"][0], kwargs["polyTuple"][0]
-        assert isinstance(expParams, Array) and isinstance(polyParams, Array)
+        assert isinstance(expParams, np.ndarray) and expParams.dtype == np.dtype(
+            "float64"
+        )
+        assert isinstance(polyParams, np.ndarray) and polyParams.dtype == np.dtype(
+            "float64"
+        )
 
         diffArray = diffExpPoly(x, expParams, polyParams)
         maxIndexes = find_peaks(diffArray)[0]
@@ -393,7 +405,7 @@ def findMaxDivergencePeaks(
         maxIndexesSorted = sorted(maxIndexes, key=lambda x: diffArray[x], reverse=True)
         return maxIndexesSorted
 
-    if len(args) == 1 and isinstance(args[0], Array):
+    if len(args) == 1 and isinstance(args[0], np.ndarray):
         y: Array = args[0]
         expTuple = fitExponential(x, y)
         polyTuple = fitPolynomial(x, y)

@@ -7,16 +7,22 @@ frame and returning another. Functionality includes cropping, calculating averag
 intensity, drawing a ROI, etc,
 """
 
-from typing import Optional, Tuple, Union
+from typing import Optional, Union
 
 # pylint: disable=import-error
 import cv2 as cv  # type: ignore
 import numpy as np
 
+# pylint: disable=no-name-in-module,import-error
+from numpy.typing import NDArray
+
 # Type aliases for commonly used types
 # {{{
+# Array of arbitraty size with float elements.
+Array = NDArray[np.float_]
+
 # Standard ROI tuple used by OpenCV
-RoiTuple = Tuple[int, int, int, int]
+RoiTuple = tuple[int, int, int, int]
 
 # Either a RoiTuple, or "all"
 RoiType = Union[RoiTuple, str]
@@ -25,7 +31,7 @@ Real = Union[float, int, np.float_, np.int_]
 # }}}
 
 
-def rescaleFrame(frame: np.ndarray, rescaleFactor: Real) -> np.ndarray:
+def rescaleFrame(frame: Array, rescaleFactor: Real) -> Array:
     # {{{
     """Simply rescales the frame, uses bilinear interpolation."""
 
@@ -35,7 +41,7 @@ def rescaleFrame(frame: np.ndarray, rescaleFactor: Real) -> np.ndarray:
 # }}}
 
 
-def drawRoi(frame: np.ndarray, roi: Optional[RoiType]) -> np.ndarray:
+def drawRoi(frame: Array, roi: Optional[RoiType]) -> Array:
     # {{{
     """Simply draws a red rectangle on the frame to highlight the ROI"""
 
@@ -49,7 +55,7 @@ def drawRoi(frame: np.ndarray, roi: Optional[RoiType]) -> np.ndarray:
 # }}}
 
 
-def cropFrame(frame: np.ndarray, roi: Optional[RoiType]) -> np.ndarray:
+def cropFrame(frame: Array, roi: Optional[RoiType]) -> Array:
     # {{{
     """Slices the frame matrix and returns only the portion inside the ROI"""
 
@@ -62,7 +68,7 @@ def cropFrame(frame: np.ndarray, roi: Optional[RoiType]) -> np.ndarray:
 # }}}
 
 
-def calcAvgInten(frame: np.ndarray, roi: Optional[RoiType]) -> np.ndarray:
+def calcAvgInten(frame: Array, roi: Optional[RoiType]) -> Array:
     # {{{
     """Calculates the average pixel intensity for all pixels inside the ROI and returns
     an array with the average for each channel."""

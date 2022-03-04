@@ -15,11 +15,14 @@ Notes
 
 from contextlib import contextmanager
 from os.path import exists
-from typing import Any, Generator, List, Optional, Tuple, Union
+from typing import Generator, Optional, Union
 
 # pylint: disable=import-error
 import cv2 as cv  # type: ignore
 import numpy as np
+
+# pylint: disable=no-name-in-module,import-error
+from numpy.typing import NDArray
 
 # pylint: disable=import-error
 from arrayOperations import stripArr
@@ -29,18 +32,18 @@ from frameOperations import calcAvgInten, drawRoi, rescaleFrame
 
 # Type aliases for commonly used types
 # {{{
+# Array of arbitraty size with float elements.
+Array = NDArray[np.float_]
+
 # Standard ROI tuple used by OpenCV
-RoiTuple = Tuple[int, int, int, int]
+RoiTuple = tuple[int, int, int, int]
 
 # Either a RoiTuple, or "all"
 RoiType = Union[RoiTuple, str]
 
-# Used just as a shorthand
-Array = np.ndarray
-
 # Tuples of two numpy arrays, typically an array of the timestamp for each frame and an
 # array of average intensities within a given ROI
-ArrayTuple = Tuple[Array, Array]
+ArrayTuple = tuple[Array, Array]
 
 Real = Union[float, int, np.float_, np.int_]
 Integer = Union[int, np.int_]
@@ -54,10 +57,9 @@ def readVideo(
     recordingPath: Optional[str] = None,
     rescaleFactor: Real = 1.0,
     waitKeyTime: int = 1,
-    cameraResolution: Optional[Tuple[int, int]] = None,
+    cameraResolution: Optional[tuple[int, int]] = None,
     codecFourcc: str = "mp4v",
     recordingFps: float = 30.0,
-    **kwargs: Any,
 ) -> ArrayTuple:
     # {{{
     # {{{
@@ -105,10 +107,6 @@ def readVideo(
         The FPS (frames per second) for the recording, which doesn't need to correspond
         to the FPS of the camera or the source video.
 
-    kwargs : Any
-        Additional arguments are silently ignored... I made it this way so this function
-        would play nice with the simpleUI.RCRT class implementation.
-
     Returns
     -------
     timeScdsArr : 1D np.ndarray
@@ -149,8 +147,8 @@ def readVideo(
     # Yup, I just assume the ROI is valid if it's a tuple of 4 elements. I'll probably
     # have to change this later.
 
-    timeScdsList: List[float] = []
-    avgIntenList: List[Array] = []
+    timeScdsList: list[float] = []
+    avgIntenList: list[Array] = []
 
     with videoCapture(videoSource, cameraResolution) as cap:
         for frame in frameReader(cap, rescaleFactor):
@@ -195,7 +193,7 @@ def readVideo(
 @contextmanager
 def videoCapture(
     videoSource: Union[int, str],
-    cameraResolution: Optional[Tuple[int, int]] = None,
+    cameraResolution: Optional[tuple[int, int]] = None,
 ) -> cv.VideoCapture:
     # {{{
     # {{{

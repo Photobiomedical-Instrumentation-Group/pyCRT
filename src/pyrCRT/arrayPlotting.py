@@ -6,7 +6,7 @@ intensities array and the frame times array, namely fitting a polynomial and two
 exponential curves on the data.
 """
 
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Iterable, Optional, Sequence, Union
 
 import numpy as np
 from matplotlib import patches as mpatches
@@ -15,28 +15,39 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.ticker import AutoLocator, AutoMinorLocator
 
+# pylint: disable=no-name-in-module,import-error
+from numpy.typing import NDArray
+
 # pylint: disable=import-error
-from curveFitting import exponential, polynomial
+from curveFitting import (
+    calculateRelativeUncertainty,
+    exponential,
+    polynomial,
+    rCRTFromParameters,
+)
 
 # Type aliases for commonly used types
 # {{{
-# Used just as a shorthand
-Array = np.ndarray
+# Array of arbitraty size with float elements.
+Array = NDArray[np.float_]
 
 # Tuples of two numpy arrays, typically an array of the timestamp for each frame and an
 # array of average intensities within a given ROI
-ArrayTuple = Tuple[Array, Array]
+ArrayTuple = tuple[Array, Array]
 
-# Tuple of two lists, the first being the fitted parameters and the second their
-# standard deviations
-FitParametersTuple = Tuple[Array, Array]
+# Type for something that can be used as the parameters for some curve-fitting function
+ParameterSequence = Union[Sequence[float], Array]
+
+# The return type for functions that fit curves. The first element is the optimized
+# parameters and the second their standard deviations
+FitParametersTuple = tuple[ParameterSequence, ParameterSequence]
 
 Real = Union[float, int, np.float_, np.int_]
 
 # This accounts for the fact that np.int_ doesn't inherit from int
 Integer = Union[int, np.int_]
 
-FigAxTuple = Tuple[Figure, Axes]
+FigAxTuple = tuple[Figure, Axes]
 # }}}
 
 # Constants
@@ -46,7 +57,7 @@ CHANNEL_INDICES_DICT = {"b": 0, "g": 1, "r": 2}
 def plotAvgIntens(
     figAxTuple: FigAxTuple,
     timeScdsArr: Array,
-    avgIntenArr: Array,
+    channelsAvgIntensArr: Array,
     channels: Optional[str] = None,
     **kwargs: Any,
 ) -> None:
@@ -54,8 +65,8 @@ def plotAvgIntens(
     # {{{
     """
     Plots the average intensities array on the given mpl.Figure and mpl.Axes tuple. This
-    can plot a set of channels or all three, depending on avgIntenArr's dimentions and
-    the channels argument.
+    can plot a set of channels or all three, depending on channelsAvgIntensArr's
+    dimentions and the channels argument.
 
     Parameters
     ----------
@@ -63,16 +74,16 @@ def plotAvgIntens(
         The figure and axes on which to plot. In practice this function only utilizes
         the Axes instance, not the Figure.
 
-    timeScdsArr, avgIntenArr : np.ndarray
+    timeScdsArr, channelsAvgIntensArr : np.ndarray
         The arrays of seconds and average intensities corresponding to each frame,
         respectively. This is typically the output of videoReading.readVideo.
 
     channels : str or None, default=None
         Which channels to plot, and also used to set the color of each line in the plot
-        and its label.Should be a string with some combination of "r", "g" and "b". If
-        it is None and avgIntenArr is one-dimensional, then it'll plot that channel in
-        gray, and if avgIntenArr is not one-dimensional, then channels will be set as
-        "bgr".
+        and its label. Should be a string with some combination of "r", "g" and "b". If
+        it is None and channelsAvgIntensArr is one-dimensional, then it'll plot that
+        channel in gray, and if channelsAvgIntensArr is not one-dimensional, then
+        channels will be set as "bgr".
 
     **kwargs: dict of Any
         The keyword arguments that may be passed to mpl.Axes.plot.
@@ -89,22 +100,22 @@ def plotAvgIntens(
         legendOptions = {}
 
     if channels is None:
-        if len(avgIntenArr.shape) == 1:  # a single channel
+        if len(channelsAvgIntensArr.shape) == 1:  # a single channel
             ax.plot(
                 timeScdsArr,
-                avgIntenArr,
+                channelsAvgIntensArr,
                 color="grey",
                 label="Channel",
                 **plotOptions,
             )
         else:
-            plotAvgIntens(figAxTuple, timeScdsArr, avgIntenArr, channels="bgr")
+            plotAvgIntens(figAxTuple, timeScdsArr, channelsAvgIntensArr, channels="bgr")
     else:
         channels = channels.strip().lower()
         if len(channels) == 1:
             ax.plot(
                 timeScdsArr,
-                avgIntenArr,
+                channelsAvgIntensArr,
                 color=channels,
                 label=f"Channel {channels.upper()}",
                 **plotOptions,
@@ -113,7 +124,7 @@ def plotAvgIntens(
             for channel in channels.strip().lower():
                 ax.plot(
                     timeScdsArr,
-                    avgIntenArr[:, CHANNEL_INDICES_DICT[channel]],
+                    channelsAvgIntensArr[:, CHANNEL_INDICES_DICT[channel]],
                     color=channel,
                     label=f"Channel {channel.upper()}",
                     **plotOptions,
@@ -127,8 +138,8 @@ def plotAvgIntens(
 def plotFunction(
     figAxTuple: FigAxTuple,
     timeScdsArr: Array,
-    func: Callable,
-    funcParams: List[Real],
+    func: Callable[..., Array],
+    funcParams: ParameterSequence,
     **kwargs: Any,
 ) -> None:
     # {{{
@@ -180,8 +191,8 @@ def plotFunction(
 def plotRCRT(
     figAxTuple: FigAxTuple,
     timeScdsArr: Array,
-    rCRTParams: List[Real],
-    maxDiv: Optional[int] = None,
+    rCRTParams: ParameterSequence,
+    criticalTime: Optional[float] = None,
     **kwargs: Any,
 ) -> None:
     # {{{
@@ -203,8 +214,7 @@ def plotRCRT(
         legendOptions = {}
     ax.plot(timeScdsArr, funcY, **plotOptions)
 
-    criticalTime = timeScdsArr[maxDiv]
-    if maxDiv is not None:
+    if criticalTime is not None:
         ax.axvline(criticalTime, label=f"tc={criticalTime:.3g}", c="k", ls=":")
 
     ax.legend(**legendOptions)
@@ -217,104 +227,18 @@ def addTextToLabel(ax: Axes, text: str, **kwargs: Any) -> None:
     # {{{
     """Adds some text to the axes' legend and redraws the legend."""
 
-    handles, labels = ax.get_legend_handles_labels()
+    handles, _ = ax.get_legend_handles_labels()
     handles.append(mpatches.Patch(color="none", label=text))
     ax.legend(handles=handles, **kwargs)
 
 
 # }}}
 
-# This is a filthy hack
-def _plotAvgIntensAndFunctions(
-    figAxTuple: FigAxTuple,
-    timeScdsArr: Array,
-    avgIntenArr: Array,
-    funcParams: Dict[str, List[Real]],
-    maxDiv: Optional[int] = None,
-    funcOptions: Optional[Dict[str, Any]] = None,
-) -> None:
-    # {{{
-    # {{{
-    """
-    Just calls plotAvgIntens, plotFunction twice and plotRCRT with the parameters given
-    by the funcParams dictionary and keyword arguments given by the funcOptions
-    dictionary of dictionaries as their respective keyword arguments.
-
-    Parameters
-    ----------
-    figAxTuple : tuple of mpl.Figure and mpl.Axes respectively
-        The figure and axes on which to plot. In practice this function only utilizes
-        the Axes instance, not the Figure.
-
-    timeScdsArr, avgIntenArr : np.ndarray
-        The arrays of seconds and average intensities corresponding to each frame,
-        respectively. This is typically the output of videoReading.readVideo.
-
-    funcParams : dict of lists of real numbers, or None
-        A dictionary with the funcParams for each function (see plotFunction for more
-        information). The keys should be 'exponential', 'polynomial', 'rCRT' and
-        'intensities'.
-
-    maxDiv : integer or None
-        the maximum divergence index, a vertical line will be plotted on
-        timeScdsArr[maxDiv] if it is not None. See curveFitting.findMaxDivergencePeaks
-        and curveFitting.fitRCRT for more information.
-
-    funcOptions: dict of dicts of Any, or None
-        A dictionary of dictionaries, each key corresponding to a dictionary of keyword
-        arguments to be passed to the each function. It accepts the same keys as
-        funcParams.
-
-    Notes
-    -----
-        This is a very convoluted and difficult to use function. There's no reason to
-        directly call this function over calling each function it calls individually,
-        except for hacky workarounds such as what I've done with
-        figVisualizationFactory, which is the entire reason this function exists and is
-        documented in the first place.
-
-    """
-    # }}}
-
-    if funcOptions is None:
-        funcOptions = {}
-
-    plotFunction(
-        figAxTuple,
-        timeScdsArr,
-        exponential,
-        funcParams["exponential"],
-        **funcOptions.get("exponential", {}),
-    )
-    plotFunction(
-        figAxTuple,
-        timeScdsArr,
-        polynomial,
-        funcParams["polynomial"],
-        **funcOptions.get("polynomial", {}),
-    )
-    plotRCRT(
-        figAxTuple,
-        timeScdsArr,
-        funcParams["rCRT"],
-        maxDiv,
-        **funcOptions.get("rCRT", {}),
-    )
-    plotAvgIntens(
-        figAxTuple,
-        timeScdsArr,
-        avgIntenArr,
-        **funcOptions.get("intensities", {}),
-    )
-
-
-# }}}
-
 
 def makeFigAxes(
-    axisLabels: Tuple[str, str],
+    axisLabels: tuple[str, str],
     figTitle: Optional[str] = None,
-    figSizePx: Tuple[int, int] = (960, 600),
+    figSizePx: tuple[int, int] = (960, 600),
     dpi: Real = 100,
 ) -> FigAxTuple:
     # {{{
@@ -369,12 +293,94 @@ def makeFigAxes(
 # }}}
 
 
-def figVisualizationFactory(
-    func: Callable,
-    figTitle: Optional[str] = None,
-    axisLabels: Tuple[str, str] = ("Time (s)", "Average intensities (a.u.)"),
-    figSizePx: Tuple[int, int] = (960, 600),
-) -> Tuple[Callable, Callable]:
+def makeAvgIntensPlot(
+    timeScdsArr: Array,
+    channelsAvgIntensArr: Array,
+) -> FigAxTuple:
+    # {{{
+    fig, ax = makeFigAxes(
+        ("Time (s)", "Average intensities (u.a.)"),
+        "Channel average intensities",
+    )
+
+    plotAvgIntens(
+        (fig, ax),
+        timeScdsArr,
+        channelsAvgIntensArr,
+    )
+
+    return fig, ax
+
+
+# }}}
+
+
+def makeRCRTPlot(
+    timeScdsArr: Array,
+    avgIntensArr: Array,
+    funcParamsTuples: dict[str, FitParametersTuple],
+    criticalTime: Optional[float] = None,
+    channel: Optional[str] = None,
+    funcOptions: dict[str, Any] = {},
+) -> FigAxTuple:
+    # {{{
+    fig, ax = makeFigAxes(
+        ("Time since release of compression (s)", "Average intensities (u.a.)"),
+        "Average intensities and fitted functions",
+    )
+
+    if funcOptions is None:
+        funcOptions = {}
+
+    if expTuple := funcParamsTuples.get("exponential", None):
+        plotFunction(
+            (fig, ax),
+            timeScdsArr,
+            exponential,
+            expTuple[0],
+            **funcOptions.get("exponential", {}),
+        )
+    if polyTuple := funcParamsTuples.get("polynomial", None):
+        plotFunction(
+            (fig, ax),
+            timeScdsArr,
+            polynomial,
+            polyTuple[0],
+            **funcOptions.get("polynomial", {}),
+        )
+
+    rCRTTuple = funcParamsTuples["rCRT"]
+    plotRCRT(
+        (fig, ax),
+        timeScdsArr,
+        rCRTTuple[0],
+        criticalTime,
+        **funcOptions.get("rCRT", {}),
+    )
+    plotAvgIntens(
+        (fig, ax),
+        timeScdsArr,
+        avgIntensArr,
+        channel,
+        **funcOptions.get("intensities", {}),
+    )
+
+    rCRT, _ = rCRTFromParameters(rCRTTuple)
+    relativeUncertainty = calculateRelativeUncertainty(rCRTTuple)
+
+    addTextToLabel(
+        ax, f"rCRT={rCRT:.2f}±{100*relativeUncertainty:.2f}%", loc="upper right"
+    )
+
+    return fig, ax
+
+
+# }}}
+
+
+def figVisualizationFunctions(
+    func: Callable[..., FigAxTuple],
+) -> tuple[Callable[..., None], Callable[..., None]]:
     # {{{
     # {{{
     """
@@ -384,19 +390,10 @@ def figVisualizationFactory(
     Parameters
     ----------
     func: Callable
-        The function that actually plots the data. Can be plotRCRT, plotFunction,
-        plotAvgIntens, or _plotAvgIntensAndFunctions, or any function of that sort that
-        the user may implement.
+        The function that actually makes the plot the data. Can be any function that
+        takes in any number of arguments and returns a tuple with mpl.Figure and
+        mpl.Axes
 
-    axisLabels: tuple of str, default=('Time (s)', 'Average Intensities (a.u.)')
-        The labels for the X and Y axis respectively.
-
-    figTitle : str or None, default=None
-        Self explanatory. If None, the figure will just have no title.
-
-    figSizePx : tuple of int, default=(960, 600)
-        Figure dimensions in pixels. More adequate for primarily digital figures than
-        matplotlib's default of specifying everything in inches.
 
     Returns
     -------
@@ -410,33 +407,23 @@ def figVisualizationFactory(
     Notes
     -----
         This module defines four functions created through figVisualizationFactory:
-        showAvgInten and saveAvgInten are wrappers for plotAvgIntens, and
-        showAvgIntenAndFunctions and saveAvgIntensAndFunctions are wrappers for
-        _plotAvgIntensAndFunctions.
+        showAvgIntensPlot and saveAvgIntensPlot are wrappers for makeAvgIntensPlot, and
+        showRCRTPlot and saveRCRTPlot are wrappers for makeRCRTPlot.
+        .
     """
     # }}}
 
     def showPlot(*args, **kwargs) -> None:
-        try:
-            fig, ax = makeFigAxes(axisLabels, figTitle, figSizePx)
-            func((fig, ax), *args, **kwargs)
-        except Exception as err:
-            raise err
-        finally:
-            if not plt.isinteractive():
-                plt.show()
-                plt.close(fig)
+        fig, _ = func(*args, **kwargs)
+        plt.show()
+        if not plt.isinteractive():
+            plt.close(fig)
 
     def saveFig(figPath: str, *args, **kwargs) -> None:
-        try:
-            fig, ax = makeFigAxes(axisLabels, figTitle, figSizePx)
-            func((fig, ax), *args, **kwargs)
-            plt.savefig(figPath)
-        except Exception as err:
-            raise err
-        finally:
-            if not plt.isinteractive():
-                plt.close(fig)
+        fig, _ = func(*args, **kwargs)
+        plt.savefig(figPath)
+        if not plt.isinteractive():
+            plt.close(fig)
 
     return showPlot, saveFig
 
@@ -444,12 +431,6 @@ def figVisualizationFactory(
 # }}}
 
 
-showAvgIntens, saveAvgIntens = figVisualizationFactory(
-    plotAvgIntens, "Channel average intensities"
-)
+showAvgIntensPlot, saveAvgIntensPlot = figVisualizationFunctions(makeAvgIntensPlot)
 
-showAvgIntensAndFunctions, saveAvgIntensAndFunctions = figVisualizationFactory(
-    _plotAvgIntensAndFunctions,
-    "Average intensities and fitted functions",
-    ("Time since release of compression (s)", "Average intensities (a.u.)"),
-)
+showRCRTPlot, saveRCRTPlot = figVisualizationFunctions(makeRCRTPlot)
