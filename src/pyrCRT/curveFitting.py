@@ -6,7 +6,7 @@ intensities array and the frame times array, namely fitting a polynomial and two
 exponential curves on the data.
 """
 
-from typing import Iterable, Optional, Sequence, Union, overload
+from typing import Iterable, Optional, Sequence, Union, overload, Tuple
 from warnings import filterwarnings
 
 import numpy as np
@@ -15,6 +15,7 @@ import numpy as np
 from numpy.typing import NDArray
 from scipy.optimize import OptimizeWarning, curve_fit
 from scipy.signal import find_peaks
+from arrayOperations import findValueIndex
 
 # This is for catching OptimizeWarnig as if it were an exception
 filterwarnings("error")
@@ -78,7 +79,7 @@ def fitExponential(
     x: Array,
     y: Array,
     p0: Optional[ParameterSequence] = None,
-) -> FitParametersTuple:
+) -> tuple[Array, Array]:
     # {{{
     # {{{
     """
@@ -91,7 +92,7 @@ def fitExponential(
     ----------
     x, y : np.ndarray
         Self-explanatory.
-    p0 : list of 3 real numbers or None, default=None
+    p0 : sequence of 3 real numbers or None, default=None
         The initial guesses for each parameter, in order of a, b and c (see summary
         above). If None, will use p0=[0, 0, 0].
 
@@ -133,7 +134,7 @@ def fitPolynomial(
     x: Array,
     y: Array,
     p0: Optional[ParameterSequence] = None,
-) -> FitParametersTuple:
+) -> tuple[Array, Array]:
     # {{{
     # {{{
     """
@@ -146,7 +147,7 @@ def fitPolynomial(
     ----------
     x, y : np.ndarray
         Self-explanatory.
-    p0 : list of 3 real numbers or None, default=None
+    p0 : sequence of real numbers or None, default=None
         The initial guesses for each parameter in increasing polynomial order (see
         summary above). Note that this determines the order of the polynomial, for
         example, a list of length 7 specifies a polynomial of sixth order.
@@ -201,7 +202,7 @@ def fitRCRT(
     y: Array,
     p0: Optional[ParameterSequence] = None,
     maxDiv: Optional[Union[Iterable[int], int]] = None,
-) -> tuple[FitParametersTuple, int]:
+) -> tuple[tuple[Array, Array], int]:
     # {{{
     # {{{
     """
@@ -215,10 +216,10 @@ def fitRCRT(
     ----------
     x, y : np.ndarray
         Self-explanatory. The arrays over which the curve fit will be tried.
-    p0 : list of real numbers, default=None
+    p0 : sequence of real numbers, default=None
         The initial guesses for each parameter of the exponential function. Refer to the
         documentation of pyrCRT.curveFitting.exponential for more information.
-    maxDiv : list of ints, or int, or None, default=None
+    maxDiv : iterable of ints, or int, or None, default=None
         Maximum divergence index between the exponential and polynomial functions fitted
         on the entire data set. Refer to pyrCRT.curveFitting.findMaxDivergencePeaks for
         more information.
@@ -296,17 +297,17 @@ def rCRTFromParameters(rCRTTuple: FitParametersTuple) -> tuple[float, float]:
 
     Parameters
     ----------
-    rCRTTuple : tuple of np.ndarray
+    rCRTTuple : tuple of sequences of float
         A tuple with the fitted parameters and their standard deviations, respectively.
         See fitRCRT.
 
     Returns
     -------
-    rCRT : np.float_
+    rCRT : float
         The calculated rCRT, which is the negative inverse of the "b" parameter of the
         exponential function defined in this module (see exponential).
 
-    rCRTUncertainty : np.float_
+    rCRTUncertainty : float
         The rCRT's uncertainty with a 95% confidence interval, calculated from the
         standard deviation of the "b" parameter of the exponential function.
     """
@@ -415,6 +416,418 @@ def findMaxDivergencePeaks(
         "Usage: findMaxDivergencePeaks(x: array, expTuple=expTuple,"
         "polyTuple=polyTuple) or findMaxDivergencePeaks(x: array, y: array)."
         "Please refer to the documentation for more information."
+    )
+
+
+# }}}
+
+
+def calcRCRT(
+    timeScdsArr: Array,
+    avgIntensArr: Array,
+    criticalTime: Optional[Union[float, Iterable[float]]] = None,
+    expTuple: Optional[FitParametersTuple] = None,
+    polyTuple: Optional[FitParametersTuple] = None,
+    rCRTInitialGuesses: Optional[ParameterSequence] = None,
+    exclusionMethod: str = "best fit",
+    exclusionCriteria: float = np.inf,
+) -> Tuple[ArrayTuple, float]:
+    # {{{
+    # {{{
+    """
+    Fits the rCRT exponential on the f(timeScds)=avgIntens data given by timeScdsArr
+    and avgIntensArr respectively on each value of criticalTime, returning the fitted
+    rCRT parameters and their standard deviations chosen according to the exlucion
+    method and criteria (see Parameters below).
+
+
+    Parameters
+    ----------
+    timeScdsArr : np.ndarray of float
+        An array of time instants in seconds. Typically corresponding to the timestamp
+        of each frame in a video recording.
+
+    avgIntensArr : np.ndarray of float
+        The array of average intensities for a given channel inside the region of
+        interest (ROI), with respect to timeScdsArr.
+
+    criticalTime : float, iterable of float, or None, default=None
+        The critical time, up until which the rCRT function will be optimized on the
+        timeScdsArr and avgIntensArr. If a list of float, this function will try fitting
+        the rCRT exponential function on each criticalTime and return the optimized
+        parameters chosen according to exclusionMethod and exclusionCriteria. If None,
+        curveFitting.findMaxDivergencePeaks will be called on timeScdsArr and
+        avgIntensArr to find a list of candidate criticalTimes.
+
+    expTuple, polyTuple : tuple of np.ndarray of float, default=None
+        Tuples with the exponential and polynomial function parameters and standard
+        deviations fitted over f(timeScds)=avgIntens. These arguments will be used to
+        find the list of candidate critical times if expTuple and polyTuple are not
+        None, and criticalTime is None.
+
+    rCRTInitialGuesses : sequence of float or None, default=None
+        The initial guesses for the rRCT exponential fitting. If None, p0=[1.0, -0.3,
+        0.0] will be used by default (see curveFitting.fitRCRT and
+        curveFitting.fitExponential).
+
+    exclusionMethod : str, default='best fit'
+        Which criticalTime and its associated fitted rCRT parameters and standard
+        deviations are to be returned. Possible values are 'best fit', 'strict' and
+        'first that works' (consult the documentation for the calcRCRTBestFit,
+        calcRCRTStrict and calcRCRTFirstThatWorks functions for a description of the
+        effect of these possible values). Of course, this parameter has no effect if
+        a single criticalTime is provided (instead of a list of candidate criticalTimes
+        or none at all)
+
+    exclusionCriteria : float, default=np.inf
+        The maximum relative uncertainty a rCRT measurement can have and not be
+        rejected. If all fits on the criticalTime candidates fail this criteria, a
+        RuntimeError will be raised.
+
+    Returns
+    -------
+    rCRTTuple : tuple of np.ndarray of float
+        The optimized parameters and their standard deviations, respectively, chosen
+        according to the exclusionMethod and exclusionCriteria.
+
+    criticalTime : float
+        The critical time, chosen according to the exclusionMethod and
+        exclusionCriteria.
+
+    Raises
+    ------
+    ValueError
+        If an invalid value for exclusionMethod was passed.
+
+    RuntimeError
+        If either the fit failed on all criticalTime candidates or no fit passed the
+        exclusionCriteria.
+
+    See Also
+    --------
+    calcRCRTBestFit, calcRCRTStrict, calcRCRTFirstThatWorks :
+        calcRCRT only serves to compute a list of critical time candidates (if it isn't
+        provided) and call these these functions to deal with each possible value of
+        exclusionMethod.
+
+    """
+    # }}}
+
+    if criticalTime is None and (expTuple is None or polyTuple is None):
+        maxDivList = findMaxDivergencePeaks(timeScdsArr, avgIntensArr)
+        criticalTimeList = list(timeScdsArr[maxDivList])
+
+    elif expTuple is not None and polyTuple is not None:
+        maxDivList = findMaxDivergencePeaks(
+            timeScdsArr, expTuple=expTuple, polyTuple=polyTuple
+        )
+        criticalTimeList = list(timeScdsArr[maxDivList])
+
+    elif isinstance(criticalTime, float):
+        return calcRCRTStrict(
+            timeScdsArr,
+            avgIntensArr,
+            criticalTime,
+            rCRTInitialGuesses,
+            exclusionCriteria,
+        )
+    elif isinstance(criticalTime, Iterable):
+        criticalTimeList = list(criticalTime)
+    else:
+        raise TypeError(
+            f"Invalid type ({criticalTime}) of criticalTime passed. "
+            "Valid types: float, list of float or None."
+        )
+
+    if exclusionMethod == "best fit":
+        return calcRCRTBestFit(
+            timeScdsArr,
+            avgIntensArr,
+            criticalTimeList,
+            rCRTInitialGuesses,
+            exclusionCriteria,
+        )
+
+    if exclusionMethod == "strict":
+        return calcRCRTStrict(
+            timeScdsArr,
+            avgIntensArr,
+            criticalTimeList[0],
+            rCRTInitialGuesses,
+            exclusionCriteria,
+        )
+
+    if exclusionMethod == "first that works":
+        return calcRCRTFirstThatWorks(
+            timeScdsArr,
+            avgIntensArr,
+            criticalTimeList,
+            rCRTInitialGuesses,
+            exclusionCriteria,
+        )
+
+    raise ValueError(
+        f"Invalid value of {exclusionMethod} passed as exclusionMethod. "
+        "Valid values: 'best fit', 'strict' and 'first that works'."
+    )
+
+
+# }}}
+
+
+def calcRCRTBestFit(
+    timeScdsArr: Array,
+    avgIntensArr: Array,
+    criticalTimeList: Iterable[float],
+    rCRTInitialGuesses: Optional[ParameterSequence] = None,
+    exclusionCriteria: float = np.inf,
+) -> Tuple[ArrayTuple, float]:
+    # {{{
+    # {{{
+    """
+    Fits the rCRT exponential on the f(timeScds)=avgIntens data given by timeScdsArr and
+    avgIntensArr respectively using the candidate critical times given by
+    criticalTimeList, returning the fitted parameters, their standard deviations and the
+    criticalTime that gave the lowest relative uncertainty for the 1/rCRT parameter.
+
+    Parameters
+    ----------
+    timeScdsArr : np.ndarray of float
+        An array of time instants in seconds. Typically corresponding to the timestamp
+        of each frame in a video recording.
+
+    avgIntensArr : np.ndarray of float
+        The array of average intensities for a given channel inside the region of
+        interest (ROI), with respect to timeScdsArr.
+
+    criticalTimeList : iterable of float
+        An iterable of candidate critical times. curveFitting.fitRCRT will be called
+        with each criticalTime.
+
+    rCRTInitialGuesses : sequence of float or None, default=None
+        The initial guesses for the rRCT exponential fitting. If None, p0=[1.0, -0.3,
+        0.0] will be used by default (see curveFitting.fitRCRT and
+        curveFitting.fitExponential).
+
+    exclusionCriteria : float, default=np.inf
+        The maximum relative uncertainty a rCRT measurement can have and not be
+        rejected. If all fits on the criticalTime candidates fail this criteria, a
+        RuntimeError will be raised.
+
+    Returns
+    -------
+    rCRTTuple : tuple of np.ndarray of float
+        The optimized parameters and their standard deviations, respectively, that gave
+        the least standard deviation for the 1/rCRT parameter of the rCRT exponential
+        function.
+
+    criticalTime : float
+        The critical time associated with the aforementioned parameters.
+
+    Raises
+    ------
+    RuntimeError
+        If either the fit failed on all criticalTime candidates or no fit passed the
+        exclusionCriteria.
+
+    """
+    # }}}
+
+    # A dictionary whose keys are maximum divergence indexes (maxDivs) and values
+    # the rCRT and its uncertainty calculated with the respective maxDiv
+    maxDivResults: dict[int, ArrayTuple] = {}
+    for criticalTime in criticalTimeList:
+        maxDiv = findValueIndex(timeScdsArr, criticalTime)
+        try:
+            rCRTTuple, maxDiv = fitRCRT(
+                timeScdsArr,
+                avgIntensArr,
+                rCRTInitialGuesses,
+                maxDiv,
+            )
+            maxDivResults[maxDiv] = rCRTTuple
+        except RuntimeError:
+            pass
+
+    if not maxDivResults:
+        raise RuntimeError(
+            "rCRT fit failed on all critical times: {criticalTimeList} "
+            f"with initial guesses = {rCRTInitialGuesses}"
+        )
+
+    maxDiv = min(
+        maxDivResults, key=lambda x: calculateRelativeUncertainty(maxDivResults[x])
+    )
+    rCRTTuple = maxDivResults[maxDiv]
+
+    relativeUncertainty = calculateRelativeUncertainty(maxDivResults[maxDiv])
+
+    if relativeUncertainty > exclusionCriteria:
+        raise RuntimeError(
+            "Resulting rCRT parameters did not pass the exclusion criteria of "
+            f"{exclusionCriteria}. Relative uncertainty: {relativeUncertainty}."
+        )
+
+    return rCRTTuple, timeScdsArr[maxDiv]
+
+
+# }}}
+
+
+def calcRCRTStrict(
+    timeScdsArr: Array,
+    avgIntensArr: Array,
+    criticalTime: float,
+    rCRTInitialGuesses: Optional[ParameterSequence] = None,
+    exclusionCriteria: float = np.inf,
+) -> Tuple[ArrayTuple, float]:
+    # {{{
+    # {{{
+    """
+    Fits the rCRT exponential on the f(timeScds)=avgIntens data given by timeScdsArr and
+    avgIntensArr respectively using criticalTime as the critical time, returning the
+    fitted parameters, their standard deviations and the critical time itself.
+
+    Parameters
+    ----------
+    timeScdsArr : np.ndarray of float
+        An array of time instants in seconds. Typically corresponding to the timestamp
+        of each frame in a video recording.
+
+    avgIntensArr : np.ndarray of float
+        The array of average intensities for a given channel inside the region of
+        interest (ROI), with respect to timeScdsArr.
+
+    criticalTime : float
+        The critical time. The rCRT exponential will be fitted on timeScdsArr and
+        avgIntenArr up until this value in timeScdsArr.
+
+    rCRTInitialGuesses : sequence of float or None, default=None
+        The initial guesses for the rRCT exponential fitting. If None, p0=[1.0, -0.3,
+        0.0] will be used by default (see curveFitting.fitRCRT and
+        curveFitting.fitExponential).
+
+    exclusionCriteria : float, default=np.inf
+        The maximum relative uncertainty a rCRT measurement can have and not be
+        rejected. If all fits on the criticalTime candidates fail this criteria, a
+        RuntimeError will be raised.
+
+    Returns
+    -------
+    rCRTTuple : tuple of np.ndarray of float
+        The optimized parameters and their standard deviations
+
+    criticalTime : float
+        The critical time associated with the aforementioned parameters.
+
+    Raises
+    ------
+    RuntimeError
+        If either the fit failed or it didn't pass the exclusion criteria.
+    """
+    # }}}
+
+    rCRTTuple, maxDiv = fitRCRT(
+        timeScdsArr,
+        avgIntensArr,
+        rCRTInitialGuesses,
+        findValueIndex(timeScdsArr, criticalTime),
+    )
+
+    relativeUncertainty = calculateRelativeUncertainty(rCRTTuple)
+
+    if relativeUncertainty > exclusionCriteria:
+        raise RuntimeError(
+            "Resulting rCRT parameters did not pass the exclusion criteria of "
+            f"{exclusionCriteria}. Relative uncertainty: {relativeUncertainty}."
+        )
+
+    return rCRTTuple, timeScdsArr[maxDiv]
+
+
+# }}}
+
+
+def calcRCRTFirstThatWorks(
+    timeScdsArr: Array,
+    avgIntensArr: Array,
+    criticalTimeList: Iterable[float],
+    rCRTInitialGuesses: Optional[ParameterSequence] = None,
+    exclusionCriteria: float = np.inf,
+) -> Tuple[ArrayTuple, float]:
+    # {{{
+    # {{{
+    """
+    Fits the rCRT exponential on the f(timeScds)=avgIntens data given by timeScdsArr and
+    avgIntensArr respectively using the candidate critical times given by
+    criticalTimeList, returning the fitted parameters, their standard deviations and the
+    criticalTime corresponding to the first critical time candidate that passed the
+    exclusion criteria.
+
+    Parameters
+    ----------
+    timeScdsArr : np.ndarray of float
+        An array of time instants in seconds. Typically corresponding to the timestamp
+        of each frame in a video recording.
+
+    avgIntensArr : np.ndarray of float
+        The array of average intensities for a given channel inside the region of
+        interest (ROI), with respect to timeScdsArr.
+
+    criticalTimeList : iterable of float
+        An iterable of candidate critical times. curveFitting.fitRCRT will be called
+        with each criticalTime.
+
+    rCRTInitialGuesses : sequence of float or None, default=None
+        The initial guesses for the rRCT exponential fitting. If None, p0=[1.0, -0.3,
+        0.0] will be used by default (see curveFitting.fitRCRT and
+        curveFitting.fitExponential).
+
+    exclusionCriteria : float, default=np.inf
+        The maximum relative uncertainty a rCRT measurement can have and not be
+        rejected. If all fits on the criticalTime candidates fail this criteria, a
+        RuntimeError will be raised.
+
+    Returns
+    -------
+    rCRTTuple : tuple of np.ndarray of float
+        The first optimized parameters and their respective standard deviations that
+        passed the exclusion criteria.
+
+    criticalTime : float
+        The critical time associated with the aforementioned parameters.
+
+    Raises
+    ------
+    RuntimeError
+        If either the fit failed on all criticalTime candidates or no fit passed the
+        exclusionCriteria.
+
+    """
+    # }}}
+
+    criticalTimeList = sorted(criticalTimeList)
+    for criticalTime in criticalTimeList:
+        maxDiv = findValueIndex(timeScdsArr, criticalTime)
+        try:
+            rCRTTuple, maxDiv = fitRCRT(
+                timeScdsArr,
+                avgIntensArr,
+                rCRTInitialGuesses,
+                maxDiv,
+            )
+
+            relativeUncertainty = calculateRelativeUncertainty(rCRTTuple)
+            if relativeUncertainty < exclusionCriteria:
+                return rCRTTuple, timeScdsArr[maxDiv]
+
+        except RuntimeError:
+            pass
+
+    raise RuntimeError(
+        f"No rCRT parameters passed the exclusion criteria of {exclusionCriteria}, "
+        f"with initial guesses = {rCRTInitialGuesses} and critical time candidates = "
+        f"{criticalTimeList}."
     )
 
 

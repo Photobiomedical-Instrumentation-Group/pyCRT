@@ -7,7 +7,8 @@ pyrCRT's functions distributed among it's other modules.
 
 from __future__ import annotations
 
-from typing import Any, Iterable, Optional, Sequence, Tuple, Union
+from os.path import isfile
+from typing import Any, Optional, Sequence, Tuple, Union
 
 import numpy as np
 from matplotlib.axes import Axes
@@ -36,11 +37,10 @@ from arrayPlotting import (
 
 # pylint: disable=import-error
 from curveFitting import (
+    calcRCRT,
     calculateRelativeUncertainty,
-    findMaxDivergencePeaks,
     fitExponential,
     fitPolynomial,
-    fitRCRT,
     rCRTFromParameters,
 )
 
@@ -52,8 +52,8 @@ from videoReading import readVideo
 # Array of arbitraty size with float elements.
 Array = NDArray[np.float_]
 
-# Tuples of two numpy arrays, typically an array of the timestamp for each frame and an
-# array of average intensities within a given ROI
+# Tuples of two numpy arrays, typically one array of times and one of average
+# intensities or of optimized parameters and their standard deviations.
 ArrayTuple = tuple[Array, Array]
 
 # Type for something that can be used as the parameters for some curve-fitting function
@@ -82,222 +82,142 @@ RoiType = Union[RoiTuple, str]
 CHANNEL_INDICES_DICT = {"b": 0, "g": 1, "r": 2}
 
 
-def calcRCRT(
-    timeScds: Array,
-    avgIntens: Array,
-    criticalTime: Optional[Union[float, list[float]]] = None,
-    expTuple: Optional[FitParametersTuple] = None,
-    polyTuple: Optional[FitParametersTuple] = None,
-    rCRTInitialGuesses: Optional[ParameterSequence] = None,
-    exclusionMethod: str = "best fit",
-    exclusionCriteria: float = np.inf,
-) -> Tuple[FitParametersTuple, float]:
-    # {{{
-    """cum"""
-
-    if criticalTime is None and (expTuple is None or polyTuple is None):
-        maxDivList = findMaxDivergencePeaks(timeScds, avgIntens)
-
-    elif expTuple is not None and polyTuple is not None:
-        maxDivList = findMaxDivergencePeaks(
-            timeScds, expTuple=expTuple, polyTuple=polyTuple
-        )
-
-    elif isinstance(criticalTime, list):
-        maxDivList = [findValueIndex(timeScds, x) for x in criticalTime]
-
-    elif isinstance(criticalTime, float):
-        maxDiv = findValueIndex(timeScds, criticalTime)
-        return calcRCRTStrict(
-            timeScds, avgIntens, maxDiv, rCRTInitialGuesses, exclusionCriteria
-        )
-
-    if exclusionMethod == "best fit":
-        return calcRCRTBestFit(
-            timeScds, avgIntens, maxDivList, rCRTInitialGuesses, exclusionCriteria
-        )
-
-    if exclusionMethod == "strict":
-        return calcRCRTStrict(
-            timeScds, avgIntens, maxDivList[0], rCRTInitialGuesses, exclusionCriteria
-        )
-
-    if exclusionMethod == "first that works":
-        return calcRCRTFirstThatWorks(
-            timeScds, avgIntens, maxDivList, rCRTInitialGuesses, exclusionCriteria
-        )
-
-    raise ValueError(
-        f"Invalid value of {exclusionMethod} passed as exclusionMethod. "
-        "Valid values: 'best fit', 'strict' and 'first that works'."
-    )
-
-
-# }}}
-
-
-def calcRCRTBestFit(
-    timeScds: Array,
-    avgIntens: Array,
-    maxDivList: list[int],
-    rCRTInitialGuesses: Optional[ParameterSequence] = None,
-    exclusionCriteria: float = np.inf,
-) -> Tuple[FitParametersTuple, float]:
-    # {{{
-    """cum"""
-
-    # A dictionary whose keys are maximum divergence indexes (maxDivs) and values
-    # the rCRT and its uncertainty calculated with the respective maxDiv
-    maxDivResults: dict[int, FitParametersTuple] = {}
-    for maxDiv in maxDivList:
-        try:
-            rCRTTuple, maxDiv = fitRCRT(
-                timeScds,
-                avgIntens,
-                rCRTInitialGuesses,
-                maxDiv,
-            )
-            maxDivResults[maxDiv] = rCRTTuple
-        except RuntimeError:
-            pass
-
-    if not maxDivResults:
-        raise RuntimeError(
-            "rCRT fit failed on all maximum divergence indexes: "
-            f"{maxDivList} with initial guesses = {[rCRTInitialGuesses]}"
-        )
-
-    maxDiv = min(
-        maxDivResults, key=lambda x: calculateRelativeUncertainty(maxDivResults[x])
-    )
-    rCRTTuple = maxDivResults[maxDiv]
-
-    relativeUncertainty = calculateRelativeUncertainty(maxDivResults[maxDiv])
-
-    if relativeUncertainty > exclusionCriteria:
-        raise RuntimeError(
-            "Resulting rCRT parameters did not pass the exclusion criteria of "
-            f"{exclusionCriteria}. Relative uncertainty: {relativeUncertainty}."
-        )
-
-    return rCRTTuple, timeScds[maxDiv]
-
-
-# }}}
-
-
-def calcRCRTStrict(
-    timeScds: Array,
-    avgIntens: Array,
-    maxDiv: int,
-    rCRTInitialGuesses: Optional[ParameterSequence] = None,
-    exclusionCriteria: float = np.inf,
-) -> Tuple[FitParametersTuple, float]:
-    # {{{
-    """cum"""
-
-    rCRTTuple, maxDiv = fitRCRT(
-        timeScds,
-        avgIntens,
-        rCRTInitialGuesses,
-        maxDiv,
-    )
-
-    relativeUncertainty = calculateRelativeUncertainty(rCRTTuple)
-
-    if relativeUncertainty > exclusionCriteria:
-        raise RuntimeError(
-            "Resulting rCRT parameters did not pass the exclusion criteria of "
-            f"{exclusionCriteria}. Relative uncertainty: {relativeUncertainty}."
-        )
-
-    return rCRTTuple, timeScds[maxDiv]
-
-
-# }}}
-
-
-def calcRCRTFirstThatWorks(
-    timeScds: Array,
-    avgIntens: Array,
-    maxDivList: Iterable[int],
-    rCRTInitialGuesses: Optional[ParameterSequence] = None,
-    exclusionCriteria: float = np.inf,
-) -> Tuple[FitParametersTuple, float]:
-    # {{{
-    """cum"""
-
-    maxDivList = sorted(maxDivList)
-    for maxDiv in maxDivList:
-        try:
-            rCRTTuple, maxDiv = fitRCRT(
-                timeScds,
-                avgIntens,
-                rCRTInitialGuesses,
-                maxDiv,
-            )
-
-            relativeUncertainty = calculateRelativeUncertainty(rCRTTuple)
-            if relativeUncertainty < exclusionCriteria:
-                return rCRTTuple, timeScds[maxDiv]
-
-        except RuntimeError:
-            pass
-
-    raise RuntimeError(
-        "rCRT fit failed on all maximum divergence indexes: "
-        f"{maxDivList} with initial guesses = {[rCRTInitialGuesses]}"
-    )
-
-
-# }}}
-
-
 class RCRT:
+    # {{{
+    """
+    Representation of a rCRT measurement. Aside from the rCRT value itself, it
+    also stores all the information that went into calculating the rCRT, as well
+    as functions related to this calculation and storing the results in a file.
+    This class is meant to be the easiest way to use pyrCRT.
+    """
+    # Init methods{{{
     def __init__(
         self,
-        fullTimeScds: Array,
-        fullAvgIntens: Array,
-        channelToUse: str = "g",
+        fullTimeScdsArr: Array,
+        channelsAvgIntensArr: Array,
+        channel: str = "g",
         fromTime: Optional[Real] = None,
         toTime: Optional[Real] = None,
-        funcParams: dict[str, FitParametersTuple] = {},
         sliceMethod: str = "from local max",
-        exclusionCriteria: float = 0.12,
+        funcParamsTuples: Optional[dict[str, FitParametersTuple]] = None,
+        initialGuesses: Optional[dict[str, ParameterSequence]] = None,
         criticalTime: Optional[float] = None,
-        initialGuesses: dict[str, ParameterSequence] = {},
+        exclusionCriteria: float = 0.12,
         exclusionMethod: str = "first that works",
     ):
         # {{{
-        """cum"""
+        # {{{
+        """
+        Initializes the RCRT instance with all the parameters that are necessary for
+        calculating the rCRT. This method has many parameters but only fullTimeScdsArr
+        and channelsAvgIntensArr are required, though it is important to know about each
+        parameter.
 
-        self.fullTimeScds = fullTimeScds
-        self.fullAvgIntens = fullAvgIntens
-        self.usedChannel = channelToUse.strip().lower()
+        Parameters
+        ----------
+        fullTimeScdsArr : np.ndarray of float
+            An array of time instants measured in seconds, with respect to the start of
+            the recording.
+
+        channelsAvgIntensArr : np.ndarray of float
+            The array of average channel intensities over the pixels in a certain region
+            of interest (ROI). Each line is an array of the average intensities for each
+            channel (in the order of BGR).
+
+            This, and fullTimeScdsArr are typically the outputs of
+            videoReading.readVideo.
+
+        channel : str, default='g'
+            The channel that will be used to calculate the rCRT. Can be 'b', 'g' or 'r'.
+            This argument specifies which column of channelsAvgIntensArr will be stored
+            as the channelFullAvgIntens property of this instance (see
+            RCRT.channelFullAvgIntens).
+
+
+        fromTime, toTime : float or None, default=None
+            The elements of fullTimeScdsArr from and to which the rCRT phenomenon
+            actually takes place. This is the interval of channelFullAvgIntens. If None,
+            this interval will be from the first and to the last elements of
+            fullTimeScdsArr respectively. The rcrt.fromTime and rcrt.toTime attributes
+            won't be the same as these parameters after initialization, though, that
+            depends on the sliceMethod (see below).
+
+        sliceMethod : str, default='from local max'
+            Which way the slice attribute is to be calculated from the fromTime and
+            toTime parameters. See RCRT.setSlice for details.
+
+        funcParamsTuples : dict of str keys and tuples of 2 np.ndarray of float as
+        values or None, default=None
+            The fitted parameters and their standard deviations of the exponential,
+            polynomial and rCRT exponential functions can be specified via this
+            dictionary if they have been calculated beforehand. The keys are
+            'exponential', 'polynomial' and 'rCRT' respectively. A function that doesn't
+            have its key in this dictionary will be fitted during the initialization of
+            the RCRT instance.
+
+        initialGuesses : dict of str keys and sequence of float values or None,
+        default=None
+            The initial guesses for each function. The valid keys are the same as of
+            funcParamsTuples. For each function whose key is not in this dict, the
+            default initial guesses (defined in the curveFitting module) will be used.
+
+        criticalTime : float or None, default=None
+            The critical time used for the rCRT exponential function fitting. If None,
+            it will be calculated by calcRCRT from the time and intensity arrays or from
+            the fitted polynomial and exponential function parameters. (see
+            curveFitting.calcRCRT)
+
+        exclusionCriteria : float, default=0.12
+            The maximum relative uncertainty a rCRT measurement can have and not be
+            rejected. If all fits on the criticalTime candidates fail this criteria, a
+            RuntimeError will be raised. See curveFitting.calcRCRT for more information.
+
+        relativeUncertainty : float
+            The rCRT's relative uncertainty.
+
+        exclusionMethod : str, default='best fit'
+            Which criticalTime and its associated fitted rCRT parameters and standard
+            deviations are to be returned by calcRCRT. Possible values are 'best fit',
+            'strict' and 'first that works' (consult the documentation for the
+            calcRCRTBestFit, calcRCRTStrict and calcRCRTFirstThatWorks functions from
+            the curveFitting module for a description of the effect of these possible
+            values).
+        """
+        # }}}
+
+        self.fullTimeScdsArr = fullTimeScdsArr
+        self.channelsAvgIntensArr = channelsAvgIntensArr
+        self.channel = channel.strip().lower()
         self.setSlice(fromTime, toTime, sliceMethod)
 
-        self.initialGuesses = initialGuesses
+        if initialGuesses is None:
+            self.initialGuesses = {}
+        else:
+            self.initialGuesses = initialGuesses
 
-        if "exponential" in funcParams:
-            self.expParams, self.expStdDev = funcParams["exponential"]
+        if funcParamsTuples is None:
+            funcParamsTuples = {}
+
+        if "exponential" in funcParamsTuples:
+            self.expParams, self.expStdDev = funcParamsTuples["exponential"]
         else:
             self.expParams, self.expStdDev = fitExponential(
-                self.timeScds,
-                self.avgIntens,
+                self.timeScdsArr,
+                self.avgIntensArr,
                 self.initialGuesses.get("exponential", None),
             )
 
-        if "polynomial" in funcParams:
-            self.polyParams, self.polyStdDev = funcParams["polynomial"]
+        if "polynomial" in funcParamsTuples:
+            self.polyParams, self.polyStdDev = funcParamsTuples["polynomial"]
         else:
             self.polyParams, self.polyStdDev = fitPolynomial(
-                self.timeScds,
-                self.avgIntens,
+                self.timeScdsArr,
+                self.avgIntensArr,
                 self.initialGuesses.get("polynomial", None),
             )
 
-        if "rCRT" in funcParams and criticalTime is not None:
-            self.rCRTParams, self.rCRTStdDev = funcParams["rCRT"]
+        if "rCRT" in funcParamsTuples and criticalTime is not None:
+            self.rCRTParams, self.rCRTStdDev = funcParamsTuples["rCRT"]
             self.criticalTime = criticalTime
         else:
             (self.rCRTParams, self.rCRTStdDev), self.criticalTime = self.calcRCRT(
@@ -306,223 +226,6 @@ class RCRT:
                 exclusionMethod,
                 exclusionCriteria,
             )
-
-    # }}}
-
-    def calcRCRT(
-        self,
-        criticalTime: Optional[float] = None,
-        rCRTInitialGuesses: Optional[ParameterSequence] = None,
-        exclusionMethod: str = "best fit",
-        exclusionCriteria: float = np.inf,
-    ) -> Tuple[FitParametersTuple, float]:
-        # {{{
-        """cum"""
-
-        return calcRCRT(
-            self.timeScds,
-            self.avgIntens,
-            criticalTime,
-            self.expTuple,
-            self.polyTuple,
-            rCRTInitialGuesses,
-            exclusionMethod,
-            exclusionCriteria,
-        )
-
-    # }}}
-
-    @property
-    def B(self) -> Array:
-        # {{{
-        """cum"""
-
-        return self.fullAvgIntens[:, 0]
-
-    # }}}
-
-    @property
-    def G(self) -> Array:
-        # {{{
-        """cum"""
-
-        return self.fullAvgIntens[:, 1]
-
-    # }}}
-
-    @property
-    def R(self) -> Array:
-        # {{{
-        """cum"""
-
-        return self.fullAvgIntens[:, 2]
-
-    # }}}
-
-    @property
-    def channelFullAvgIntens(self) -> Array:
-        # {{{
-        """cum"""
-
-        return self.fullAvgIntens[:, CHANNEL_INDICES_DICT[self.usedChannel]]
-
-    # }}}
-
-    @property
-    def expTuple(self) -> FitParametersTuple:
-        # {{{
-        """cum"""
-
-        return (self.expParams, self.expStdDev)
-
-    # }}}
-
-    @property
-    def polyTuple(self) -> FitParametersTuple:
-        # {{{
-        """cum"""
-
-        return (self.polyParams, self.polyStdDev)
-
-    # }}}
-
-    @property
-    def rCRTTuple(self) -> FitParametersTuple:
-        # {{{
-        """cum"""
-
-        return (self.rCRTParams, self.rCRTStdDev)
-
-    # }}}
-
-    @property
-    def rCRT(self) -> Tuple[float, float]:
-        # {{{
-        """cum"""
-
-        return rCRTFromParameters(self.rCRTTuple)
-
-    # }}}
-
-    @property
-    def criticalTime(self) -> float:
-        # {{{
-        """cum"""
-
-        self.maxDiv: int
-        return self.timeScds[self.maxDiv]
-
-    # }}}
-
-    @criticalTime.setter
-    def criticalTime(self, value: Real) -> None:
-        # {{{
-        """cum"""
-
-        self.maxDiv = int(findValueIndex(self.timeScds, value))
-
-    # }}}
-
-    @property
-    def relativeUncertainty(self) -> np.float_:
-        # {{{
-        """cum"""
-
-        return calculateRelativeUncertainty(self.rCRTTuple)
-
-    # }}}
-
-    def __str__(self) -> str:
-        # {{{
-        return f"{self.rCRT[0]:.2f}±{100*self.relativeUncertainty:.2f}%"
-
-    # }}}
-
-    def setSlice(
-        self,
-        fromTime: Optional[Real] = None,
-        toTime: Optional[Real] = None,
-        sliceMethod: str = "from local max",
-    ) -> None:
-        # {{{
-        """cum"""
-
-        sliceMethod = sliceMethod.strip().lower()
-
-        if sliceMethod == "from max" or (fromTime, toTime) == (None, None):
-            self.slice = sliceFromMaxToEnd(self.channelFullAvgIntens)
-        elif sliceMethod == "from local max":
-            self.slice = sliceFromLocalMax(
-                self.fullTimeScds, self.channelFullAvgIntens, fromTime, toTime
-            )
-        elif sliceMethod == "by time":
-            self.slice = sliceByTime(self.fullTimeScds, fromTime, toTime)
-        else:
-            raise ValueError(
-                f"Invalid value of '{sliceMethod}' passed as sliceMethod. "
-                "Valid values: 'from local max', 'from max' and 'by time'"
-            )
-
-        fromIndex, toIndex, _ = self.slice.indices(len(self.fullTimeScds))
-        self.fromTime, self.toTime = (
-            self.fullTimeScds[fromIndex],
-            self.fullTimeScds[toIndex],
-        )
-        self.timeScds = subtractMinimum(self.fullTimeScds[self.slice])
-        self.avgIntens = minMaxNormalize(self.channelFullAvgIntens[self.slice])
-
-    # }}}
-
-    def showAvgIntensPlot(self) -> None:
-        # {{{
-        """cum"""
-
-        showAvgIntensPlot(self.fullTimeScds, self.fullAvgIntens)
-
-    # }}}
-
-    def saveAvgIntensPlot(self, figPath: str) -> None:
-        # {{{
-        """cum"""
-
-        saveAvgIntensPlot(figPath, self.fullTimeScds, self.fullAvgIntens)
-
-    # }}}
-
-    def showRCRTPlot(self) -> None:
-        # {{{
-        """cum"""
-
-        showRCRTPlot(
-            self.timeScds,
-            self.avgIntens,
-            {
-                "exponential": self.expTuple,
-                "polynomial": self.polyTuple,
-                "rCRT": self.rCRTTuple,
-            },
-            self.criticalTime,
-            self.usedChannel,
-        )
-
-    # }}}
-
-    def saveRCRTPlot(self, figPath: str) -> None:
-        # {{{
-        """cum"""
-
-        saveRCRTPlot(
-            figPath,
-            self.timeScds,
-            self.avgIntens,
-            {
-                "exponential": self.expTuple,
-                "polynomial": self.polyTuple,
-                "rCRT": self.rCRTTuple,
-            },
-            self.criticalTime,
-            self.usedChannel,
-        )
 
     # }}}
 
@@ -537,23 +240,69 @@ class RCRT:
         **kwargs: Any,
     ) -> RCRT:
         # {{{
-        """cum"""
+        # {{{
+        """
+        Creates the fullTimeScdsArr and channelsAvgIntensArr arrays from a video file
+        and initializes the RCRT instance with these arrays, and additional arguments
+        passed to this function as kwargs.
 
-        fullTimeScds, fullAvgIntens = readVideo(
+        Parameters
+        ----------
+        roi : Tuple[int, int, int, int] or "all"
+            The region of interest, inside which the average of each pixel will be
+            computed.  This tuple must contain 4 integers: (x, y, length_x, and
+            length_y), where x and y are the coordinates of the rectangle's center. If
+            roi == "all", then the average will be computed on the entire frame. You can
+            also select the ROI at any time during the video by pressing the space bar
+            and dragging the square around the desired region.
+
+        displayVideo : bool, default=True
+            Whether or not to display the video while it is being read. This must be set
+            to True if no ROI is specified, so the ROI can be manually selected by
+            pressing the spacebar during the video exhibition.
+
+        rescaleFactor : real number, optional
+            Factor by which each frame will be scaled. This can help reduce the load on
+            the hardware and speed up computation. By default the video won't be scaled.
+
+        waitKeyTime : int, optional
+            How many milliseconds to wait for user input between each frame. The default
+            value is 1, so on most machines the video will appear "sped up" relative to
+            it being played on a regular video player. See cv2.waitKey for more
+            information.
+
+        kwargs : dict of str keys and any value
+            These additional arguments will be passed to this class's __init__ method.
+
+        See Also
+        --------
+        videoReading.readVideo :
+            Basically all this function does is call videoReading.readVideo with the
+            arguments passed to this function, so refer to that function's docstring for
+            more information.
+        """
+        # }}}
+        if not isfile(videoPath):
+            raise ValueError(
+                f"No file exists on path {videoPath}. If you wanted to read data from "
+                " a capture device such as a webcam, see simpleUI.fromCaptureDevice."
+            )
+
+        fullTimeScdsArr, channelsAvgIntensArr = readVideo(
             videoPath,
             roi=roi,
             displayVideo=displayVideo,
             rescaleFactor=rescaleFactor,
             waitKeyTime=waitKeyTime,
         )
-        return cls(fullTimeScds, fullAvgIntens, **kwargs)
+        return cls(fullTimeScdsArr, channelsAvgIntensArr, **kwargs)
 
     # }}}
 
     @classmethod
     def fromCaptureDevice(
         cls,
-        videoSource: int,
+        capDeviceIndex: int,
         roi: Optional[RoiType] = None,
         cameraResolution: Optional[Tuple[int, int]] = None,
         recordingPath: Optional[str] = None,
@@ -562,34 +311,103 @@ class RCRT:
         **kwargs: Any,
     ) -> RCRT:
         # {{{
-        """cum"""
+        # {{{
+        """
+        Creates the fullTimeScdsArr and channelsAvgIntensArr arrays from video read
+        from a video capture device, and initializes the RCRT instance with these arrays
+        and additional arguments passed to this function as kwargs.
 
-        fullTimeScds, fullAvgIntens = readVideo(
-            videoSource,
+        Parameters
+        ----------
+        roi : Tuple[int, int, int, int] or "all"
+            The region of interest, inside which the average of each pixel will be
+            computed.  This tuple must contain 4 integers: (x, y, length_x, and
+            length_y), where x and y are the coordinates of the rectangle's center. If
+            roi == "all", then the average will be computed on the entire frame. You can
+            also select the ROI at any time during the video by pressing the space bar
+            and dragging the square around the desired region.
+
+        cameraResolution : tuple of 2 ints, default=None
+            Used to optionally change the camera resolution before handing over the
+            VideoCapture instance. If reading from a video file, it does nothing.
+
+        recordingPath : str, default=None
+            The path (with the extension!) in the filesystem wherein to save the
+            recording.  If falsy, it won't record the video.
+
+        codecFourcc : str, default='mp4v'
+            The fourcc identifier for the video codec to be used for the recording.
+            Refer to www.fourcc.org/codecs.php for a list of possible codes.
+
+        recordingFps : float, default=None
+            The FPS (frames per second) for the recording, which doesn't need to
+            correspond to the FPS of the camera.
+
+        kwargs : dict of str keys and any values
+            These additional arguments will be passed to this class's __init__ method.
+
+        See Also
+        --------
+        videoReading.readVideo :
+            Basically all this function does is call videoReading.readVideo with the
+            arguments passed to this function, so refer to that function's docstring for
+            more information.
+        """
+        # }}}
+
+        if not isinstance(capDeviceIndex, int):
+            raise TypeError(
+                f"Invalide value of {capDeviceIndex} for the capDeviceIndex argument"
+                "device. To list the available capture devices, use "
+                "videoReading.listCaptureDevices. If you wanted to read data from "
+                "a video file, see simpleUI.fromVideoFile."
+            )
+
+        fullTimeScdsArr, channelsAvgIntensArr = readVideo(
+            capDeviceIndex,
             roi=roi,
             cameraResolution=cameraResolution,
             recordingPath=recordingPath,
             codecFourcc=codecFourcc,
             recordingFps=recordingFps,
         )
-        return cls(fullTimeScds, fullAvgIntens, **kwargs)
+        return cls(fullTimeScdsArr, channelsAvgIntensArr, **kwargs)
 
     # }}}
 
     @classmethod
     def fromArchive(cls, filePath: str) -> RCRT:
         # {{{
-        """cum"""
+        # {{{
+        """
+        Creates an RCRT instance from the data stored in a file created by the
+        RCRT.save method.
+
+        Parameters
+        ----------
+        filePath : str
+            The path to the file in the file system. It must be a numpy npz archive
+            containing fullTimeScdsArr, channelsAvgIntenArr, channel, fromTime, toTime,
+            expTuple, polyTuple, rCRTTuple and criticalTime (see the init method of RCRT
+            for an explanation of what each of these are supposed to be).
+
+        See Also
+        --------
+        RCRT.save :
+            Use this method to store the RCRT measurement in a file that is retrievable
+            by this method.
+        """
+        # }}}
 
         archive = np.load(filePath)
 
         return cls(
-            fullTimeScds=archive["fullTimeScds"],
-            fullAvgIntens=archive["fullAvgIntens"],
-            channelToUse=str(archive["channelToUse"]),
+            fullTimeScdsArr=archive["fullTimeScdsArr"],
+            channelsAvgIntensArr=archive["channelsAvgIntensArr"],
+            channel=str(archive["channel"]),
             fromTime=float(archive["fromTime"]),
             toTime=float(archive["toTime"]),
-            funcParams={
+            funcParamsTuples={
                 "exponential": tuple(archive["expTuple"]),  # type: ignore
                 "polynomial": tuple(archive["polyTuple"]),  # type: ignore
                 "rCRT": tuple(archive["rCRTTuple"]),  # type: ignore
@@ -597,17 +415,24 @@ class RCRT:
             criticalTime=float(archive["criticalTime"]),
             sliceMethod="from local max",
         )
-        # }}}
+        # }}}}}}
 
+    # Instance methods{{{
     def save(self, filePath: str) -> None:
         # {{{
-        """cum"""
+        # {{{
+        """
+        Saves the relevant attributes of this RCRT instance in a numpy npz file on the
+        specified file path. To retrieve the data in this file later, use
+        RCRT.fromArchive.
+        """
+        # }}}
 
         np.savez(
             filePath,
-            fullTimeScds=self.fullTimeScds,
-            fullAvgIntens=self.fullAvgIntens,
-            channelToUse=self.usedChannel,
+            fullTimeScdsArr=self.fullTimeScdsArr,
+            channelsAvgIntensArr=self.channelsAvgIntensArr,
+            channel=self.channel,
             fromTime=self.fromTime,
             toTime=self.toTime,
             expTuple=np.array(self.expTuple),
@@ -616,5 +441,374 @@ class RCRT:
             criticalTime=self.criticalTime,
         )
 
+    # }}}
 
+    def setSlice(
+        self,
+        fromTime: Optional[Real] = None,
+        toTime: Optional[Real] = None,
+        sliceMethod: str = "from local max",
+    ) -> None:
+        # {{{
+        # {{{
+        """
+        Sets the slice object that will be used to slice the channelFullAvgIntens and
+        fullTimeScdsArr arrays to produce avgIntensArr and timeScdsArr respectively.
+        This slice is supposed to indicate only the region wherein the CRT phenomenon
+        takes place. This slice is used for RCRT.timeScdsArr and RCRT.avgIntensArr.
+
+
+        Parameters
+        ----------
+        fromTime, toTime : float or None, default=None
+            The elements of fullTimeScdsArr from and to which the rCRT phenomenon
+            actually takes place. This is the interval of channelFullAvgIntens. If None,
+            this interval will be from the first and to the last elements of
+            fullTimeScdsArr respectively. The rcrt.fromTime and rcrt.toTime attributes
+            won't be the same as these parameters after initialization, though, that
+            depends on the sliceMethod (see below).
+
+        sliceMethod : str, default='from local max'
+            Which way the slice attribute is to be calculated from the fromTime and
+            toTime parameters. The possible values are:
+
+            'from max': the slice will be calculated from the absolute maximum of
+            channelFullAvgIntens up to the array's end. The fromTime and toTime
+            arguments are not necessary for this, and in fact this is this function's
+            behaviour when they are both None.
+
+            'by time': the slice will start on the first element of timeScdsArr that is
+            greater than or equal to fromTime and end on the first element that is
+            greater than or equal to toTime.
+
+            'from local max': the slice will start on the maximum of
+            channelFullAvgIntens between the indexes of fullTimeScdsArr that correspond
+            to fromTime and toTime, and end on toTime.
+        """
+        # }}}
+
+        sliceMethod = sliceMethod.strip().lower()
+
+        if sliceMethod == "from max" or (fromTime, toTime) == (None, None):
+            self.slice = sliceFromMaxToEnd(self.channelFullAvgIntens)
+        elif sliceMethod == "from local max":
+            self.slice = sliceFromLocalMax(
+                self.fullTimeScdsArr, self.channelFullAvgIntens, fromTime, toTime
+            )
+        elif sliceMethod == "by time":
+            self.slice = sliceByTime(self.fullTimeScdsArr, fromTime, toTime)
+        else:
+            raise ValueError(
+                f"Invalid value of '{sliceMethod}' passed as sliceMethod. "
+                "Valid values: 'from local max', 'from max' and 'by time'"
+            )
+
+        fromIndex, toIndex, _ = self.slice.indices(len(self.fullTimeScdsArr))
+        self.fromTime, self.toTime = (
+            self.fullTimeScdsArr[fromIndex],
+            self.fullTimeScdsArr[toIndex],
+        )
+
+    # }}}
+
+    def calcRCRT(
+        self,
+        criticalTime: Optional[float] = None,
+        rCRTInitialGuesses: Optional[ParameterSequence] = None,
+        exclusionMethod: str = "best fit",
+        exclusionCriteria: float = np.inf,
+    ) -> Tuple[ArrayTuple, float]:
+        # {{{
+        # {{{
+        """
+        Simply returns the output of curveFitting.calcRCRT called with the instance's
+        attributes and this function's parameters as its arguments. See
+        curveFitting.calcRCRT for a detailed explantion.
+        """
+        # }}}
+
+        return calcRCRT(
+            self.timeScdsArr,
+            self.avgIntensArr,
+            criticalTime,
+            self.expTuple,
+            self.polyTuple,
+            rCRTInitialGuesses,
+            exclusionMethod,
+            exclusionCriteria,
+        )
+
+    # }}}
+
+    def showAvgIntensPlot(self) -> None:
+        # {{{
+        # {{{
+        """
+        Shows the plot of average intensities for every channel in function of the
+        timestamp of each frame in the entire video. See arrayPlotting.makeAvgIntensPlot
+        and arrayPlotting.showAvgIntensPlot.
+        """
+        # }}}
+        showAvgIntensPlot(self.fullTimeScdsArr, self.channelsAvgIntensArr)
+
+    # }}}
+
+    def saveAvgIntensPlot(self, figPath: str) -> None:
+        # {{{
+        # {{{
+        """
+        Saves the plot of average intensities for every channel in function of the
+        timestamp of each frame in the entire video to a file. See
+        arrayPlotting.makeAvgIntensPlot and arrayPlotting.saveAvgIntensPlot.
+        """
+        # }}}
+        saveAvgIntensPlot(figPath, self.fullTimeScdsArr, self.channelsAvgIntensArr)
+
+    # }}}
+
+    def showRCRTPlot(self) -> None:
+        # {{{
+        # {{{
+        """
+        Shows the plot of normalized average intensities for the channel specified in
+        the initialization of the RCRT instance, in function of the times since the
+        removal of the pressure from the skin, and the fitted functions on this data.
+        This is supposed to show only the CRT phenomenon. See arrayPlotting.makeRCRTPlot
+        and arrayPlotting.showRCRTPlot.
+        """
+        # }}}
+        showRCRTPlot(
+            self.timeScdsArr,
+            self.avgIntensArr,
+            {
+                "exponential": self.expTuple,
+                "polynomial": self.polyTuple,
+                "rCRT": self.rCRTTuple,
+            },
+            self.criticalTime,
+            self.channel,
+        )
+
+    # }}}
+
+    def saveRCRTPlot(self, figPath: str) -> None:
+        # {{{
+        """cum"""
+
+        saveRCRTPlot(
+            figPath,
+            self.timeScdsArr,
+            self.avgIntensArr,
+            {
+                "exponential": self.expTuple,
+                "polynomial": self.polyTuple,
+                "rCRT": self.rCRTTuple,
+            },
+            self.criticalTime,
+            self.channel,
+        )
+
+    # }}}
+    # }}}
+
+    # Several properties, mostly for convenience and organization{{{
+    @property
+    def B(self) -> Array:
+        # {{{
+        # {{{
+        """
+        The average intensities of the B channel, measured from the start of the
+        recording.
+        """
+        # }}}
+        return self.channelsAvgIntensArr[:, 0]
+
+    # }}}
+
+    @property
+    def G(self) -> Array:
+        # {{{
+        # {{{
+        """
+        The average intensities of the G channel, measured from the start of the
+        recording.
+        """
+        # }}}
+        return self.channelsAvgIntensArr[:, 1]
+
+    # }}}
+
+    @property
+    def R(self) -> Array:
+        # {{{
+        # {{{
+        """
+        The average intensities of the R channel, measured from the start of the
+        recording.
+        """
+        # }}}
+
+        return self.channelsAvgIntensArr[:, 2]
+
+    # }}}
+
+    @property
+    def channelFullAvgIntens(self) -> Array:
+        # {{{
+        # {{{
+        """
+        The average intensities of the channel specified by the 'channel' instance
+        attribute, measured from the start of the recording.
+        """
+        # }}}
+        return self.channelsAvgIntensArr[:, CHANNEL_INDICES_DICT[self.channel]]
+
+    # }}}
+
+    @property
+    def timeScdsArr(self) -> Array:
+        # {{{
+        # {{{
+        """
+        The array of time instants in seconds, measured from the removal of the pressure
+        from the skin. This array is supposed to encompass only portion of
+        fullTimeScdsArr wherein the CRT phenomenon occurs.
+        """
+        # }}}
+        return subtractMinimum(self.fullTimeScdsArr[self.slice])
+
+    # }}}
+
+    @property
+    def avgIntensArr(self) -> Array:
+        # {{{
+        # {{{
+        """
+        The array of normalized average intensities of a channel. This array goes along
+        with timeScdsArr in that it encompasses only the portion of channelFullAvgIntens
+        wherein the CRT phenomenon occurs.
+        """
+        # }}}
+        return minMaxNormalize(self.channelFullAvgIntens[self.slice])
+
+    # }}}
+
+    @property
+    def expTuple(self) -> FitParametersTuple:
+        # {{{
+        # {{{
+        """
+        The optimized parameters and standard deviations of the exponential function
+        fitted on f(timeScdsArr)=avgIntensArr. See curveFitting.fitExponential.
+        """
+        # }}}
+        return (self.expParams, self.expStdDev)
+
+    # }}}
+
+    @property
+    def polyTuple(self) -> FitParametersTuple:
+        # {{{
+        # {{{
+        """
+        The optimized parameters and standard deviations of the polynomial function
+        fitted on f(timeScdsArr)=avgIntensArr. See curveFitting.fitPolynomial.
+        """
+        # }}}
+
+        return (self.polyParams, self.polyStdDev)
+
+    # }}}
+
+    @property
+    def rCRTTuple(self) -> FitParametersTuple:
+        # {{{
+        # {{{
+        """
+        The optimized parameters and standard deviations of the rCRT exponential
+        function fitted on f(timeScdsArr)=avgIntensArr. See curveFitting.fitRCRT.
+        """
+        # }}}
+
+        return (self.rCRTParams, self.rCRTStdDev)
+
+    # }}}
+
+    @property
+    def rCRT(self) -> Tuple[float, float]:
+        # {{{
+        # {{{
+        """
+        The rCRT and its uncertainty with a 95% confidence interval, as calculated by
+        curveFitting.calcRCRT.
+        """
+        # }}}
+        return rCRTFromParameters(self.rCRTTuple)
+
+    # }}}
+
+    @property
+    def criticalTime(self) -> float:
+        # {{{
+        # {{{
+        """
+        The critical time used for the rCRT calculation, either set via keyword argument
+        during the instance's initialization or calculated by curveFitting.calcRCRT.
+        """
+        # }}}
+        self.maxDiv: int
+        return self.timeScdsArr[self.maxDiv]
+
+    # }}}
+
+    @criticalTime.setter
+    def criticalTime(self, value: Real) -> None:
+        # {{{
+        """
+        Setter for the criticalTime property.
+        """
+
+        self.maxDiv = int(findValueIndex(self.timeScdsArr, value))
+
+    # }}}
+
+    @property
+    def relativeUncertainty(self) -> np.float_:
+        # {{{
+        # {{{
+        """
+        The relative uncertainty (with a 95% confidence interval) for the rCRT
+        measurement, on the scale from 0 to 1.
+        """
+        # }}}
+        return calculateRelativeUncertainty(self.rCRTTuple)
+
+    # }}}
+    # }}}
+
+    # Magic methods{{{
+    def __str__(self) -> str:
+        # {{{
+        # {{{
+        """
+        String representation of the rCRT measurement. Gives a fancy string with the
+        rCRT and relative uncertainty.
+        """
+        # }}}
+        return f"{self.rCRT[0]:.2f}±{100*self.relativeUncertainty:.2f}%"
+
+    # }}}
+
+    def __repr__(self) -> str:
+        # {{{
+        # {{{
+        """
+        Representation of the rCRT measurement. Just returns RCRT.rCRT.
+        """
+        # }}}
+        return str(self.rCRT)
+
+
+# }}}
+# }}}
 # }}}

@@ -6,7 +6,7 @@ intensities array and the frame times array, namely fitting a polynomial and two
 exponential curves on the data.
 """
 
-from typing import Any, Callable, Iterable, Optional, Sequence, Union
+from typing import Any, Callable, Optional, Sequence, Union
 
 import numpy as np
 from matplotlib import patches as mpatches
@@ -163,9 +163,9 @@ def plotFunction(
         parameters. This is typically the polynomial or exponential functions from
         curveFitting.
 
-    funcParams : list of real numbers
-        This list will be unpacked and used as func's positional arguments. Again, see
-        curveFitting.exponential or curveFitting.polynomial for an example.
+    funcParams : sequence of float
+        This sequence will be unpacked and used as func's positional arguments. Again,
+        see curveFitting.exponential or curveFitting.polynomial for an example.
 
     **kwargs: dict of Any
         The keyword arguments that may be passed to mpl.Axes.plot.
@@ -298,6 +298,13 @@ def makeAvgIntensPlot(
     channelsAvgIntensArr: Array,
 ) -> FigAxTuple:
     # {{{
+
+    """
+    Creates and formats a plot for the average intensities of all channels over all the
+    capture's duration, and returns the Figure and Axes tuple. Not much to see here,
+    check out makeFigAxes and plotAvgIntens for more information.
+    """
+
     fig, ax = makeFigAxes(
         ("Time (s)", "Average intensities (u.a.)"),
         "Channel average intensities",
@@ -321,9 +328,57 @@ def makeRCRTPlot(
     funcParamsTuples: dict[str, FitParametersTuple],
     criticalTime: Optional[float] = None,
     channel: Optional[str] = None,
-    funcOptions: dict[str, Any] = {},
+    funcOptions: Optional[dict[str, Any]] = None,
 ) -> FigAxTuple:
     # {{{
+
+    """
+    Creates and formats the plot for the exponential, polynomial and rCRT exponential
+    functions applied over the array of a channel's intensities since the release of the
+    compression on the skin.
+
+    Parameters
+    ----------
+    timeScdsArr : np.ndarray
+        The array of time instants since the release of the compression from the skin.
+
+    avgIntenArr : np.ndarray
+        The array of average intensities for the channel used for fitting the functions.
+
+    funcParamsTuples : dict with str keys tuple of 2 sequences of float as values
+        The dictionary containing the polynomial, exponential and rCRT exponential
+        functions' optimized parameters and their respective standard deviations. The
+        keys should be 'exponential', 'polynomial' and 'rCRT' respectively, and the
+        values the tuples returned by scipy.optimize.curve_fit. See
+        curveFitting.fitExponential or curveFitting.fitPolynomial for more information.
+        If either the 'polynomial' or 'exponential' keys are lacking, these functions
+        just won't be plotted, but the 'rCRT' key is requred.
+
+    criticalTime : float or None, default=None
+        The critical time. A vertical dashed line will be drawn to mark this instant. If
+        None, no such line will be drawm.
+
+    channel : str or None, default=None
+        Which channel to use. This will only be used for the line's color and legend, as
+        avgIntenArr is already expected to be of s single channel. If None, the legend
+        will be unspecific and the line will be gray.
+
+    funcOptions : dict with str keys and any value or None, default=None
+        Additional options that will be passed to the plotting functions (plotFunction
+        and plotAvgIntens). The same key naming scheme as with the funcParamsTuples
+        parameter is used, but with the addition of the optional 'intensities' key.
+
+
+    Returns
+    -------
+    fig : matplotlib Figure
+        The figure. It is 960x600 pixels by default.
+
+    ax : matplotlib Axes
+        The Axes, in which everything is plotted.
+
+    """
+
     fig, ax = makeFigAxes(
         ("Time since release of compression (s)", "Average intensities (u.a.)"),
         "Average intensities and fitted functions",

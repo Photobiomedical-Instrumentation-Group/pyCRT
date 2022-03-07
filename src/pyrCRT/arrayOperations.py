@@ -6,6 +6,7 @@ intended to be used with the timeScds and avgInten arrays.
 """
 
 from typing import Any, Optional, Union
+from warnings import warn
 
 import numpy as np
 
@@ -92,10 +93,11 @@ def sliceFromLocalMax(
     # {{{
     # {{{
     """
-    Applies sliceByTime and sliceFromMaxToEnd in this order to the input arrays with
-    fromTime and toTime as arguments. Refer to sliceByTime's and sliceFromMaxToEnd's
-    docstrings for more information.
+    Applies sliceByTime and sliceFromMaxToEnd (in this order) to the input arrays with
+    fromTime and toTime as arguments, such that the resulting slice starts at intenArr's
+    maximum value and ends at toTime.
     """
+
     # }}}
     timeSlice = sliceByTime(timeArr, fromTime, toTime)
     timeFrom, timeTo, _ = timeSlice.indices(len(timeArr))
@@ -148,6 +150,14 @@ def findValueIndex(arr: Array, value: Any) -> int:
     # {{{
     """Returns the index of the first element in arr which is greater than value."""
     try:
+        index = int(np.where(arr >= float(value))[0][0])
+        valueRatio = abs(arr[index] / value)
+        if valueRatio > 1.5:
+            warn(
+                f"The array's closest value greater than {value} is {arr[index]}, "
+                f"which is {100*valueRatio:.0f}% the specified value. "
+                "This may not be what you want."
+            )
         return int(np.where(arr >= float(value))[0][0])
     except IndexError as err:
         raise IndexError(f"No value in arr is greater or equal than {value}") from err

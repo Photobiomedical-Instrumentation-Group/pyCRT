@@ -33,7 +33,22 @@ Real = Union[float, int, np.float_, np.int_]
 
 def rescaleFrame(frame: Array, rescaleFactor: Real) -> Array:
     # {{{
-    """Simply rescales the frame, uses bilinear interpolation."""
+    """
+    Changes the frame's dimensions, using bilinear interpolation.
+
+    Parameters
+    ----------
+    frame : 3D np.ndarray
+        A matrix with each channel's intensity for each pixel. The output of cv2.imread.
+
+    rescaleFactor : real number
+        The factor by which the frame's dimensions will be multiplied.
+
+    Returns
+    -------
+    rescaledFrame : 3D np.ndarray
+        The rescaled frame, using bilinear interpolation.
+    """
 
     return cv.resize(frame, (0, 0), fx=rescaleFactor, fy=rescaleFactor)
 
@@ -43,7 +58,27 @@ def rescaleFrame(frame: Array, rescaleFactor: Real) -> Array:
 
 def drawRoi(frame: Array, roi: Optional[RoiType]) -> Array:
     # {{{
-    """Simply draws a red rectangle on the frame to highlight the ROI"""
+    """
+    Draws a red rectangle around the ROI.
+
+    Parameters
+    ----------
+    frame : 3D np.ndarray
+        A matrix with each channel's intensity for each pixel. The output of cv2.imread.
+
+    roi : tuple of 4 ints, str or None
+        The ROI. It can be a tuple of 4 ints, in which case the first two are the x and
+        y coordinates of the rectangle's top-left corner, and the other two are the
+        lengths of its sides. If not a tuple, it'll just assume the ROI hasn't been
+        specified yet or is supposed to be the entire frame, in which case the original
+        frame will be returned unmodified.
+
+    Returns
+    -------
+    frameWithRoi : 3D np.ndarray
+        The original frame passed to this function, either unmodified or with the sides
+        of a red rectangle drawn on the coordinates specified by the roi tuple.
+    """
 
     if isinstance(roi, tuple):
         x1, y1, sideX, sideY = roi
@@ -57,7 +92,28 @@ def drawRoi(frame: Array, roi: Optional[RoiType]) -> Array:
 
 def cropFrame(frame: Array, roi: Optional[RoiType]) -> Array:
     # {{{
-    """Slices the frame matrix and returns only the portion inside the ROI"""
+    """
+    Draws a red rectangle around the ROI.
+
+    Parameters
+    ----------
+    frame : 3D np.ndarray
+        A matrix with each channel's intensity for each pixel. The output of cv2.imread.
+
+    roi : tuple of 4 ints, str or None
+        The ROI. It can be a tuple of 4 ints, in which case the first two are the x and
+        y coordinates of the rectangle's top-left corner, and the other two are the
+        lengths of its sides. If not a tuple, it'll just assume the ROI hasn't been
+        specified yet or is supposed to be the entire frame, in which case the original
+        frame will be returned unmodified.
+
+    Returns
+    -------
+    croppedFrame : 3D np.ndarray
+        The portion of the frame inside the rectangle specified by the roi parameter.
+        This array's dimensions will be the last two elements of the roi tuple. If roi
+        is not a tuple, it'll just return the entire frame.
+    """
 
     if isinstance(roi, tuple):
         x1, y1, sideX, sideY = roi
@@ -70,8 +126,26 @@ def cropFrame(frame: Array, roi: Optional[RoiType]) -> Array:
 
 def calcAvgInten(frame: Array, roi: Optional[RoiType]) -> Array:
     # {{{
-    """Calculates the average pixel intensity for all pixels inside the ROI and returns
-    an array with the average for each channel."""
+    """
+    Calculates the average channel intensity on the pixels inside the ROI.
+
+    Parameters
+    ----------
+    frame : 3D np.ndarray
+        A matrix with each channel's intensity for each pixel. The output of cv2.imread.
+
+    roi : tuple of 4 ints, str or None
+        The ROI. It can be a tuple of 4 ints, in which case the first two are the x and
+        y coordinates of the rectangle's top-left corner, and the other two are the
+        lengths of its sides. If not a tuple, the average will be computed over the
+        entire frame.
+
+    Returns
+    -------
+    channelsAvgInten : 3x1 np.ndarray
+        The average intensity for each channel (in the order of BGR), calcualted with
+        the pixels inside the ROI.
+    """
 
     croppedFrame = cropFrame(frame, roi)
     channelsAvgInten = cv.mean(croppedFrame)[:3]

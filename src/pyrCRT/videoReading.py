@@ -14,7 +14,7 @@ Notes
 
 
 from contextlib import contextmanager
-from os.path import exists
+from os.path import isfile
 from typing import Generator, Optional, Union
 
 # pylint: disable=import-error
@@ -82,11 +82,20 @@ def readVideo(
         time during the video by pressing the space bar and dragging the square around
         the desired region.
 
-    rescaleFactor : float, optional
+    displayVideo : bool, default=True
+        Whether or not to display the video while it is being read. This must be set to
+        True if no ROI is specified, so the ROI can be manually selected by pressing the
+        spacebar during the video exhibition.
+
+    recordingPath : str, default=None
+        The path (with the extension!) in the filesystem wherein to save the recording.
+        If falsy, it won't record the video.
+
+    rescaleFactor : real number, optional
         Factor by which each frame will be scaled. This can help reduce the load on the
         hardware and speed up computation. By default the video won't be scaled.
 
-    waitKeyTime : float, optional
+    waitKeyTime : int, optional
         How many milliseconds to wait for user input between each frame. The default
         value is 1, so on most machines the video will appear "sped up" relative to it
         being played on a regular video player. See cv2.waitKey for more information.
@@ -95,27 +104,23 @@ def readVideo(
         Used to optionally change the camera resolution before handing over the
         VideoCapture instance. If reading from a video file, it does nothing.
 
-    recordingPath : str, default=None
-        The path (with the extension!) in the filesystem wherein to save the recording.
-        If falsy, it won't record the video.
-
     codecFourcc : str, default='mp4v'
         The fourcc identifier for the video codec to be used for the recording. Refer to
         www.fourcc.org/codecs.php for a list of possible codes.
 
-    recordingFps : int, default=None
+    recordingFps : float, default=None
         The FPS (frames per second) for the recording, which doesn't need to correspond
         to the FPS of the camera or the source video.
 
     Returns
     -------
-    timeScdsArr : 1D np.ndarray
+    fullTimeScdsArr : 1D np.ndarray
         Time in seconds of each frame in the video.
-    avgIntenArr : 2D np.ndarray
+    channelsAvgIntensArr : 2D np.ndarray
         Average pixel intensity inside the region of interest with respect to time. It
-        is an array with shape (len(timeScdsArr), 3), wherein each element is an array
-        with the average intensity of the B, G and R (respectively) channels at that
-        instant.
+        is an array with shape (len(fullTimeScdsArr), 3), wherein each element is an
+        array with the average intensity of the B, G and R (respectively) channels at
+        that instant.
 
     Raises
     ------
@@ -179,12 +184,14 @@ def readVideo(
             "as an argument a region of interest (roi)?"
         )
 
-    avgIntenArr = np.array(avgIntenList)
-    timeScdsArr = np.array(timeScdsList)
+    channelsAvgIntensArr = np.array(avgIntenList)
+    fullTimeScdsArr = np.array(timeScdsList)
 
-    timeScdsArr, avgIntenArr = stripArr(timeScdsArr, avgIntenArr)
+    fullTimeScdsArr, channelsAvgIntensArr = stripArr(
+        fullTimeScdsArr, channelsAvgIntensArr
+    )
 
-    return timeScdsArr, avgIntenArr
+    return fullTimeScdsArr, channelsAvgIntensArr
 
 
 # }}}
@@ -232,14 +239,17 @@ def videoCapture(
     # }}}
 
     if isinstance(videoSource, int):
-        # Assumes it is a valid camera. There isn't really a way to check this, as far
-        # as I know.
-        pass
+        if not checkCaptureDevice(videoSource):
+            raise ValueError(
+                f"The provided capture device index ({videoSource}) is not a valid "
+                "capture device. For a list of available capture devices, use "
+                "listCaptureDevices"
+            )
     elif isinstance(videoSource, str):
-        if not exists(videoSource):
+        if not isfile(videoSource):
             raise ValueError(
                 f"The path ({videoSource}) passed to the videoCapture context manager"
-                "does not exist."
+                "is not a file."
             )
     else:
         raise TypeError(
@@ -261,6 +271,47 @@ def videoCapture(
     finally:
         cap.release()
         cv.destroyAllWindows()
+
+
+# }}}
+
+
+def listCaptureDevices(checkUpTo: int = 10) -> list[int]:
+    # {{{
+    # {{{
+    """
+    Checks the first checkUpTo indexes for cv2.VideoCapture and returns a list with all
+    the indexes that are available. See checkCaptureDevice.
+    """
+    # }}}
+    capDeviceList: list[int] = []
+    for index in range(0, checkUpTo):
+        checkCaptureDevice(index)
+    return capDeviceList
+
+
+# }}}
+
+
+def checkCaptureDevice(capDeviceIndex: int) -> bool:
+    # {{{
+    # {{{
+    """
+    Checks if the capture device with the provided index is available, returning True if
+    it is and False otherwise.
+    """
+    # }}}
+    if not isinstance(capDeviceIndex, int):
+        raise TypeError(
+            f"Invalid value of {capDeviceIndex} for the capture device index. Valid "
+            "values are int."
+        )
+
+    cap = cv.VideoCapture(capDeviceIndex)
+    if cap.read()[0]:
+        cap.release()
+        return True
+    return False
 
 
 # }}}
