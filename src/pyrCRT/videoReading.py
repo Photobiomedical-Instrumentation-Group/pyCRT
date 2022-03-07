@@ -25,10 +25,10 @@ import numpy as np
 from numpy.typing import NDArray
 
 # pylint: disable=import-error
-from arrayOperations import stripArr
+from .arrayOperations import stripArr
 
 # pylint: disable=import-error
-from frameOperations import calcAvgInten, drawRoi, rescaleFrame
+from .frameOperations import calcAvgInten, drawRoi, rescaleFrame
 
 # Type aliases for commonly used types
 # {{{

@@ -19,7 +19,7 @@ from matplotlib.ticker import AutoLocator, AutoMinorLocator
 from numpy.typing import NDArray
 
 # pylint: disable=import-error
-from curveFitting import (
+from .curveFitting import (
     calculateRelativeUncertainty,
     exponential,
     polynomial,

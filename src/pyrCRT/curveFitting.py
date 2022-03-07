@@ -15,7 +15,7 @@ import numpy as np
 from numpy.typing import NDArray
 from scipy.optimize import OptimizeWarning, curve_fit
 from scipy.signal import find_peaks
-from arrayOperations import findValueIndex
+from .arrayOperations import findValueIndex
 
 # This is for catching OptimizeWarnig as if it were an exception
 filterwarnings("error")

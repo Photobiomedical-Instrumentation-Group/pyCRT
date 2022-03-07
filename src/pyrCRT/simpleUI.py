@@ -18,7 +18,7 @@ from matplotlib.figure import Figure
 from numpy.typing import NDArray
 
 # pylint: disable=import-error
-from arrayOperations import (
+from .arrayOperations import (
     findValueIndex,
     minMaxNormalize,
     sliceByTime,
@@ -28,7 +28,7 @@ from arrayOperations import (
 )
 
 # pylint: disable=import-error
-from arrayPlotting import (
+from .arrayPlotting import (
     saveAvgIntensPlot,
     saveRCRTPlot,
     showAvgIntensPlot,
@@ -36,7 +36,7 @@ from arrayPlotting import (
 )
 
 # pylint: disable=import-error
-from curveFitting import (
+from .curveFitting import (
     calcRCRT,
     calculateRelativeUncertainty,
     fitExponential,
@@ -45,7 +45,7 @@ from curveFitting import (
 )
 
 # pylint: disable=import-error
-from videoReading import readVideo
+from .videoReading import readVideo
 
 # Type aliases for commonly used types
 # {{{
