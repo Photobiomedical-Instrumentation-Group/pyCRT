@@ -191,7 +191,7 @@ def readVideo(
         fullTimeScdsArr, channelsAvgIntensArr
     )
 
-    return fullTimeScdsArr, channelsAvgIntensArr
+    return fullTimeScdsArr - fullTimeScdsArr.min(), channelsAvgIntensArr
 
 
 # }}}
