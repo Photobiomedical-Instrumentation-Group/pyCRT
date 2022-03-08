@@ -286,7 +286,8 @@ def listCaptureDevices(checkUpTo: int = 10) -> list[int]:
     # }}}
     capDeviceList: list[int] = []
     for index in range(0, checkUpTo):
-        checkCaptureDevice(index)
+        if checkCaptureDevice(index):
+            capDeviceList.append(index)
     return capDeviceList
 
 
