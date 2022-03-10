@@ -571,7 +571,7 @@ class RCRT:
         # {{{
         """
         Shows the plot of normalized average intensities for the channel specified in
-        the initialization of the RCRT instance, in function of the times since the
+        the initialization of the RCRT instance, in function of the time since the
         removal of the pressure from the skin, and the fitted functions on this data.
         This is supposed to show only the CRT phenomenon. See arrayPlotting.makeRCRTPlot
         and arrayPlotting.showRCRTPlot.
@@ -593,7 +593,13 @@ class RCRT:
 
     def saveRCRTPlot(self, figPath: str) -> None:
         # {{{
-        """cum"""
+        """
+        Saves the plot of normalized average intensities for the channel specified in
+        the initialization of the RCRT instance, in function of the time since the
+        removal of the pressure from the skin, and the fitted functions on this data.
+        This is supposed to show only the CRT phenomenon. See arrayPlotting.makeRCRTPlot
+        and arrayPlotting.showRCRTPlot.
+        """
 
         saveRCRTPlot(
             figPath,
