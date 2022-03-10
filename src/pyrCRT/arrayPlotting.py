@@ -331,7 +331,7 @@ def makeRCRTPlot(
     funcOptions: Optional[dict[str, Any]] = None,
 ) -> FigAxTuple:
     # {{{
-
+    # {{{
     """
     Creates and formats the plot for the exponential, polynomial and rCRT exponential
     functions applied over the array of a channel's intensities since the release of the
@@ -378,6 +378,7 @@ def makeRCRTPlot(
         The Axes, in which everything is plotted.
 
     """
+    # }}}
 
     fig, ax = makeFigAxes(
         ("Time since release of compression (s)", "Average intensities (u.a.)"),

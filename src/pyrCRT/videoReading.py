@@ -147,7 +147,8 @@ def readVideo(
 
     if recordingPath:
         writer = frameWriter(recordingPath, codecFourcc, recordingFps)
-        writer.send(None)  # Initialize generator
+        # initialize generator
+        wirter.send(None) # type: ignore
 
     # Yup, I just assume the ROI is valid if it's a tuple of 4 elements. I'll probably
     # have to change this later.
@@ -321,7 +322,7 @@ def checkCaptureDevice(capDeviceIndex: int) -> bool:
 def frameReader(
     capture: cv.VideoCapture,
     rescaleFactor: Real = 1.0,
-) -> Generator:
+) -> Generator[Array, None, None]:
     # {{{
     # {{{
     """
@@ -362,7 +363,7 @@ def frameWriter(
     recordingPath: str,
     codecFourcc: str = "mp4v",
     recordingFps: float = 30.0,
-) -> Generator:
+) -> Generator[None, Array, None]:
     # {{{
     # {{{
     """
