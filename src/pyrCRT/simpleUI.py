@@ -133,7 +133,6 @@ class RCRT:
             as the channelFullAvgIntens property of this instance (see
             RCRT.channelFullAvgIntens).
 
-
         fromTime, toTime : float or None, default=None
             The elements of fullTimeScdsArr from and to which the rCRT phenomenon
             actually takes place. This is the interval of channelFullAvgIntens. If None,
