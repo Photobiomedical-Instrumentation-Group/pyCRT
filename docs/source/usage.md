@@ -6,7 +6,7 @@ Install pyrCRT through pip, preferably in a [virtual
 environment](https://docs.python.org/3/tutorial/venv.html):
 
 ```{code-block} console
-pip install pyrCRT
+$ pip install pyrCRT
 ```
 
 ## Basic usage
@@ -48,7 +48,7 @@ method, which is now stored at the `rcrt` variable:
 ```{code-block} python
 >>> print(rcrt)
 1.68±3.27%
->>>print(rcrt.rCRT) # the second element is the absolute uncertainty
+>>> print(rcrt.rCRT) # the second element is the absolute uncertainty
 (1.6790549329488764, 0.054861676836145)
 ```
 
