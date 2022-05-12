@@ -48,6 +48,7 @@ def sliceByTime(
     # {{{
     # {{{
     """
+
     Creates a slice object specifying timeArr's section which is between fromTime and
     toTime.
 

@@ -453,11 +453,11 @@ def figVisualizationFunctions(
 
     Returns
     -------
-    showPlot(*args, **kwargs) : function
-        Shows the plot created by func(*args, **kwargs) and formatted by makeFigAxes.
+    showPlot(args, kwargs) : function
+        Shows the plot created by func(args, kwargs) and formatted by makeFigAxes.
 
-    saveFig(figPath: str, *args, **kwargs) : function
-        Saves the plot created by func(*args, **kwargs) and formatted by makeFigAxes on
+    saveFig(figPath: str, args, kwargs) : function
+        Saves the plot created by func(args, kwargs) and formatted by makeFigAxes on
         the specified path.
 
     Notes

@@ -189,7 +189,7 @@ def fitPolynomial(
 def diffExpPoly(x: Array, expParams: Array, polyParams: Array) -> Array:
     # {{{
     """
-    Evaluates the function |exponential(expParams) - polynomial(polyParams)| over x
+    Evaluates the function abs(exponential(expParams) - polynomial(polyParams)) over x
     """
     return np.abs(exponential(x, *expParams) - polynomial(x, *polyParams))
 
@@ -365,9 +365,15 @@ def findMaxDivergencePeaks(
     Find the indices of the peaks of maxDiv(expParams, polyParams) and returns them in
     descending order of diffExpPoly[i].
     Usage:
+
         findMaxDivergencePeaks(x, expParams=expParams, polyParams=polyParams)
+
+
     to directly compute the peaks, or
+
         findMaxDivergencePeaks(x, y)
+
+
     to fit the polynomial and exponential functions on the data, and then compute the
     peaks.
 
