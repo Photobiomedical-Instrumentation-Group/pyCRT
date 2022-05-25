@@ -6,7 +6,7 @@ intensities array and the frame times array, namely fitting a polynomial and two
 exponential curves on the data.
 """
 
-from typing import Iterable, Optional, Sequence, Union, overload, Tuple
+from typing import Iterable, Optional, Sequence, Tuple, Union, overload
 from warnings import filterwarnings
 
 import numpy as np
@@ -15,6 +15,7 @@ import numpy as np
 from numpy.typing import NDArray
 from scipy.optimize import OptimizeWarning, curve_fit
 from scipy.signal import find_peaks
+
 from .arrayOperations import findValueIndex
 
 # This is for catching OptimizeWarnig as if it were an exception
@@ -519,31 +520,35 @@ def calcRCRT(
     """
     # }}}
 
-    if criticalTime is None and (expTuple is None or polyTuple is None):
-        maxDivList = findMaxDivergencePeaks(timeScdsArr, avgIntensArr)
-        criticalTimeList = list(timeScdsArr[maxDivList])
+    if criticalTime is None:
+        if expTuple is None or polyTuple is None:
+            maxDivList = findMaxDivergencePeaks(timeScdsArr, avgIntensArr)
+            criticalTimeList = list(timeScdsArr[maxDivList])
 
-    elif expTuple is not None and polyTuple is not None:
-        maxDivList = findMaxDivergencePeaks(
-            timeScdsArr, expTuple=expTuple, polyTuple=polyTuple
-        )
-        criticalTimeList = list(timeScdsArr[maxDivList])
+        else:
+            maxDivList = findMaxDivergencePeaks(
+                timeScdsArr, expTuple=expTuple, polyTuple=polyTuple
+            )
+            criticalTimeList = list(timeScdsArr[maxDivList])
 
-    elif isinstance(criticalTime, float):
-        return calcRCRTStrict(
-            timeScdsArr,
-            avgIntensArr,
-            criticalTime,
-            rCRTInitialGuesses,
-            exclusionCriteria,
-        )
-    elif isinstance(criticalTime, Iterable):
-        criticalTimeList = list(criticalTime)
     else:
-        raise TypeError(
-            f"Invalid type ({criticalTime}) of criticalTime passed. "
-            "Valid types: float, list of float or None."
-        )
+        if isinstance(criticalTime, float):
+            return calcRCRTStrict(
+                timeScdsArr,
+                avgIntensArr,
+                criticalTime,
+                rCRTInitialGuesses,
+                exclusionCriteria,
+            )
+
+        if isinstance(criticalTime, Iterable):
+            criticalTimeList = list(criticalTime)
+
+        else:
+            raise TypeError(
+                f"Invalid type ({criticalTime}) of criticalTime passed. "
+                "Valid types: float, list of float or None."
+            )
 
     if exclusionMethod == "best fit":
         return calcRCRTBestFit(
