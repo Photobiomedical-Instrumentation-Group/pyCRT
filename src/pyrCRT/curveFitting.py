@@ -95,7 +95,7 @@ def fitExponential(
         Self-explanatory.
     p0 : sequence of 3 real numbers or None, default=None
         The initial guesses for each parameter, in order of a, b and c (see summary
-        above). If None, will use p0=[0, 0, 0].
+        above). If None, will use p0=[1.0, -0.3, 0].
 
     Returns
     -------
