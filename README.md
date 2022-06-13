@@ -1,4 +1,4 @@
-# pyrCRT
+# pyCRT
 
 Tools for measuring the reflective (polarized) Capillary Refill Time using Python.
 

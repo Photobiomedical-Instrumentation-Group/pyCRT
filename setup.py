@@ -4,16 +4,16 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="pyrCRT",
-    version="1.0.0",
+    name="pyCRT",
+    version="2.0.0",
     author="Eduardo Lopes Dias",
     author_email="eduardosprp@protonmail.com",
-    description="Tools for measuring the reflective Capillary Refill Time using Python.",
+    description="Tools for measuring Capillary Refill Time using Python.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://codeberg.org/eduardotogpi/pyrCRT",
+    url="https://github.com/Photobiomedical-Instrumentation-Group/pyCRT",
     project_urls={
-        "Bug Tracker": "https://codeberg.org/eduardotogpi/pyrCRT/issues",
+        "Bug Tracker": "https://github.com/Photobiomedical-Instrumentation-Group/pyCRT/issues",
     },
     classifiers=[
         "Programming Language :: Python :: 3",
@@ -21,9 +21,9 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        'opencv-python',
-        'matplotlib',
-        'scipy',
+        "opencv-python",
+        "matplotlib",
+        "scipy",
     ],
     package_dir={"": "src"},
     packages=setuptools.find_packages(where="src"),
