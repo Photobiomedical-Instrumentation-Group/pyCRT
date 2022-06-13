@@ -13,7 +13,7 @@ Install pyrCRT through pip, preferably in a `virtual environment
 
 .. sourcecode:: shell
     
-    $ pip install pyrCRT
+    $ pip install pyCRT
 
 
 .. _readingVideoFiles:
