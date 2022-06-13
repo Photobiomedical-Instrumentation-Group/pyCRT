@@ -198,7 +198,7 @@ def diffExpPoly(x: Array, expParams: Array, polyParams: Array) -> Array:
 # }}}
 
 
-def fitRCRT(
+def fitPCRT(
     x: Array,
     y: Array,
     p0: Optional[ParameterSequence] = None,
@@ -255,7 +255,7 @@ def fitRCRT(
                 # Will try fitting with each maxDiv in the list, returning as soon as a
                 # fit is successful
                 try:
-                    return fitRCRT(x, y, maxDiv=maxDivIndex, p0=p0)
+                    return fitPCRT(x, y, maxDiv=maxDivIndex, p0=p0)
                 except RuntimeError:
                     pass
 
@@ -283,7 +283,7 @@ def fitRCRT(
     # maxDiv wasn't passed as a kwarg, so this function will try to find the maxDiv
     # itself.
     maxDiv = findMaxDivergencePeaks(x, y)
-    return fitRCRT(x, y, maxDiv=maxDiv)
+    return fitPCRT(x, y, maxDiv=maxDiv)
 
 
 # }}}
@@ -300,7 +300,7 @@ def pCRTFromParameters(pCRTTuple: FitParametersTuple) -> tuple[float, float]:
     ----------
     pCRTTuple : tuple of sequences of float
         A tuple with the fitted parameters and their standard deviations, respectively.
-        See fitRCRT.
+        See fitPCRT.
 
     Returns
     -------
@@ -316,11 +316,11 @@ def pCRTFromParameters(pCRTTuple: FitParametersTuple) -> tuple[float, float]:
 
     pCRTParams, pCRTStdDev = pCRTTuple
 
-    inverseRCRT: float = pCRTParams[1]
-    inverseRCRTStdDev: float = pCRTStdDev[1]
+    inversePCRT: float = pCRTParams[1]
+    inversePCRTStdDev: float = pCRTStdDev[1]
 
-    pCRT = -1 / inverseRCRT
-    pCRTUncertainty = -2 * pCRT * (inverseRCRTStdDev / inverseRCRT)
+    pCRT = -1 / inversePCRT
+    pCRTUncertainty = -2 * pCRT * (inversePCRTStdDev / inversePCRT)
 
     return (pCRT, pCRTUncertainty)
 
@@ -429,7 +429,7 @@ def findMaxDivergencePeaks(
 # }}}
 
 
-def calcRCRT(
+def calcPCRT(
     timeScdsArr: Array,
     avgIntensArr: Array,
     criticalTime: Optional[Union[float, Iterable[float]]] = None,
@@ -474,14 +474,14 @@ def calcRCRT(
 
     pCRTInitialGuesses : sequence of float or None, default=None
         The initial guesses for the rRCT exponential fitting. If None, p0=[1.0, -0.3,
-        0.0] will be used by default (see curveFitting.fitRCRT and
+        0.0] will be used by default (see curveFitting.fitPCRT and
         curveFitting.fitExponential).
 
     exclusionMethod : str, default='best fit'
         Which criticalTime and its associated fitted pCRT parameters and standard
         deviations are to be returned. Possible values are 'best fit', 'strict' and
-        'first that works' (consult the documentation for the calcRCRTBestFit,
-        calcRCRTStrict and calcRCRTFirstThatWorks functions for a description of the
+        'first that works' (consult the documentation for the calcPCRTBestFit,
+        calcPCRTStrict and calcPCRTFirstThatWorks functions for a description of the
         effect of these possible values). Of course, this parameter has no effect if
         a single criticalTime is provided (instead of a list of candidate criticalTimes
         or none at all)
@@ -512,8 +512,8 @@ def calcRCRT(
 
     See Also
     --------
-    calcRCRTBestFit, calcRCRTStrict, calcRCRTFirstThatWorks :
-        calcRCRT only serves to compute a list of critical time candidates (if it isn't
+    calcPCRTBestFit, calcPCRTStrict, calcPCRTFirstThatWorks :
+        calcPCRT only serves to compute a list of critical time candidates (if it isn't
         provided) and call these these functions to deal with each possible value of
         exclusionMethod.
 
@@ -533,7 +533,7 @@ def calcRCRT(
 
     else:
         if isinstance(criticalTime, float):
-            return calcRCRTStrict(
+            return calcPCRTStrict(
                 timeScdsArr,
                 avgIntensArr,
                 criticalTime,
@@ -551,7 +551,7 @@ def calcRCRT(
             )
 
     if exclusionMethod == "best fit":
-        return calcRCRTBestFit(
+        return calcPCRTBestFit(
             timeScdsArr,
             avgIntensArr,
             criticalTimeList,
@@ -560,7 +560,7 @@ def calcRCRT(
         )
 
     if exclusionMethod == "strict":
-        return calcRCRTStrict(
+        return calcPCRTStrict(
             timeScdsArr,
             avgIntensArr,
             criticalTimeList[0],
@@ -569,7 +569,7 @@ def calcRCRT(
         )
 
     if exclusionMethod == "first that works":
-        return calcRCRTFirstThatWorks(
+        return calcPCRTFirstThatWorks(
             timeScdsArr,
             avgIntensArr,
             criticalTimeList,
@@ -586,7 +586,7 @@ def calcRCRT(
 # }}}
 
 
-def calcRCRTBestFit(
+def calcPCRTBestFit(
     timeScdsArr: Array,
     avgIntensArr: Array,
     criticalTimeList: Iterable[float],
@@ -612,12 +612,12 @@ def calcRCRTBestFit(
         interest (ROI), with respect to timeScdsArr.
 
     criticalTimeList : iterable of float
-        An iterable of candidate critical times. curveFitting.fitRCRT will be called
+        An iterable of candidate critical times. curveFitting.fitPCRT will be called
         with each criticalTime.
 
     pCRTInitialGuesses : sequence of float or None, default=None
         The initial guesses for the rRCT exponential fitting. If None, p0=[1.0, -0.3,
-        0.0] will be used by default (see curveFitting.fitRCRT and
+        0.0] will be used by default (see curveFitting.fitPCRT and
         curveFitting.fitExponential).
 
     exclusionCriteria : float, default=np.inf
@@ -650,7 +650,7 @@ def calcRCRTBestFit(
     for criticalTime in criticalTimeList:
         maxDiv = findValueIndex(timeScdsArr, criticalTime)
         try:
-            pCRTTuple, maxDiv = fitRCRT(
+            pCRTTuple, maxDiv = fitPCRT(
                 timeScdsArr,
                 avgIntensArr,
                 pCRTInitialGuesses,
@@ -685,7 +685,7 @@ def calcRCRTBestFit(
 # }}}
 
 
-def calcRCRTStrict(
+def calcPCRTStrict(
     timeScdsArr: Array,
     avgIntensArr: Array,
     criticalTime: float,
@@ -715,7 +715,7 @@ def calcRCRTStrict(
 
     pCRTInitialGuesses : sequence of float or None, default=None
         The initial guesses for the rRCT exponential fitting. If None, p0=[1.0, -0.3,
-        0.0] will be used by default (see curveFitting.fitRCRT and
+        0.0] will be used by default (see curveFitting.fitPCRT and
         curveFitting.fitExponential).
 
     exclusionCriteria : float, default=np.inf
@@ -738,7 +738,7 @@ def calcRCRTStrict(
     """
     # }}}
 
-    pCRTTuple, maxDiv = fitRCRT(
+    pCRTTuple, maxDiv = fitPCRT(
         timeScdsArr,
         avgIntensArr,
         pCRTInitialGuesses,
@@ -759,7 +759,7 @@ def calcRCRTStrict(
 # }}}
 
 
-def calcRCRTFirstThatWorks(
+def calcPCRTFirstThatWorks(
     timeScdsArr: Array,
     avgIntensArr: Array,
     criticalTimeList: Iterable[float],
@@ -786,12 +786,12 @@ def calcRCRTFirstThatWorks(
         interest (ROI), with respect to timeScdsArr.
 
     criticalTimeList : iterable of float
-        An iterable of candidate critical times. curveFitting.fitRCRT will be called
+        An iterable of candidate critical times. curveFitting.fitPCRT will be called
         with each criticalTime.
 
     pCRTInitialGuesses : sequence of float or None, default=None
         The initial guesses for the rRCT exponential fitting. If None, p0=[1.0, -0.3,
-        0.0] will be used by default (see curveFitting.fitRCRT and
+        0.0] will be used by default (see curveFitting.fitPCRT and
         curveFitting.fitExponential).
 
     exclusionCriteria : float, default=np.inf
@@ -821,7 +821,7 @@ def calcRCRTFirstThatWorks(
     for criticalTime in criticalTimeList:
         maxDiv = findValueIndex(timeScdsArr, criticalTime)
         try:
-            pCRTTuple, maxDiv = fitRCRT(
+            pCRTTuple, maxDiv = fitPCRT(
                 timeScdsArr,
                 avgIntensArr,
                 pCRTInitialGuesses,

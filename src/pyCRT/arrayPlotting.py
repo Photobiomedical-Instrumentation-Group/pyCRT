@@ -188,7 +188,7 @@ def plotFunction(
 # }}}
 
 
-def plotRCRT(
+def plotPCRT(
     figAxTuple: FigAxTuple,
     timeScdsArr: Array,
     pCRTParams: ParameterSequence,
@@ -244,7 +244,7 @@ def makeFigAxes(
     # {{{
     # {{{
     """
-    Creates and formats the figure and axes. To be used with plotFunction, plotRCRT and
+    Creates and formats the figure and axes. To be used with plotFunction, plotPCRT and
     plotAvgIntens.
 
     Parameters
@@ -322,7 +322,7 @@ def makeAvgIntensPlot(
 # }}}
 
 
-def makeRCRTPlot(
+def makePCRTPlot(
     timeScdsArr: Array,
     avgIntensArr: Array,
     funcParamsTuples: dict[str, FitParametersTuple],
@@ -406,7 +406,7 @@ def makeRCRTPlot(
         )
 
     pCRTTuple = funcParamsTuples["pCRT"]
-    plotRCRT(
+    plotPCRT(
         (fig, ax),
         timeScdsArr,
         pCRTTuple[0],
@@ -464,7 +464,7 @@ def figVisualizationFunctions(
     -----
         This module defines four functions created through figVisualizationFactory:
         showAvgIntensPlot and saveAvgIntensPlot are wrappers for makeAvgIntensPlot, and
-        showRCRTPlot and saveRCRTPlot are wrappers for makeRCRTPlot.
+        showPCRTPlot and savePCRTPlot are wrappers for makePCRTPlot.
         .
     """
     # }}}
@@ -489,4 +489,4 @@ def figVisualizationFunctions(
 
 showAvgIntensPlot, saveAvgIntensPlot = figVisualizationFunctions(makeAvgIntensPlot)
 
-showRCRTPlot, saveRCRTPlot = figVisualizationFunctions(makeRCRTPlot)
+showPCRTPlot, savePCRTPlot = figVisualizationFunctions(makePCRTPlot)

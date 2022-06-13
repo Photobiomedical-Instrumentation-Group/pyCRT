@@ -1,7 +1,7 @@
-pyrCRT
-======
+pyCRT
+=====
 
 .. toctree::
    :maxdepth: 4
 
-   pyrCRT
+   pyCRT

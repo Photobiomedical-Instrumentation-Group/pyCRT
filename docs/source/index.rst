@@ -11,7 +11,7 @@ Users not entirely familiar with pCRT are advised to take a look at our
 :doc:`introduction to pCRT <introduction>`, especially to understand the
 terminology used throughout this documentation. Users already familiar with
 pCRT can go straight to the :doc:`basic usage tutorial <usage>` or to the
-:doc:`complete API reference <pyrCRT>` if they're looking for detailed
+:doc:`complete API reference <pyCRT>` if they're looking for detailed
 documentation on a specific part of pyCRT .
 
 .. toctree::
@@ -20,7 +20,7 @@ documentation on a specific part of pyCRT .
 
     Introduction to pCRT <introduction>
     Basic usage <usage>
-    Complete reference <pyrCRT>
+    Complete reference <pyCRT>
 
 Indices and tables
 ------------------
