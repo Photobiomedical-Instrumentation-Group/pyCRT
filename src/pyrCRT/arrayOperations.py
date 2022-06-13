@@ -1,5 +1,5 @@
 """
-Simple functions for manipulating arrays (pyrCRT.arrayOperations)
+Simple functions for manipulating arrays (pyCRT.arrayOperations)
 
 This module is mostly functions that receive two arrays as input and returns two arrays,
 intended to be used with the timeScds and avgInten arrays.

@@ -1,5 +1,5 @@
 """
-Frame manipulation functions (pyrCRT.frameOperations)
+Frame manipulation functions (pyCRT.frameOperations)
 
 A collection of small functions that that do something to frames (which are 3D numpy
 arrays that represent each channel of each pixel of an image), typically recieving a

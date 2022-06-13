@@ -1,8 +1,8 @@
 """
-A simplified object-oriented interface for pyrCRT (pyrCRT.simpleUI)
+A simplified object-oriented interface for pyCRT (pyCRT.simpleUI)
 
-This module provides the RCRT class, which is meant to be the simplest way to use
-pyrCRT's functions distributed among it's other modules.
+This module provides the PCRT class, which is meant to be the simplest way to use
+pyCRT's functions distributed among it's other modules.
 """
 
 from __future__ import annotations
@@ -30,18 +30,18 @@ from .arrayOperations import (
 # pylint: disable=import-error
 from .arrayPlotting import (
     saveAvgIntensPlot,
-    saveRCRTPlot,
+    savePCRTPlot,
     showAvgIntensPlot,
-    showRCRTPlot,
+    showPCRTPlot,
 )
 
 # pylint: disable=import-error
 from .curveFitting import (
-    calcRCRT,
+    calcPCRT,
     calculateRelativeUncertainty,
     fitExponential,
     fitPolynomial,
-    rCRTFromParameters,
+    pCRTFromParameters,
 )
 
 # pylint: disable=import-error
@@ -82,13 +82,13 @@ RoiType = Union[RoiTuple, str]
 CHANNEL_INDICES_DICT = {"b": 0, "g": 1, "r": 2}
 
 
-class RCRT:
+class PCRT:
     # {{{
     """
-    Representation of a rCRT measurement. Aside from the rCRT value itself, it
-    also stores all the information that went into calculating the rCRT, as well
+    Representation of a pCRT measurement. Aside from the pCRT value itself, it
+    also stores all the information that went into calculating the pCRT, as well
     as functions related to this calculation and storing the results in a file.
-    This class is meant to be the easiest way to use pyrCRT.
+    This class is meant to be the easiest way to use pyCRT.
     """
     # Init methods{{{
     def __init__(
@@ -108,8 +108,8 @@ class RCRT:
         # {{{
         # {{{
         """
-        Initializes the RCRT instance with all the parameters that are necessary for
-        calculating the rCRT. This method has many parameters but only fullTimeScdsArr
+        Initializes the PCRT instance with all the parameters that are necessary for
+        calculating the pCRT. This method has many parameters but only fullTimeScdsArr
         and channelsAvgIntensArr are required, though it is important to know about each
         parameter.
 
@@ -128,13 +128,13 @@ class RCRT:
             videoReading.readVideo.
 
         channel : str, default='g'
-            The channel that will be used to calculate the rCRT. Can be 'b', 'g' or 'r'.
+            The channel that will be used to calculate the pCRT. Can be 'b', 'g' or 'r'.
             This argument specifies which column of channelsAvgIntensArr will be stored
             as the channelFullAvgIntens property of this instance (see
-            RCRT.channelFullAvgIntens).
+            PCRT.channelFullAvgIntens).
 
         fromTime, toTime : float or None, default=None
-            The elements of fullTimeScdsArr from and to which the rCRT phenomenon
+            The elements of fullTimeScdsArr from and to which the pCRT phenomenon
             actually takes place. This is the interval of channelFullAvgIntens. If None,
             this interval will be from the first and to the last elements of
             fullTimeScdsArr respectively. The rcrt.fromTime and rcrt.toTime attributes
@@ -143,16 +143,16 @@ class RCRT:
 
         sliceMethod : str, default='from local max'
             Which way the slice attribute is to be calculated from the fromTime and
-            toTime parameters. See RCRT.setSlice for details.
+            toTime parameters. See PCRT.setSlice for details.
 
         funcParamsTuples : dict of str keys and tuples of 2 np.ndarray of float as
         values or None, default=None
             The fitted parameters and their standard deviations of the exponential,
-            polynomial and rCRT exponential functions can be specified via this
+            polynomial and pCRT exponential functions can be specified via this
             dictionary if they have been calculated beforehand. The keys are
-            'exponential', 'polynomial' and 'rCRT' respectively. A function that doesn't
+            'exponential', 'polynomial' and 'pCRT' respectively. A function that doesn't
             have its key in this dictionary will be fitted during the initialization of
-            the RCRT instance.
+            the PCRT instance.
 
         initialGuesses : dict of str keys and sequence of float values or None,
         default=None
@@ -161,24 +161,24 @@ class RCRT:
             default initial guesses (defined in the curveFitting module) will be used.
 
         criticalTime : float or None, default=None
-            The critical time used for the rCRT exponential function fitting. If None,
-            it will be calculated by calcRCRT from the time and intensity arrays or from
+            The critical time used for the pCRT exponential function fitting. If None,
+            it will be calculated by calcPCRT from the time and intensity arrays or from
             the fitted polynomial and exponential function parameters. (see
-            curveFitting.calcRCRT)
+            curveFitting.calcPCRT)
 
         exclusionCriteria : float, default=0.12
-            The maximum relative uncertainty a rCRT measurement can have and not be
+            The maximum relative uncertainty a pCRT measurement can have and not be
             rejected. If all fits on the criticalTime candidates fail this criteria, a
-            RuntimeError will be raised. See curveFitting.calcRCRT for more information.
+            RuntimeError will be raised. See curveFitting.calcPCRT for more information.
 
         relativeUncertainty : float
-            The rCRT's relative uncertainty.
+            The pCRT's relative uncertainty.
 
         exclusionMethod : str, default='best fit'
-            Which criticalTime and its associated fitted rCRT parameters and standard
-            deviations are to be returned by calcRCRT. Possible values are 'best fit',
+            Which criticalTime and its associated fitted pCRT parameters and standard
+            deviations are to be returned by calcPCRT. Possible values are 'best fit',
             'strict' and 'first that works' (consult the documentation for the
-            calcRCRTBestFit, calcRCRTStrict and calcRCRTFirstThatWorks functions from
+            calcPCRTBestFit, calcPCRTStrict and calcPCRTFirstThatWorks functions from
             the curveFitting module for a description of the effect of these possible
             values).
         """
@@ -215,13 +215,13 @@ class RCRT:
                 self.initialGuesses.get("polynomial", None),
             )
 
-        if "rCRT" in funcParamsTuples and criticalTime is not None:
-            self.rCRTParams, self.rCRTStdDev = funcParamsTuples["rCRT"]
+        if "pCRT" in funcParamsTuples and criticalTime is not None:
+            self.pCRTParams, self.pCRTStdDev = funcParamsTuples["pCRT"]
             self.criticalTime = criticalTime
         else:
-            (self.rCRTParams, self.rCRTStdDev), self.criticalTime = self.calcRCRT(
+            (self.pCRTParams, self.pCRTStdDev), self.criticalTime = self.calcPCRT(
                 criticalTime,
-                self.initialGuesses.get("rCRT", None),
+                self.initialGuesses.get("pCRT", None),
                 exclusionMethod,
                 exclusionCriteria,
             )
@@ -237,12 +237,12 @@ class RCRT:
         rescaleFactor: Real = 1.0,
         waitKeyTime: int = 1,
         **kwargs: Any,
-    ) -> RCRT:
+    ) -> PCRT:
         # {{{
         # {{{
         """
         Creates the fullTimeScdsArr and channelsAvgIntensArr arrays from a video file
-        and initializes the RCRT instance with these arrays, and additional arguments
+        and initializes the PCRT instance with these arrays, and additional arguments
         passed to this function as kwargs.
 
         Parameters
@@ -308,12 +308,12 @@ class RCRT:
         codecFourcc: str = "mp4v",
         recordingFps: float = 30.0,
         **kwargs: Any,
-    ) -> RCRT:
+    ) -> PCRT:
         # {{{
         # {{{
         """
         Creates the fullTimeScdsArr and channelsAvgIntensArr arrays from video read
-        from a video capture device, and initializes the RCRT instance with these arrays
+        from a video capture device, and initializes the PCRT instance with these arrays
         and additional arguments passed to this function as kwargs.
 
         Parameters
@@ -375,25 +375,25 @@ class RCRT:
     # }}}
 
     @classmethod
-    def fromArchive(cls, filePath: str) -> RCRT:
+    def fromArchive(cls, filePath: str) -> PCRT:
         # {{{
         # {{{
         """
-        Creates an RCRT instance from the data stored in a file created by the
-        RCRT.save method.
+        Creates an PCRT instance from the data stored in a file created by the
+        PCRT.save method.
 
         Parameters
         ----------
         filePath : str
             The path to the file in the file system. It must be a numpy npz archive
             containing fullTimeScdsArr, channelsAvgIntenArr, channel, fromTime, toTime,
-            expTuple, polyTuple, rCRTTuple and criticalTime (see the init method of RCRT
+            expTuple, polyTuple, pCRTTuple and criticalTime (see the init method of PCRT
             for an explanation of what each of these are supposed to be).
 
         See Also
         --------
-        RCRT.save :
-            Use this method to store the RCRT measurement in a file that is retrievable
+        PCRT.save :
+            Use this method to store the PCRT measurement in a file that is retrievable
             by this method.
         """
         # }}}
@@ -409,7 +409,7 @@ class RCRT:
             funcParamsTuples={
                 "exponential": tuple(archive["expTuple"]),  # type: ignore
                 "polynomial": tuple(archive["polyTuple"]),  # type: ignore
-                "rCRT": tuple(archive["rCRTTuple"]),  # type: ignore
+                "pCRT": tuple(archive["pCRTTuple"]),  # type: ignore
             },
             criticalTime=float(archive["criticalTime"]),
             sliceMethod="from local max",
@@ -421,9 +421,9 @@ class RCRT:
         # {{{
         # {{{
         """
-        Saves the relevant attributes of this RCRT instance in a numpy npz file on the
+        Saves the relevant attributes of this PCRT instance in a numpy npz file on the
         specified file path. To retrieve the data in this file later, use
-        RCRT.fromArchive.
+        PCRT.fromArchive.
         """
         # }}}
 
@@ -436,7 +436,7 @@ class RCRT:
             toTime=self.toTime,
             expTuple=np.array(self.expTuple),
             polyTuple=np.array(self.polyTuple),
-            rCRTTuple=np.array(self.rCRTTuple),
+            pCRTTuple=np.array(self.pCRTTuple),
             criticalTime=self.criticalTime,
         )
 
@@ -454,13 +454,13 @@ class RCRT:
         Sets the slice object that will be used to slice the channelFullAvgIntens and
         fullTimeScdsArr arrays to produce avgIntensArr and timeScdsArr respectively.
         This slice is supposed to indicate only the region wherein the CRT phenomenon
-        takes place. This slice is used for RCRT.timeScdsArr and RCRT.avgIntensArr.
+        takes place. This slice is used for PCRT.timeScdsArr and PCRT.avgIntensArr.
 
 
         Parameters
         ----------
         fromTime, toTime : float or None, default=None
-            The elements of fullTimeScdsArr from and to which the rCRT phenomenon
+            The elements of fullTimeScdsArr from and to which the pCRT phenomenon
             actually takes place. This is the interval of channelFullAvgIntens. If None,
             this interval will be from the first and to the last elements of
             fullTimeScdsArr respectively. The rcrt.fromTime and rcrt.toTime attributes
@@ -510,29 +510,29 @@ class RCRT:
 
     # }}}
 
-    def calcRCRT(
+    def calcPCRT(
         self,
         criticalTime: Optional[float] = None,
-        rCRTInitialGuesses: Optional[ParameterSequence] = None,
+        pCRTInitialGuesses: Optional[ParameterSequence] = None,
         exclusionMethod: str = "best fit",
         exclusionCriteria: float = np.inf,
     ) -> Tuple[ArrayTuple, float]:
         # {{{
         # {{{
         """
-        Simply returns the output of curveFitting.calcRCRT called with the instance's
+        Simply returns the output of curveFitting.calcPCRT called with the instance's
         attributes and this function's parameters as its arguments. See
-        curveFitting.calcRCRT for a detailed explantion.
+        curveFitting.calcPCRT for a detailed explantion.
         """
         # }}}
 
-        return calcRCRT(
+        return calcPCRT(
             self.timeScdsArr,
             self.avgIntensArr,
             criticalTime,
             self.expTuple,
             self.polyTuple,
-            rCRTInitialGuesses,
+            pCRTInitialGuesses,
             exclusionMethod,
             exclusionCriteria,
         )
@@ -565,24 +565,24 @@ class RCRT:
 
     # }}}
 
-    def showRCRTPlot(self) -> None:
+    def showPCRTPlot(self) -> None:
         # {{{
         # {{{
         """
         Shows the plot of normalized average intensities for the channel specified in
-        the initialization of the RCRT instance, in function of the time since the
+        the initialization of the PCRT instance, in function of the time since the
         removal of the pressure from the skin, and the fitted functions on this data.
-        This is supposed to show only the CRT phenomenon. See arrayPlotting.makeRCRTPlot
-        and arrayPlotting.showRCRTPlot.
+        This is supposed to show only the CRT phenomenon. See arrayPlotting.makePCRTPlot
+        and arrayPlotting.showPCRTPlot.
         """
         # }}}
-        showRCRTPlot(
+        showPCRTPlot(
             self.timeScdsArr,
             self.avgIntensArr,
             {
                 "exponential": self.expTuple,
                 "polynomial": self.polyTuple,
-                "rCRT": self.rCRTTuple,
+                "pCRT": self.pCRTTuple,
             },
             self.criticalTime,
             self.channel,
@@ -590,24 +590,24 @@ class RCRT:
 
     # }}}
 
-    def saveRCRTPlot(self, figPath: str) -> None:
+    def savePCRTPlot(self, figPath: str) -> None:
         # {{{
         """
         Saves the plot of normalized average intensities for the channel specified in
-        the initialization of the RCRT instance, in function of the time since the
+        the initialization of the PCRT instance, in function of the time since the
         removal of the pressure from the skin, and the fitted functions on this data.
-        This is supposed to show only the CRT phenomenon. See arrayPlotting.makeRCRTPlot
-        and arrayPlotting.showRCRTPlot.
+        This is supposed to show only the CRT phenomenon. See arrayPlotting.makePCRTPlot
+        and arrayPlotting.showPCRTPlot.
         """
 
-        saveRCRTPlot(
+        savePCRTPlot(
             figPath,
             self.timeScdsArr,
             self.avgIntensArr,
             {
                 "exponential": self.expTuple,
                 "polynomial": self.polyTuple,
-                "rCRT": self.rCRTTuple,
+                "pCRT": self.pCRTTuple,
             },
             self.criticalTime,
             self.channel,
@@ -726,29 +726,29 @@ class RCRT:
     # }}}
 
     @property
-    def rCRTTuple(self) -> FitParametersTuple:
+    def pCRTTuple(self) -> FitParametersTuple:
         # {{{
         # {{{
         """
-        The optimized parameters and standard deviations of the rCRT exponential
-        function fitted on f(timeScdsArr)=avgIntensArr. See curveFitting.fitRCRT.
+        The optimized parameters and standard deviations of the pCRT exponential
+        function fitted on f(timeScdsArr)=avgIntensArr. See curveFitting.fitPCRT.
         """
         # }}}
 
-        return (self.rCRTParams, self.rCRTStdDev)
+        return (self.pCRTParams, self.pCRTStdDev)
 
     # }}}
 
     @property
-    def rCRT(self) -> Tuple[float, float]:
+    def pCRT(self) -> Tuple[float, float]:
         # {{{
         # {{{
         """
-        The rCRT and its uncertainty with a 95% confidence interval, as calculated by
-        curveFitting.calcRCRT.
+        The pCRT and its uncertainty with a 95% confidence interval, as calculated by
+        curveFitting.calcPCRT.
         """
         # }}}
-        return rCRTFromParameters(self.rCRTTuple)
+        return pCRTFromParameters(self.pCRTTuple)
 
     # }}}
 
@@ -757,8 +757,8 @@ class RCRT:
         # {{{
         # {{{
         """
-        The critical time used for the rCRT calculation, either set via keyword argument
-        during the instance's initialization or calculated by curveFitting.calcRCRT.
+        The critical time used for the pCRT calculation, either set via keyword argument
+        during the instance's initialization or calculated by curveFitting.calcPCRT.
         """
         # }}}
         self.maxDiv: int
@@ -782,11 +782,11 @@ class RCRT:
         # {{{
         # {{{
         """
-        The relative uncertainty (with a 95% confidence interval) for the rCRT
+        The relative uncertainty (with a 95% confidence interval) for the pCRT
         measurement, on the scale from 0 to 1.
         """
         # }}}
-        return calculateRelativeUncertainty(self.rCRTTuple)
+        return calculateRelativeUncertainty(self.pCRTTuple)
 
     # }}}
     # }}}
@@ -796,11 +796,11 @@ class RCRT:
         # {{{
         # {{{
         """
-        String representation of the rCRT measurement. Gives a fancy string with the
-        rCRT and relative uncertainty.
+        String representation of the pCRT measurement. Gives a fancy string with the
+        pCRT and relative uncertainty.
         """
         # }}}
-        return f"{self.rCRT[0]:.2f}±{100*self.relativeUncertainty:.2f}%"
+        return f"{self.pCRT[0]:.2f}±{100*self.relativeUncertainty:.2f}%"
 
     # }}}
 
@@ -808,10 +808,10 @@ class RCRT:
         # {{{
         # {{{
         """
-        Representation of the rCRT measurement. Just returns RCRT.rCRT.
+        Representation of the pCRT measurement. Just returns PCRT.pCRT.
         """
         # }}}
-        return str(self.rCRT)
+        return str(self.pCRT)
 
 
 # }}}

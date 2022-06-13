@@ -1,7 +1,7 @@
 """
-Functions related to curve fitting (pyrCRT.curveFitting)
+Functions related to curve fitting (pyCRT.curveFitting)
 
-This module implements the operations necessary to calculate the rCRT from the average
+This module implements the operations necessary to calculate the pCRT from the average
 intensities array and the frame times array, namely fitting a polynomial and two
 exponential curves on the data.
 """
@@ -219,15 +219,15 @@ def fitRCRT(
         Self-explanatory. The arrays over which the curve fit will be tried.
     p0 : sequence of real numbers, default=None
         The initial guesses for each parameter of the exponential function. Refer to the
-        documentation of pyrCRT.curveFitting.exponential for more information.
+        documentation of pyCRT.curveFitting.exponential for more information.
     maxDiv : iterable of ints, or int, or None, default=None
         Maximum divergence index between the exponential and polynomial functions fitted
-        on the entire data set. Refer to pyrCRT.curveFitting.findMaxDivergencePeaks for
+        on the entire data set. Refer to pyCRT.curveFitting.findMaxDivergencePeaks for
         more information.
 
     Returns
     -------
-    (rCRTParams, rCRTStdDev) : tuple of np.ndarrays
+    (pCRTParams, pCRTStdDev) : tuple of np.ndarrays
         The optimized parameters for the exponential function and their standard
         deviations.
     maxDiv : int
@@ -260,7 +260,7 @@ def fitRCRT(
                     pass
 
             raise RuntimeError(
-                f"rCRT fit failed on all maxDivIndexes ({maxDivList})," " with p0={p0}."
+                f"pCRT fit failed on all maxDivIndexes ({maxDivList})," " with p0={p0}."
             )
         if isinstance(maxDiv, int):
             maxDivIndex = maxDiv
@@ -272,7 +272,7 @@ def fitRCRT(
                 )
             except RuntimeError as err:
                 raise RuntimeError(
-                    f"rCRT fit failed on maxDivIndex={maxDivIndex} "
+                    f"pCRT fit failed on maxDivIndex={maxDivIndex} "
                     f"and p0={np.array(p0)}"
                 ) from err
         raise TypeError(
@@ -289,55 +289,55 @@ def fitRCRT(
 # }}}
 
 
-def rCRTFromParameters(rCRTTuple: FitParametersTuple) -> tuple[float, float]:
+def pCRTFromParameters(pCRTTuple: FitParametersTuple) -> tuple[float, float]:
     # {{{
     # {{{
     """
-    Calculate the rCRT and its uncertainty with a 95% confidence interval from the rCRT
+    Calculate the pCRT and its uncertainty with a 95% confidence interval from the pCRT
     exponential's optimized parameters.
 
     Parameters
     ----------
-    rCRTTuple : tuple of sequences of float
+    pCRTTuple : tuple of sequences of float
         A tuple with the fitted parameters and their standard deviations, respectively.
         See fitRCRT.
 
     Returns
     -------
-    rCRT : float
-        The calculated rCRT, which is the negative inverse of the "b" parameter of the
+    pCRT : float
+        The calculated pCRT, which is the negative inverse of the "b" parameter of the
         exponential function defined in this module (see exponential).
 
-    rCRTUncertainty : float
-        The rCRT's uncertainty with a 95% confidence interval, calculated from the
+    pCRTUncertainty : float
+        The pCRT's uncertainty with a 95% confidence interval, calculated from the
         standard deviation of the "b" parameter of the exponential function.
     """
     # }}}
 
-    rCRTParams, rCRTStdDev = rCRTTuple
+    pCRTParams, pCRTStdDev = pCRTTuple
 
-    inverseRCRT: float = rCRTParams[1]
-    inverseRCRTStdDev: float = rCRTStdDev[1]
+    inverseRCRT: float = pCRTParams[1]
+    inverseRCRTStdDev: float = pCRTStdDev[1]
 
-    rCRT = -1 / inverseRCRT
-    rCRTUncertainty = -2 * rCRT * (inverseRCRTStdDev / inverseRCRT)
+    pCRT = -1 / inverseRCRT
+    pCRTUncertainty = -2 * pCRT * (inverseRCRTStdDev / inverseRCRT)
 
-    return (rCRT, rCRTUncertainty)
+    return (pCRT, pCRTUncertainty)
 
 
 # }}}
 
 
-def calculateRelativeUncertainty(rCRTTuple: FitParametersTuple) -> np.float_:
+def calculateRelativeUncertainty(pCRTTuple: FitParametersTuple) -> np.float_:
     # {{{
     """
-    Calculates the rCRT's relative uncertainty (with a 95% confidence interval) given a
-    tuple with the optimized rCRT exponential parameters and their respective standard
+    Calculates the pCRT's relative uncertainty (with a 95% confidence interval) given a
+    tuple with the optimized pCRT exponential parameters and their respective standard
     deviations.
     """
 
-    rCRTParams, rCRTStdDev = rCRTTuple
-    return 2 * abs(rCRTStdDev[1] / rCRTParams[1])
+    pCRTParams, pCRTStdDev = pCRTTuple
+    return 2 * abs(pCRTStdDev[1] / pCRTParams[1])
 
 
 # }}}
@@ -435,16 +435,16 @@ def calcRCRT(
     criticalTime: Optional[Union[float, Iterable[float]]] = None,
     expTuple: Optional[FitParametersTuple] = None,
     polyTuple: Optional[FitParametersTuple] = None,
-    rCRTInitialGuesses: Optional[ParameterSequence] = None,
+    pCRTInitialGuesses: Optional[ParameterSequence] = None,
     exclusionMethod: str = "best fit",
     exclusionCriteria: float = np.inf,
 ) -> Tuple[ArrayTuple, float]:
     # {{{
     # {{{
     """
-    Fits the rCRT exponential on the f(timeScds)=avgIntens data given by timeScdsArr
+    Fits the pCRT exponential on the f(timeScds)=avgIntens data given by timeScdsArr
     and avgIntensArr respectively on each value of criticalTime, returning the fitted
-    rCRT parameters and their standard deviations chosen according to the exlucion
+    pCRT parameters and their standard deviations chosen according to the exlucion
     method and criteria (see Parameters below).
 
 
@@ -459,9 +459,9 @@ def calcRCRT(
         interest (ROI), with respect to timeScdsArr.
 
     criticalTime : float, iterable of float, or None, default=None
-        The critical time, up until which the rCRT function will be optimized on the
+        The critical time, up until which the pCRT function will be optimized on the
         timeScdsArr and avgIntensArr. If a list of float, this function will try fitting
-        the rCRT exponential function on each criticalTime and return the optimized
+        the pCRT exponential function on each criticalTime and return the optimized
         parameters chosen according to exclusionMethod and exclusionCriteria. If None,
         curveFitting.findMaxDivergencePeaks will be called on timeScdsArr and
         avgIntensArr to find a list of candidate criticalTimes.
@@ -472,13 +472,13 @@ def calcRCRT(
         find the list of candidate critical times if expTuple and polyTuple are not
         None, and criticalTime is None.
 
-    rCRTInitialGuesses : sequence of float or None, default=None
+    pCRTInitialGuesses : sequence of float or None, default=None
         The initial guesses for the rRCT exponential fitting. If None, p0=[1.0, -0.3,
         0.0] will be used by default (see curveFitting.fitRCRT and
         curveFitting.fitExponential).
 
     exclusionMethod : str, default='best fit'
-        Which criticalTime and its associated fitted rCRT parameters and standard
+        Which criticalTime and its associated fitted pCRT parameters and standard
         deviations are to be returned. Possible values are 'best fit', 'strict' and
         'first that works' (consult the documentation for the calcRCRTBestFit,
         calcRCRTStrict and calcRCRTFirstThatWorks functions for a description of the
@@ -487,13 +487,13 @@ def calcRCRT(
         or none at all)
 
     exclusionCriteria : float, default=np.inf
-        The maximum relative uncertainty a rCRT measurement can have and not be
+        The maximum relative uncertainty a pCRT measurement can have and not be
         rejected. If all fits on the criticalTime candidates fail this criteria, a
         RuntimeError will be raised.
 
     Returns
     -------
-    rCRTTuple : tuple of np.ndarray of float
+    pCRTTuple : tuple of np.ndarray of float
         The optimized parameters and their standard deviations, respectively, chosen
         according to the exclusionMethod and exclusionCriteria.
 
@@ -537,7 +537,7 @@ def calcRCRT(
                 timeScdsArr,
                 avgIntensArr,
                 criticalTime,
-                rCRTInitialGuesses,
+                pCRTInitialGuesses,
                 exclusionCriteria,
             )
 
@@ -555,7 +555,7 @@ def calcRCRT(
             timeScdsArr,
             avgIntensArr,
             criticalTimeList,
-            rCRTInitialGuesses,
+            pCRTInitialGuesses,
             exclusionCriteria,
         )
 
@@ -564,7 +564,7 @@ def calcRCRT(
             timeScdsArr,
             avgIntensArr,
             criticalTimeList[0],
-            rCRTInitialGuesses,
+            pCRTInitialGuesses,
             exclusionCriteria,
         )
 
@@ -573,7 +573,7 @@ def calcRCRT(
             timeScdsArr,
             avgIntensArr,
             criticalTimeList,
-            rCRTInitialGuesses,
+            pCRTInitialGuesses,
             exclusionCriteria,
         )
 
@@ -590,16 +590,16 @@ def calcRCRTBestFit(
     timeScdsArr: Array,
     avgIntensArr: Array,
     criticalTimeList: Iterable[float],
-    rCRTInitialGuesses: Optional[ParameterSequence] = None,
+    pCRTInitialGuesses: Optional[ParameterSequence] = None,
     exclusionCriteria: float = np.inf,
 ) -> Tuple[ArrayTuple, float]:
     # {{{
     # {{{
     """
-    Fits the rCRT exponential on the f(timeScds)=avgIntens data given by timeScdsArr and
+    Fits the pCRT exponential on the f(timeScds)=avgIntens data given by timeScdsArr and
     avgIntensArr respectively using the candidate critical times given by
     criticalTimeList, returning the fitted parameters, their standard deviations and the
-    criticalTime that gave the lowest relative uncertainty for the 1/rCRT parameter.
+    criticalTime that gave the lowest relative uncertainty for the 1/pCRT parameter.
 
     Parameters
     ----------
@@ -615,21 +615,21 @@ def calcRCRTBestFit(
         An iterable of candidate critical times. curveFitting.fitRCRT will be called
         with each criticalTime.
 
-    rCRTInitialGuesses : sequence of float or None, default=None
+    pCRTInitialGuesses : sequence of float or None, default=None
         The initial guesses for the rRCT exponential fitting. If None, p0=[1.0, -0.3,
         0.0] will be used by default (see curveFitting.fitRCRT and
         curveFitting.fitExponential).
 
     exclusionCriteria : float, default=np.inf
-        The maximum relative uncertainty a rCRT measurement can have and not be
+        The maximum relative uncertainty a pCRT measurement can have and not be
         rejected. If all fits on the criticalTime candidates fail this criteria, a
         RuntimeError will be raised.
 
     Returns
     -------
-    rCRTTuple : tuple of np.ndarray of float
+    pCRTTuple : tuple of np.ndarray of float
         The optimized parameters and their standard deviations, respectively, that gave
-        the least standard deviation for the 1/rCRT parameter of the rCRT exponential
+        the least standard deviation for the 1/pCRT parameter of the pCRT exponential
         function.
 
     criticalTime : float
@@ -645,41 +645,41 @@ def calcRCRTBestFit(
     # }}}
 
     # A dictionary whose keys are maximum divergence indexes (maxDivs) and values
-    # the rCRT and its uncertainty calculated with the respective maxDiv
+    # the pCRT and its uncertainty calculated with the respective maxDiv
     maxDivResults: dict[int, ArrayTuple] = {}
     for criticalTime in criticalTimeList:
         maxDiv = findValueIndex(timeScdsArr, criticalTime)
         try:
-            rCRTTuple, maxDiv = fitRCRT(
+            pCRTTuple, maxDiv = fitRCRT(
                 timeScdsArr,
                 avgIntensArr,
-                rCRTInitialGuesses,
+                pCRTInitialGuesses,
                 maxDiv,
             )
-            maxDivResults[maxDiv] = rCRTTuple
+            maxDivResults[maxDiv] = pCRTTuple
         except RuntimeError:
             pass
 
     if not maxDivResults:
         raise RuntimeError(
-            "rCRT fit failed on all critical times: {criticalTimeList} "
-            f"with initial guesses = {rCRTInitialGuesses}"
+            "pCRT fit failed on all critical times: {criticalTimeList} "
+            f"with initial guesses = {pCRTInitialGuesses}"
         )
 
     maxDiv = min(
         maxDivResults, key=lambda x: calculateRelativeUncertainty(maxDivResults[x])
     )
-    rCRTTuple = maxDivResults[maxDiv]
+    pCRTTuple = maxDivResults[maxDiv]
 
     relativeUncertainty = calculateRelativeUncertainty(maxDivResults[maxDiv])
 
     if relativeUncertainty > exclusionCriteria:
         raise RuntimeError(
-            "Resulting rCRT parameters did not pass the exclusion criteria of "
+            "Resulting pCRT parameters did not pass the exclusion criteria of "
             f"{exclusionCriteria}. Relative uncertainty: {relativeUncertainty}."
         )
 
-    return rCRTTuple, timeScdsArr[maxDiv]
+    return pCRTTuple, timeScdsArr[maxDiv]
 
 
 # }}}
@@ -689,13 +689,13 @@ def calcRCRTStrict(
     timeScdsArr: Array,
     avgIntensArr: Array,
     criticalTime: float,
-    rCRTInitialGuesses: Optional[ParameterSequence] = None,
+    pCRTInitialGuesses: Optional[ParameterSequence] = None,
     exclusionCriteria: float = np.inf,
 ) -> Tuple[ArrayTuple, float]:
     # {{{
     # {{{
     """
-    Fits the rCRT exponential on the f(timeScds)=avgIntens data given by timeScdsArr and
+    Fits the pCRT exponential on the f(timeScds)=avgIntens data given by timeScdsArr and
     avgIntensArr respectively using criticalTime as the critical time, returning the
     fitted parameters, their standard deviations and the critical time itself.
 
@@ -710,22 +710,22 @@ def calcRCRTStrict(
         interest (ROI), with respect to timeScdsArr.
 
     criticalTime : float
-        The critical time. The rCRT exponential will be fitted on timeScdsArr and
+        The critical time. The pCRT exponential will be fitted on timeScdsArr and
         avgIntenArr up until this value in timeScdsArr.
 
-    rCRTInitialGuesses : sequence of float or None, default=None
+    pCRTInitialGuesses : sequence of float or None, default=None
         The initial guesses for the rRCT exponential fitting. If None, p0=[1.0, -0.3,
         0.0] will be used by default (see curveFitting.fitRCRT and
         curveFitting.fitExponential).
 
     exclusionCriteria : float, default=np.inf
-        The maximum relative uncertainty a rCRT measurement can have and not be
+        The maximum relative uncertainty a pCRT measurement can have and not be
         rejected. If all fits on the criticalTime candidates fail this criteria, a
         RuntimeError will be raised.
 
     Returns
     -------
-    rCRTTuple : tuple of np.ndarray of float
+    pCRTTuple : tuple of np.ndarray of float
         The optimized parameters and their standard deviations
 
     criticalTime : float
@@ -738,22 +738,22 @@ def calcRCRTStrict(
     """
     # }}}
 
-    rCRTTuple, maxDiv = fitRCRT(
+    pCRTTuple, maxDiv = fitRCRT(
         timeScdsArr,
         avgIntensArr,
-        rCRTInitialGuesses,
+        pCRTInitialGuesses,
         findValueIndex(timeScdsArr, criticalTime),
     )
 
-    relativeUncertainty = calculateRelativeUncertainty(rCRTTuple)
+    relativeUncertainty = calculateRelativeUncertainty(pCRTTuple)
 
     if relativeUncertainty > exclusionCriteria:
         raise RuntimeError(
-            "Resulting rCRT parameters did not pass the exclusion criteria of "
+            "Resulting pCRT parameters did not pass the exclusion criteria of "
             f"{exclusionCriteria}. Relative uncertainty: {relativeUncertainty}."
         )
 
-    return rCRTTuple, timeScdsArr[maxDiv]
+    return pCRTTuple, timeScdsArr[maxDiv]
 
 
 # }}}
@@ -763,13 +763,13 @@ def calcRCRTFirstThatWorks(
     timeScdsArr: Array,
     avgIntensArr: Array,
     criticalTimeList: Iterable[float],
-    rCRTInitialGuesses: Optional[ParameterSequence] = None,
+    pCRTInitialGuesses: Optional[ParameterSequence] = None,
     exclusionCriteria: float = np.inf,
 ) -> Tuple[ArrayTuple, float]:
     # {{{
     # {{{
     """
-    Fits the rCRT exponential on the f(timeScds)=avgIntens data given by timeScdsArr and
+    Fits the pCRT exponential on the f(timeScds)=avgIntens data given by timeScdsArr and
     avgIntensArr respectively using the candidate critical times given by
     criticalTimeList, returning the fitted parameters, their standard deviations and the
     criticalTime corresponding to the first critical time candidate that passed the
@@ -789,19 +789,19 @@ def calcRCRTFirstThatWorks(
         An iterable of candidate critical times. curveFitting.fitRCRT will be called
         with each criticalTime.
 
-    rCRTInitialGuesses : sequence of float or None, default=None
+    pCRTInitialGuesses : sequence of float or None, default=None
         The initial guesses for the rRCT exponential fitting. If None, p0=[1.0, -0.3,
         0.0] will be used by default (see curveFitting.fitRCRT and
         curveFitting.fitExponential).
 
     exclusionCriteria : float, default=np.inf
-        The maximum relative uncertainty a rCRT measurement can have and not be
+        The maximum relative uncertainty a pCRT measurement can have and not be
         rejected. If all fits on the criticalTime candidates fail this criteria, a
         RuntimeError will be raised.
 
     Returns
     -------
-    rCRTTuple : tuple of np.ndarray of float
+    pCRTTuple : tuple of np.ndarray of float
         The first optimized parameters and their respective standard deviations that
         passed the exclusion criteria.
 
@@ -821,23 +821,23 @@ def calcRCRTFirstThatWorks(
     for criticalTime in criticalTimeList:
         maxDiv = findValueIndex(timeScdsArr, criticalTime)
         try:
-            rCRTTuple, maxDiv = fitRCRT(
+            pCRTTuple, maxDiv = fitRCRT(
                 timeScdsArr,
                 avgIntensArr,
-                rCRTInitialGuesses,
+                pCRTInitialGuesses,
                 maxDiv,
             )
 
-            relativeUncertainty = calculateRelativeUncertainty(rCRTTuple)
+            relativeUncertainty = calculateRelativeUncertainty(pCRTTuple)
             if relativeUncertainty < exclusionCriteria:
-                return rCRTTuple, timeScdsArr[maxDiv]
+                return pCRTTuple, timeScdsArr[maxDiv]
 
         except RuntimeError:
             pass
 
     raise RuntimeError(
-        f"No rCRT parameters passed the exclusion criteria of {exclusionCriteria}, "
-        f"with initial guesses = {rCRTInitialGuesses} and critical time candidates = "
+        f"No pCRT parameters passed the exclusion criteria of {exclusionCriteria}, "
+        f"with initial guesses = {pCRTInitialGuesses} and critical time candidates = "
         f"{criticalTimeList}."
     )
 

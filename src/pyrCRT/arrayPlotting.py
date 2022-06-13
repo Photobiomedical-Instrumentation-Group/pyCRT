@@ -1,7 +1,7 @@
 """
-Functions related to curve fitting (pyrCRT.curveFitting)
+Functions related to curve fitting (pyCRT.curveFitting)
 
-This module implements the operations necessary to calculate the rCRT from the average
+This module implements the operations necessary to calculate the pCRT from the average
 intensities array and the frame times array, namely fitting a polynomial and two
 exponential curves on the data.
 """
@@ -23,7 +23,7 @@ from .curveFitting import (
     calculateRelativeUncertainty,
     exponential,
     polynomial,
-    rCRTFromParameters,
+    pCRTFromParameters,
 )
 
 # Type aliases for commonly used types
@@ -191,7 +191,7 @@ def plotFunction(
 def plotRCRT(
     figAxTuple: FigAxTuple,
     timeScdsArr: Array,
-    rCRTParams: ParameterSequence,
+    pCRTParams: ParameterSequence,
     criticalTime: Optional[float] = None,
     **kwargs: Any,
 ) -> None:
@@ -200,16 +200,16 @@ def plotRCRT(
     Basically a special case of curveFitting.plotFunction that specifically plots an
     exponential function with the given parameters, and a vertical line on
     timeScdsArr[maxDiv] (the critical time 'tc'), and sets the line's legend to be about
-    rCRT. See the documentation the aforementioned function for more information.
+    pCRT. See the documentation the aforementioned function for more information.
     """
     _, ax = figAxTuple
 
-    funcY = exponential(timeScdsArr, *rCRTParams)
+    funcY = exponential(timeScdsArr, *pCRTParams)
 
     plotOptions = kwargs.get("plotOptions", None)
     legendOptions = kwargs.get("legendOptions", None)
     if plotOptions is None:
-        plotOptions = {"label": "rCRT Exp", "color": "cyan"}
+        plotOptions = {"label": "pCRT Exp", "color": "cyan"}
     if legendOptions is None:
         legendOptions = {}
     ax.plot(timeScdsArr, funcY, **plotOptions)
@@ -333,7 +333,7 @@ def makeRCRTPlot(
     # {{{
     # {{{
     """
-    Creates and formats the plot for the exponential, polynomial and rCRT exponential
+    Creates and formats the plot for the exponential, polynomial and pCRT exponential
     functions applied over the array of a channel's intensities since the release of the
     compression on the skin.
 
@@ -346,13 +346,13 @@ def makeRCRTPlot(
         The array of average intensities for the channel used for fitting the functions.
 
     funcParamsTuples : dict with str keys tuple of 2 sequences of float as values
-        The dictionary containing the polynomial, exponential and rCRT exponential
+        The dictionary containing the polynomial, exponential and pCRT exponential
         functions' optimized parameters and their respective standard deviations. The
-        keys should be 'exponential', 'polynomial' and 'rCRT' respectively, and the
+        keys should be 'exponential', 'polynomial' and 'pCRT' respectively, and the
         values the tuples returned by scipy.optimize.curve_fit. See
         curveFitting.fitExponential or curveFitting.fitPolynomial for more information.
         If either the 'polynomial' or 'exponential' keys are lacking, these functions
-        just won't be plotted, but the 'rCRT' key is requred.
+        just won't be plotted, but the 'pCRT' key is requred.
 
     criticalTime : float or None, default=None
         The critical time. A vertical dashed line will be drawn to mark this instant. If
@@ -405,13 +405,13 @@ def makeRCRTPlot(
             **funcOptions.get("polynomial", {}),
         )
 
-    rCRTTuple = funcParamsTuples["rCRT"]
+    pCRTTuple = funcParamsTuples["pCRT"]
     plotRCRT(
         (fig, ax),
         timeScdsArr,
-        rCRTTuple[0],
+        pCRTTuple[0],
         criticalTime,
-        **funcOptions.get("rCRT", {}),
+        **funcOptions.get("pCRT", {}),
     )
     plotAvgIntens(
         (fig, ax),
@@ -421,11 +421,11 @@ def makeRCRTPlot(
         **funcOptions.get("intensities", {}),
     )
 
-    rCRT, _ = rCRTFromParameters(rCRTTuple)
-    relativeUncertainty = calculateRelativeUncertainty(rCRTTuple)
+    pCRT, _ = pCRTFromParameters(pCRTTuple)
+    relativeUncertainty = calculateRelativeUncertainty(pCRTTuple)
 
     addTextToLabel(
-        ax, f"rCRT={rCRT:.2f}±{100*relativeUncertainty:.2f}%", loc="upper right"
+        ax, f"pCRT={pCRT:.2f}±{100*relativeUncertainty:.2f}%", loc="upper right"
     )
 
     return fig, ax

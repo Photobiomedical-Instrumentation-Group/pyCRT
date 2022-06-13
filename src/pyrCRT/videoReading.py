@@ -1,5 +1,5 @@
 """
-Video reading functionality (pyrCRT.videoReading)
+Video reading functionality (pyCRT.videoReading)
 
 This module contains everything directly related to extracting lightly processed data
 from video files or cameras, in particular obtaining the arrays with each frame's time
@@ -333,7 +333,7 @@ def frameReader(
     ----------
     capture : cv.VideoCapture
         The OpenCV VideoCapture instance from which to extract the frames. See
-        pyrCRT.videoReading.videoCapture
+        pyCRT.videoReading.videoCapture
 
     rescaleFactor : int or float, default=1.0
         Factor by which each frame will be scaled. This can help reduce the load on the
