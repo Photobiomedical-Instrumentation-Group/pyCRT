@@ -11,7 +11,7 @@ master's thesis [1]_ which this library is based upon.
 CRT is defined as the time it takes for a region of skin (typically a finger
 or the forearm) to return to its original color after enough pressure is
 applied to cause bleaching [2]_. CRT is usually measured by the
-examiner's own visual assessment and a chronometer, while rCRT is measured
+examiner's own visual assessment and a chronometer, while pCRT is measured
 through the use of a digital camera and digital video processing, resulting in
 increased reproducibility and allowing for measurements on all skin phototypes
 [1]_.
