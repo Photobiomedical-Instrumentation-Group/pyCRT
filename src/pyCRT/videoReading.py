@@ -148,7 +148,7 @@ def readVideo(
     if recordingPath:
         writer = frameWriter(recordingPath, codecFourcc, recordingFps)
         # initialize generator
-        wirter.send(None) # type: ignore
+        writer.send(None) # type: ignore
 
     # Yup, I just assume the ROI is valid if it's a tuple of 4 elements. I'll probably
     # have to change this later.
