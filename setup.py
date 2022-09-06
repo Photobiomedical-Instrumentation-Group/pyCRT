@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="pyCRT",
-    version="2.0.2",
+    version="2.0.3",
     author="Eduardo Lopes Dias",
     author_email="eduardosprp@protonmail.com",
     description="Tools for measuring Capillary Refill Time using Python.",
