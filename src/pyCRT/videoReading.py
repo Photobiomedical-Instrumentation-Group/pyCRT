@@ -16,18 +16,13 @@ Notes
 from contextlib import contextmanager
 from os.path import isfile
 from typing import Generator, Optional, Union
+from warnings import warn
 
-# pylint: disable=import-error
 import cv2 as cv  # type: ignore
 import numpy as np
-
-# pylint: disable=no-name-in-module,import-error
 from numpy.typing import NDArray
 
-# pylint: disable=import-error
 from .arrayOperations import stripArr
-
-# pylint: disable=import-error
 from .frameOperations import calcAvgInten, drawRoi, rescaleFrame
 
 # Type aliases for commonly used types
@@ -148,7 +143,7 @@ def readVideo(
     if recordingPath:
         writer = frameWriter(recordingPath, codecFourcc, recordingFps)
         # initialize generator
-        writer.send(None) # type: ignore
+        writer.send(None)  # type: ignore
 
     # Yup, I just assume the ROI is valid if it's a tuple of 4 elements. I'll probably
     # have to change this later.
@@ -401,5 +396,98 @@ def frameWriter(
         frame = yield
         writer.write(frame)
 
+
+# }}}
+
+
+class CaptureDevice(cv.VideoCapture):
+# {{{
+
+    """
+    A wrapper class for cv.VideoCapture that provides an easier way of getting and
+    setting the camera's properties, as well as loading camera-specific information from
+    a config file.
+    """
+
+    PROPERTIES_DICT = {  # {{{
+        "autoWB": cv.CAP_PROP_AUTO_WB,
+        "autoExposure": cv.CAP_PROP_AUTO_EXPOSURE,
+        "autoFocus": cv.CAP_PROP_AUTOFOCUS,
+        "WBTemperature": cv.CAP_PROP_WB_TEMPERATURE,
+        "exposure": cv.CAP_PROP_EXPOSURE,
+        "focus": cv.CAP_PROP_FOCUS,
+        "FPS": cv.CAP_PROP_FPS,
+        "brightness": cv.CAP_PROP_BRIGHTNESS,
+        "contrast": cv.CAP_PROP_CONTRAST,
+        "saturation": cv.CAP_PROP_SATURATION,
+        "hue": cv.CAP_PROP_HUE,
+        "gain": cv.CAP_PROP_GAIN,
+    }  # }}}
+
+    __slots__ = ("warningLevel", "raiseExceptions", "raiseWarnings", "cameraConfig")
+
+    def __init__(self, videoSource, cameraConfig=None, **kwargs):
+        # {{{
+        self.warningLevel = kwargs.get("warningLevel", 2)
+
+        self.raiseExceptions = True
+        self.raiseWarnings = True
+
+        if self.warningLevel == 0:
+            self.raiseExceptions = False
+            self.raiseWarnings = False
+        if self.warningLevel == 1:
+            self.raiseExceptions = False
+
+        super().__init__(videoSource)
+
+    # }}}
+
+    def __setattr__(self, name, value):
+        # {{{
+        if name in CaptureDevice.PROPERTIES_DICT:
+            setStatus = self.set(self.PROPERTIES_DICT[name], value)
+            if not setStatus:
+                if self.raiseExceptions:
+                    raise ValueError(
+                        f"The capture device doesn't support setting '{name}' to {value}.",
+                    )
+                if self.raiseWarnings:
+                    warn(
+                        f"The capture device doesn't support setting '{name}' to {value}.",
+                        RuntimeWarning,
+                    )
+        else:
+            try:
+                CaptureDevice.__dict__[name].__set__(self, value)
+            except KeyError as err:
+                raise ValueError(
+                    f"The CaptureDevice class has no attribute named {name}."
+                ) from err
+
+    # }}}
+
+    def __getattr__(self, name):
+        # {{{
+        try:
+            receivedValue = self.get(self.PROPERTIES_DICT[name])
+            if receivedValue == -1:
+                if self.raiseExceptions:
+                    raise ValueError(
+                        f"The capture device doesn't support the property '{name}'."
+                    )
+                if self.raiseWarnings:
+                    warn(
+                        f"The capture device doesn't support the property '{name}'.",
+                        RuntimeWarning,
+                    )
+            return receivedValue
+        except KeyError as err:
+            raise ValueError(
+                f"The CaptureDevice class has no attribute named {name}."
+            ) from err
+
+
+# }}}
 
 # }}}
