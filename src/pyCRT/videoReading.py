@@ -15,14 +15,16 @@ Notes
 
 from contextlib import contextmanager
 from os.path import isfile
-from typing import Generator, Optional, Union
+from typing import Generator, Optional, Union, Any, Sequence
 from warnings import warn
+from time import sleep
 
 import cv2 as cv  # type: ignore
 import numpy as np
 from numpy.typing import NDArray
 
 from .arrayOperations import stripArr
+from .configFiles import loadTOML
 from .frameOperations import calcAvgInten, drawRoi, rescaleFrame
 
 # Type aliases for commonly used types
@@ -42,6 +44,9 @@ ArrayTuple = tuple[Array, Array]
 
 Real = Union[float, int, np.float_, np.int_]
 Integer = Union[int, np.int_]
+
+# Dictionary created from a TOML configuration file
+TOMLDict = dict[str, Union[list, int, dict[str, Any]]]
 # }}}
 
 
@@ -401,93 +406,204 @@ def frameWriter(
 
 
 class CaptureDevice(cv.VideoCapture):
-# {{{
-
+    # {{{
     """
     A wrapper class for cv.VideoCapture that provides an easier way of getting and
     setting the camera's properties, as well as loading camera-specific information from
-    a config file.
+    a TOML settings file.
     """
 
     PROPERTIES_DICT = {  # {{{
-        "autoWB": cv.CAP_PROP_AUTO_WB,
-        "autoExposure": cv.CAP_PROP_AUTO_EXPOSURE,
-        "autoFocus": cv.CAP_PROP_AUTOFOCUS,
-        "WBTemperature": cv.CAP_PROP_WB_TEMPERATURE,
-        "exposure": cv.CAP_PROP_EXPOSURE,
-        "focus": cv.CAP_PROP_FOCUS,
-        "FPS": cv.CAP_PROP_FPS,
+        "width": cv.CAP_PROP_FRAME_WIDTH,
+        "height": cv.CAP_PROP_FRAME_HEIGHT,
         "brightness": cv.CAP_PROP_BRIGHTNESS,
         "contrast": cv.CAP_PROP_CONTRAST,
         "saturation": cv.CAP_PROP_SATURATION,
-        "hue": cv.CAP_PROP_HUE,
+        "autoWBTemp": cv.CAP_PROP_AUTO_WB,
         "gain": cv.CAP_PROP_GAIN,
+        "WBTemp": cv.CAP_PROP_WB_TEMPERATURE,
+        "sharpness": cv.CAP_PROP_SHARPNESS,
+        "autoExposure": cv.CAP_PROP_AUTO_EXPOSURE,
+        "exposure": cv.CAP_PROP_EXPOSURE,
+        "pan": cv.CAP_PROP_PAN,
+        "tilt": cv.CAP_PROP_TILT,
+        "focus": cv.CAP_PROP_FOCUS,
+        "autoFocus": cv.CAP_PROP_AUTOFOCUS,
+        "zoom": cv.CAP_PROP_ZOOM,
+        "FPS": cv.CAP_PROP_FPS,
+        "hue": cv.CAP_PROP_HUE,
     }  # }}}
 
-    __slots__ = ("warningLevel", "raiseExceptions", "raiseWarnings", "cameraConfig")
+    __slots__ = ("raiseExceptions", "raiseWarnings", "cameraSettings", "videoSource")
 
-    def __init__(self, videoSource, cameraConfig=None, **kwargs):
+    def __init__(
+        self,
+        videoSource: int,
+        cameraSettings: Optional[Union[str, TOMLDict]] = None,
+        warningLevel: int = 2,
+    ):
         # {{{
-        self.warningLevel = kwargs.get("warningLevel", 2)
-
         self.raiseExceptions = True
         self.raiseWarnings = True
 
-        if self.warningLevel == 0:
+        if warningLevel == 0:
             self.raiseExceptions = False
             self.raiseWarnings = False
-        if self.warningLevel == 1:
+        if warningLevel == 1:
             self.raiseExceptions = False
 
+        if cameraSettings is not None:
+            if isinstance(cameraSettings, str):
+                self.cameraSettings = loadTOML(cameraSettings)
+            elif isinstance(cameraSettings, dict):
+                self.cameraSettings = cameraSettings
+            else:
+                raise TypeError(
+                    "Invalid type for cameraSettings. Valid types: str (path to a "
+                    "TOML settings file) or dict."
+                )
+
+
+        else:
+            self.cameraSettings = {}
+
+        self.videoSource = videoSource
         super().__init__(videoSource)
+
+        if self.cameraSettings != {}:
+            self.resetValues()
 
     # }}}
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, prop: str, value: int):
         # {{{
-        if name in CaptureDevice.PROPERTIES_DICT:
-            setStatus = self.set(self.PROPERTIES_DICT[name], value)
+        if prop in CaptureDevice.PROPERTIES_DICT:
+            if self.cameraSettings != {}:
+                if not self.isValid(prop, value):
+                    self.handleWarnings(
+                        "The capture device doesn't support setting "
+                        f"'{prop}' to {value}."
+                    )
+
+            print(f"setting {prop} to {value}")
+            setStatus: bool = super().set(CaptureDevice.PROPERTIES_DICT[prop], value)
+            sleep(self.cameraSettings.get(("sleepTime"), 1))
+
             if not setStatus:
-                if self.raiseExceptions:
-                    raise ValueError(
-                        f"The capture device doesn't support setting '{name}' to {value}.",
-                    )
-                if self.raiseWarnings:
-                    warn(
-                        f"The capture device doesn't support setting '{name}' to {value}.",
-                        RuntimeWarning,
-                    )
+                self.handleWarnings(
+                    "The capture device doesn't support setting "
+                    f"'{prop}' to {value}."
+                )
         else:
             try:
-                CaptureDevice.__dict__[name].__set__(self, value)
+                CaptureDevice.__dict__[prop].__set__(self, value)
             except KeyError as err:
                 raise ValueError(
-                    f"The CaptureDevice class has no attribute named {name}."
+                    f"The CaptureDevice class has no property '{prop}'."
                 ) from err
 
     # }}}
 
-    def __getattr__(self, name):
+    def __getattr__(self, prop: Any) -> int:
         # {{{
         try:
-            receivedValue = self.get(self.PROPERTIES_DICT[name])
+            receivedValue: int = super().get(CaptureDevice.PROPERTIES_DICT[prop])
             if receivedValue == -1:
-                if self.raiseExceptions:
-                    raise ValueError(
-                        f"The capture device doesn't support the property '{name}'."
-                    )
-                if self.raiseWarnings:
-                    warn(
-                        f"The capture device doesn't support the property '{name}'.",
-                        RuntimeWarning,
-                    )
+                self.handleWarnings(
+                    f"The capture device doesn't support the property '{prop}'."
+                )
             return receivedValue
         except KeyError as err:
             raise ValueError(
-                f"The CaptureDevice class has no attribute named {name}."
+                f"The CaptureDevice class has no attribute named {prop}."
             ) from err
+
+    # }}}
+
+    def resetValues(self):
+        # {{{
+        if self.cameraSettings == {}:
+            self.handleWarnings(
+                "The cameraSettings dict is empty; resetValues will have no effect."
+            )
+        for prop, table in self.cameraSettings.items():
+            if prop in CaptureDevice.PROPERTIES_DICT or prop == "frameSize":
+                if "initial-value" in table:
+                    self.__setattr__(prop, table["initial-value"])
+                elif "default" in table:
+                    self.__setattr__(prop, table["default"])
+
+    # }}}
+
+    def handleWarnings(self, warningStr: str):
+        # {{{
+        if self.raiseExceptions:
+            raise ValueError(warningStr)
+        if self.raiseWarnings:
+            warn(warningStr, RuntimeWarning)
+
+    # }}}
+
+    def isValid(self, prop: str, value: int) -> bool:
+        # {{{
+        try:
+            propTable = self.cameraSettings[prop]
+        except KeyError:
+            return True
+
+        if not isinstance(propTable, dict):
+            raise TypeError(
+                f"Invalid type for the {prop} property. Expected a dictionary "
+                "but got a {type(propTable)}"
+            )
+
+        propValidValues = propTable["values"]
+
+        if isinstance(propValidValues, list):
+            if value in propValidValues:
+                return True
+        if "min" in propValidValues:
+            minVal = propValidValues["min"]
+            maxVal = propValidValues["max"]
+            step = propValidValues["step"]
+            if (value % step == 0) and minVal <= value <= maxVal:
+                return True
+        elif isinstance(propValidValues, dict):
+            if value in propValidValues.values():
+                return True
+        return False
 
 
 # }}}
 
+    @property
+    def frameSize(self) -> tuple[int, int]:
+        return (self.width, self.height)
+
+    @frameSize.setter
+    def frameSize(self, value: Sequence[int]):
+# {{{
+        if len(value) != 2:
+            raise ValueError(
+                f"{value} is an invalid value for the camera's frame size. "
+                "Expected a tuple or list of 2 ints (width and height)."
+            )
+
+        width, height = value
+        self.set(CaptureDevice.PROPERTIES_DICT["witdh"], width)
+        self.set(CaptureDevice.PROPERTIES_DICT["height"], height)
+# }}}
+
+    def __repr__(self) -> str:
+# {{{
+        return f"CaptureDevice({self.videoSource}, {self.cameraSettings})"
+# }}}
+
+    def __str__(self) -> str:
+# {{{
+        try:
+            return f"{self.cameraSettings['name']} at videoSource = {self.videoSource}"
+        except KeyError:
+            return f"Unnamed camera at videoSource = {self.videoSource}"
+# }}}
 # }}}
