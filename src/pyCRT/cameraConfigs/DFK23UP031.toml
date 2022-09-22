@@ -6,22 +6,30 @@
 
 name = "DFK 23UP031"
 
-[capabilities]
+[resolution]
+values = [
+	[640, 480],
+]
+default = [640, 480]
+value = [640, 480]
 
-[capabilities.brightness]
-min = 0
-max = 4095
-step = 1
+# CAP_PROP_BRIGHTNESS
+[brightness]
+values.min = 0
+values.max = 4095
+values.step = 1
 default = 168
 
-[capabilities.gain]
-min = 4
-max = 63
-step = 1
+# CAP_PROP_GAIN
+[gain]
+values.min = 4
+values.max = 63
+values.step = 1
 default = 4
 
-[capabilities.exposure_absolute]
-min = 1
-max = 300000
-step = 1
+# CAP_PROP_EXPOSURE
+[exposure]
+values.min = 1
+values.max = 300000
+values.step = 1
 default = 333

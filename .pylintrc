@@ -1,5 +1,6 @@
- [MASTER]
+[MASTER]
 
+jobs=0
 extension-pkg-allow-list=cv2
 extension-pkg-whitelist=cv2
 unsafe-load-any-extension=yes
