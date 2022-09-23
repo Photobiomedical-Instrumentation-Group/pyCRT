@@ -22,8 +22,8 @@ from numpy.typing import NDArray
 from .curveFitting import (
     calculateRelativeUncertainty,
     exponential,
-    polynomial,
     pCRTFromParameters,
+    polynomial,
 )
 
 # Type aliases for commonly used types
@@ -130,6 +130,45 @@ def plotAvgIntens(
                     **plotOptions,
                 )
     ax.legend(**legendOptions)
+
+
+# }}}
+
+
+def liveAvgIntensPlot(numPoints: int = 50, figSizePx: tuple[int, int] = (480, 300)):
+    # {{{
+    fig, ax = makeFigAxes(
+        ("Time (normalized)", "Average Intensities (a.u.)"), figSizePx=figSizePx
+    )
+
+    timeScdsArr = np.linspace(0.0, 1.0, numPoints)
+    channelsAvgIntensArr = np.array([[0, 0, 0]] * numPoints)
+
+    bLine = ax.plot(timeScdsArr, channelsAvgIntensArr[:, 0], "b", label="Channel B")[0]
+    gLine = ax.plot(timeScdsArr, channelsAvgIntensArr[:, 1], "g", label="Channel G")[0]
+    rLine = ax.plot(timeScdsArr, channelsAvgIntensArr[:, 2], "r", label="Channel R")[0]
+    ax.set_ylim(0, 255)
+    ax.legend()
+
+    fig.canvas.draw()
+    axbackground = fig.canvas.copy_from_bbox(ax.bbox)
+    plt.show(block=False)
+
+    while True:
+        _, channelsAvgIntens = yield
+
+        channelsAvgIntensArr[1:] = channelsAvgIntensArr[:-1]
+        channelsAvgIntensArr[0] = channelsAvgIntens
+        bLine.set_data(timeScdsArr, channelsAvgIntensArr[:, 0])
+        gLine.set_data(timeScdsArr, channelsAvgIntensArr[:, 1])
+        rLine.set_data(timeScdsArr, channelsAvgIntensArr[:, 2])
+
+        fig.canvas.restore_region(axbackground)
+        ax.draw_artist(bLine)
+        ax.draw_artist(gLine)
+        ax.draw_artist(rLine)
+        fig.canvas.blit(ax.bbox)
+        fig.canvas.flush_events()
 
 
 # }}}

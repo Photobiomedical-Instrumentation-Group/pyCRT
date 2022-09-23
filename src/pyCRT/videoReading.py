@@ -49,8 +49,8 @@ Integer = Union[int, np.int_]
 TOMLDict = dict[str, Union[list, int, dict[str, Any]]]
 
 # Types for setter and getter functions for CaptureDevice
-SetterType = Callable[[Union[int, bool]], None]
-GetterType = Callable[[], Union[int, bool]]
+SetterType = Callable[[Union[int, bool]], Any]
+GetterType = Callable[[Any], Union[int, bool]]
 # }}}
 
 # Dictionaries containing opcnCV's capture device properties for ease of access
