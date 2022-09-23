@@ -53,6 +53,33 @@ SetterType = Callable[[Union[int, bool]], None]
 GetterType = Callable[[], Union[int, bool]]
 # }}}
 
+# Dictionaries containing opcnCV's capture device properties for ease of access
+NUMERIC_PROPS = {  # {{{
+    "width": cv.CAP_PROP_FRAME_WIDTH,
+    "height": cv.CAP_PROP_FRAME_HEIGHT,
+    "brightness": cv.CAP_PROP_BRIGHTNESS,
+    "contrast": cv.CAP_PROP_CONTRAST,
+    "saturation": cv.CAP_PROP_SATURATION,
+    "gain": cv.CAP_PROP_GAIN,
+    "WBTemp": cv.CAP_PROP_WB_TEMPERATURE,
+    "sharpness": cv.CAP_PROP_SHARPNESS,
+    "exposure": cv.CAP_PROP_EXPOSURE,
+    "pan": cv.CAP_PROP_PAN,
+    "tilt": cv.CAP_PROP_TILT,
+    "focus": cv.CAP_PROP_FOCUS,
+    "zoom": cv.CAP_PROP_ZOOM,
+    "FPS": cv.CAP_PROP_FPS,
+    "hue": cv.CAP_PROP_HUE,
+}
+
+BOOLEAN_PROPS = {
+    "autoWBTemp": cv.CAP_PROP_AUTO_WB,
+    "autoExposure": cv.CAP_PROP_AUTO_EXPOSURE,
+    "autoFocus": cv.CAP_PROP_AUTOFOCUS,
+}
+
+ALL_PROPS = {**NUMERIC_PROPS, **BOOLEAN_PROPS}  # }}}
+
 
 def readVideo(
     videoSource: Union[str, int],
@@ -408,34 +435,9 @@ def frameWriter(
 
 # }}}
 
+
 class CaptureDevice(cv.VideoCapture):
     # {{{
-    NUMERIC_PROPS = {  # {{{
-        "width": cv.CAP_PROP_FRAME_WIDTH,
-        "height": cv.CAP_PROP_FRAME_HEIGHT,
-        "brightness": cv.CAP_PROP_BRIGHTNESS,
-        "contrast": cv.CAP_PROP_CONTRAST,
-        "saturation": cv.CAP_PROP_SATURATION,
-        "gain": cv.CAP_PROP_GAIN,
-        "WBTemp": cv.CAP_PROP_WB_TEMPERATURE,
-        "sharpness": cv.CAP_PROP_SHARPNESS,
-        "exposure": cv.CAP_PROP_EXPOSURE,
-        "pan": cv.CAP_PROP_PAN,
-        "tilt": cv.CAP_PROP_TILT,
-        "focus": cv.CAP_PROP_FOCUS,
-        "zoom": cv.CAP_PROP_ZOOM,
-        "FPS": cv.CAP_PROP_FPS,
-        "hue": cv.CAP_PROP_HUE,
-    }
-
-    BOOLEAN_PROPS = {
-        "autoWBTemp": cv.CAP_PROP_AUTO_WB,
-        "autoExposure": cv.CAP_PROP_AUTO_EXPOSURE,
-        "autoFocus": cv.CAP_PROP_AUTOFOCUS,
-    }
-
-    ALL_PROPS = {**NUMERIC_PROPS, **BOOLEAN_PROPS}  # }}}
-
     def __init__(
         self,
         videoSource: int,
@@ -475,9 +477,9 @@ class CaptureDevice(cv.VideoCapture):
     # }}}
 
     @staticmethod
-    def propGetterFactory(propName: str) -> GetterType:
+    def propGetterSetterFactory(propName: str) -> tuple[GetterType, SetterType]:
         # {{{
-        propCode = CaptureDevice.ALL_PROPS[propName]
+        propCode = ALL_PROPS[propName]
 
         def getProperty(self) -> Union[int, bool]:
             # {{{
@@ -489,7 +491,7 @@ class CaptureDevice(cv.VideoCapture):
                 )
 
             if propName in self.cameraSettings:
-                if propName in CaptureDevice.BOOLEAN_PROPS:
+                if propName in BOOLEAN_PROPS:
                     try:
                         onValue = self.cameraSettings[propName]["values"]["on"]
                         receivedValue = receivedValue == onValue
@@ -502,15 +504,6 @@ class CaptureDevice(cv.VideoCapture):
             return receivedValue
 
         # }}}
-
-        return getProperty
-
-    # }}}
-
-    @staticmethod
-    def propSetterFactory(propName: str) -> SetterType:
-        # {{{
-        propCode = CaptureDevice.ALL_PROPS[propName]
 
         def setProperty(self, value: Union[int, bool]):
             # {{{
@@ -551,11 +544,13 @@ class CaptureDevice(cv.VideoCapture):
 
         # }}}
 
-        return setProperty
+        return (getProperty, setProperty)
 
     # }}}
 
-    brightness = property(propGetterFactory(brightness), propSetterFactory("brightness"))
+    for key in ALL_PROPS:
+        # pylint: disable=exec-used
+        exec(f"{key} = property(*propGetterSetterFactory('{key}'))")
 
     @property
     def frameSize(self) -> tuple[int, int]:
@@ -618,19 +613,16 @@ class CaptureDevice(cv.VideoCapture):
 
     def resetValues(self):
         # {{{
-        print("bruh")
         if self.cameraSettings == {}:
             self.handleWarnings(
                 "The cameraSettings dict is empty; resetValues will have no effect."
             )
         for propName, table in self.cameraSettings.items():
-            if propName in CaptureDevice.ALL_PROPS or propName == "frameSize":
+            if propName in ALL_PROPS or propName == "frameSize":
                 if "initial-value" in table:
                     setattr(self, propName, table["initial-value"])
                 elif "default" in table:
                     setattr(self, propName, table["default"])
 
     # }}}
-
-
 # }}}
