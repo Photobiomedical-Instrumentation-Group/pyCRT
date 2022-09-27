@@ -6,7 +6,7 @@ intensities array and the frame times array, namely fitting a polynomial and two
 exponential curves on the data.
 """
 
-from typing import Any, Callable, Optional, Sequence, Union
+from typing import Any, Callable, Generator, Optional, Sequence, Union
 
 import numpy as np
 from matplotlib import patches as mpatches
@@ -135,7 +135,9 @@ def plotAvgIntens(
 # }}}
 
 
-def liveAvgIntensPlot(numPoints: int = 50, figSizePx: tuple[int, int] = (480, 300)):
+def liveAvgIntensPlot(
+    numPoints: int = 50, figSizePx: tuple[int, int] = (480, 300)
+) -> Generator[None, ArrayTuple, None]:
     # {{{
     fig, ax = makeFigAxes(
         ("Time (normalized)", "Average Intensities (a.u.)"), figSizePx=figSizePx

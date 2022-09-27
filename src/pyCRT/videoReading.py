@@ -233,6 +233,8 @@ def readVideo(
 def videoCapture(
     videoSource: Union[int, str],
     cameraResolution: Optional[tuple[int, int]] = None,
+    cameraSettings: Optional[str] = None,
+    warningLevel = 2,
 ) -> cv.VideoCapture:
     # {{{
     # {{{
@@ -277,12 +279,22 @@ def videoCapture(
                 "capture device. For a list of available capture devices, use "
                 "listCaptureDevices"
             )
+
+        cap = CaptureDevice(videoSource, cameraSettings, warningLevel)
+
+        # Set camera resolution
+        if cameraResolution:
+            resX, resY = cameraResolution
+            cap.frameSize = resX, resY
+
     elif isinstance(videoSource, str):
         if not isfile(videoSource):
             raise ValueError(
                 f"The path ({videoSource}) passed to the videoCapture context manager"
                 "is not a file."
             )
+        cap = cv.VideoCapture(videoSource)
+
     else:
         raise TypeError(
             f"Invalid type of {type(videoSource)} passed as the first argument"
@@ -290,13 +302,6 @@ def videoCapture(
             "str (for a path to a video in the filesystem."
         )
 
-    cap = cv.VideoCapture(videoSource)
-
-    # Set camera resolution
-    if cameraResolution:
-        resX, resY = cameraResolution
-        cap.set(3, resX)
-        cap.set(4, resY)
 
     try:
         yield cap
@@ -505,12 +510,12 @@ class CaptureDevice(cv.VideoCapture):
 
         # }}}
 
-        def setProperty(self, value: Union[int, bool]):
+        def setProperty(self, value: Union[int, bool, float]):
             # {{{
             if propName in self.cameraSettings:
 
                 # pylint: disable=unidiomatic-typecheck
-                if type(value) == int:
+                if type(value) in (int, float):
                     if not self.isValid(propName, value):
                         self.handleWarnings(
                             "The capture device doesn't support setting "
@@ -528,11 +533,10 @@ class CaptureDevice(cv.VideoCapture):
                         )
                 else:
                     raise TypeError(
-                        f"Invalid type (type{value}) for the {propName} property "
-                        "value. Valid types are int or bool."
+                        f"Invalid type ({type(value)}) for the {propName} property "
+                        "value. Valid types are int, float or bool."
                     )
 
-            print(f"setting {propName} to {value}")
             setStatus: bool = super().set(propCode, value)
 
             if not setStatus:
