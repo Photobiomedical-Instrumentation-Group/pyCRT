@@ -60,6 +60,7 @@ def readVideo(
     cameraResolution: Optional[tuple[int, int]] = None,
     codecFourcc: str = "mp4v",
     recordingFps: float = 30.0,
+    frameFunction = lambda x: x,
 ) -> ArrayTuple:
     # {{{
     # {{{
@@ -157,7 +158,7 @@ def readVideo(
     avgIntenList: list[Array] = []
 
     with videoCapture(videoSource, cameraResolution) as cap:
-        for frame in frameReader(cap, rescaleFactor):
+        for frame in frameReader(cap, rescaleFactor, frameFunction):
             if roi is not None:
                 timeScds = cap.get(cv.CAP_PROP_POS_MSEC) / 1000.0
                 channelsAvgInten = calcAvgInten(frame, roi)
@@ -322,6 +323,7 @@ def checkCaptureDevice(capDeviceIndex: int) -> bool:
 def frameReader(
     capture: cv.VideoCapture,
     rescaleFactor: Real = 1.0,
+    frameFunction = lambda frame: frame,
 ) -> Generator[Array, None, None]:
     # {{{
     # {{{
@@ -351,6 +353,7 @@ def frameReader(
 
         if status:
             frame = rescaleFrame(frame, rescaleFactor)
+            frame = frameFunction(frame)
             yield frame
         else:
             break
@@ -386,7 +389,7 @@ def frameWriter(
     """
     # }}}
 
-    # This first recieved frame is used to pass the correct frame dimentions to
+    # This first received frame is used to pass the correct frame dimentions to
     # cv.VideoWriter
     frame = yield
     writer = cv.VideoWriter(

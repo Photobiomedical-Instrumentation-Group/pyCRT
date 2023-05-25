@@ -82,6 +82,19 @@ RoiType = Union[RoiTuple, str]
 CHANNEL_INDICES_DICT = {"b": 0, "g": 1, "r": 2}
 
 
+# Mega-functions
+# def makeCriticalTimesPlot(
+#     fullTimeScdsArr,
+#     channelsAvgIntensArr,
+#     channel = "g",
+#     fromTime = None,
+#     toTime = None,
+#     sliceMethod = "from local max",
+#     funcParamsTuples = None,
+#     criticalTimes = None,
+# ):
+
+
 class PCRT:
     # {{{
     """
@@ -102,7 +115,7 @@ class PCRT:
         funcParamsTuples: Optional[dict[str, FitParametersTuple]] = None,
         initialGuesses: Optional[dict[str, ParameterSequence]] = None,
         criticalTime: Optional[float] = None,
-        exclusionCriteria: float = 0.12,
+        exclusionCriteria: float = np.inf,
         exclusionMethod: str = "first that works",
     ):
         # {{{
