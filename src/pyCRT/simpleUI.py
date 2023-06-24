@@ -86,9 +86,9 @@ class PCRT:
     # {{{
     """
     Representation of a pCRT measurement. Aside from the pCRT value itself, it
-    also stores all the information that went into calculating the pCRT, as well
-    as functions related to this calculation and storing the results in a file.
-    This class is meant to be the easiest way to use pyCRT.
+    also stores all the information that went into calculating the pCRT, as
+    well as functions related to this calculation and storing the results in a
+    file.  This class is meant to be the easiest way to use pyCRT.
     """
     # Init methods{{{
     def __init__(
@@ -219,7 +219,10 @@ class PCRT:
             self.pCRTParams, self.pCRTStdDev = funcParamsTuples["pCRT"]
             self.criticalTime = criticalTime
         else:
-            (self.pCRTParams, self.pCRTStdDev), self.criticalTime = self.calcPCRT(
+            (
+                self.pCRTParams,
+                self.pCRTStdDev,
+            ), self.criticalTime = self.calcPCRT(
                 criticalTime,
                 self.initialGuesses.get("pCRT", None),
                 exclusionMethod,
@@ -492,7 +495,10 @@ class PCRT:
             self.slice = sliceFromMaxToEnd(self.channelFullAvgIntens)
         elif sliceMethod == "from local max":
             self.slice = sliceFromLocalMax(
-                self.fullTimeScdsArr, self.channelFullAvgIntens, fromTime, toTime
+                self.fullTimeScdsArr,
+                self.channelFullAvgIntens,
+                fromTime,
+                toTime,
             )
         elif sliceMethod == "by time":
             self.slice = sliceByTime(self.fullTimeScdsArr, fromTime, toTime)
@@ -561,7 +567,9 @@ class PCRT:
         arrayPlotting.makeAvgIntensPlot and arrayPlotting.saveAvgIntensPlot.
         """
         # }}}
-        saveAvgIntensPlot(figPath, self.fullTimeScdsArr, self.channelsAvgIntensArr)
+        saveAvgIntensPlot(
+            figPath, self.fullTimeScdsArr, self.channelsAvgIntensArr
+        )
 
     # }}}
 

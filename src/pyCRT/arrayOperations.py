@@ -136,8 +136,8 @@ def stripArr(timeArr: Array, arr: Array) -> ArrayTuple:
 def subtractMinimum(arr: Array) -> Array:
     # {{{
     """
-    Subtracts the array's elements by the array's minimum value. What else did you
-    expect?
+    Subtracts the array's elements by the array's minimum value. What else did
+    you expect?
     """
 
     return arr - arr.min()
@@ -149,7 +149,10 @@ def subtractMinimum(arr: Array) -> Array:
 # You should look into mypy generics to avoid the value: Any here
 def findValueIndex(arr: Array, value: Any) -> int:
     # {{{
-    """Returns the index of the first element in arr which is greater than value."""
+    """
+    Returns the index of the first element in arr which is greater than
+    valuea.
+    """
     try:
         index = int(np.where(arr >= float(value))[0][0])
         valueRatio = abs(arr[index] / value)
@@ -161,7 +164,9 @@ def findValueIndex(arr: Array, value: Any) -> int:
             )
         return int(np.where(arr >= float(value))[0][0])
     except IndexError as err:
-        raise IndexError(f"No value in arr is greater or equal than {value}") from err
+        raise IndexError(
+            f"No value in arr is greater or equal than {value}"
+        ) from err
 
 
 # }}}

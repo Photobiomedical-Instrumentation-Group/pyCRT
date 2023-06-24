@@ -125,7 +125,9 @@ def fitExponential(
         expStdDev = covToStdDev(expCov)
         return expParams, expStdDev
     except (RuntimeError, OptimizeWarning) as err:
-        raise RuntimeError(f"Exponential fit failed with p0={np.array(p0)}.") from err
+        raise RuntimeError(
+            f"Exponential fit failed with p0={np.array(p0)}."
+        ) from err
 
 
 # }}}
@@ -181,7 +183,9 @@ def fitPolynomial(
         polyStdDev = covToStdDev(polyCov)
         return polyParams, polyStdDev
     except (RuntimeError, OptimizeWarning) as err:
-        raise RuntimeError(f"Polynomial fit failed with p0={np.array(p0)}.") from err
+        raise RuntimeError(
+            f"Polynomial fit failed with p0={np.array(p0)}."
+        ) from err
 
 
 # }}}
@@ -260,14 +264,17 @@ def fitPCRT(
                     pass
 
             raise RuntimeError(
-                f"pCRT fit failed on all maxDivIndexes ({maxDivList})," " with p0={p0}."
+                f"pCRT fit failed on all maxDivIndexes ({maxDivList}),"
+                " with p0={p0}."
             )
         if isinstance(maxDiv, int):
             maxDivIndex = maxDiv
 
             try:
                 return (
-                    fitExponential(x[: int(maxDivIndex)], y[: int(maxDivIndex)], p0=p0),
+                    fitExponential(
+                        x[: int(maxDivIndex)], y[: int(maxDivIndex)], p0=p0
+                    ),
                     maxDivIndex,
                 )
             except RuntimeError as err:
@@ -400,24 +407,28 @@ def findMaxDivergencePeaks(
 
     if "expTuple" in kwargs and "polyTuple" in kwargs:
         expParams, polyParams = kwargs["expTuple"][0], kwargs["polyTuple"][0]
-        assert isinstance(expParams, np.ndarray) and expParams.dtype == np.dtype(
-            "float64"
-        )
-        assert isinstance(polyParams, np.ndarray) and polyParams.dtype == np.dtype(
-            "float64"
-        )
+        assert isinstance(
+            expParams, np.ndarray
+        ) and expParams.dtype == np.dtype("float64")
+        assert isinstance(
+            polyParams, np.ndarray
+        ) and polyParams.dtype == np.dtype("float64")
 
         diffArray = diffExpPoly(x, expParams, polyParams)
         maxIndexes = find_peaks(diffArray)[0]
         maxIndexes = [int(x) for x in maxIndexes]
-        maxIndexesSorted = sorted(maxIndexes, key=lambda x: diffArray[x], reverse=True)
+        maxIndexesSorted = sorted(
+            maxIndexes, key=lambda x: diffArray[x], reverse=True
+        )
         return maxIndexesSorted
 
     if len(args) == 1 and isinstance(args[0], np.ndarray):
         y: Array = args[0]
         expTuple = fitExponential(x, y)
         polyTuple = fitPolynomial(x, y)
-        return findMaxDivergencePeaks(x, expTuple=expTuple, polyTuple=polyTuple)
+        return findMaxDivergencePeaks(
+            x, expTuple=expTuple, polyTuple=polyTuple
+        )
 
     raise ValueError(
         "Usage: findMaxDivergencePeaks(x: array, expTuple=expTuple,"
@@ -667,7 +678,8 @@ def calcPCRTBestFit(
         )
 
     maxDiv = min(
-        maxDivResults, key=lambda x: calculateRelativeUncertainty(maxDivResults[x])
+        maxDivResults,
+        key=lambda x: calculateRelativeUncertainty(maxDivResults[x]),
     )
     pCRTTuple = maxDivResults[maxDiv]
 

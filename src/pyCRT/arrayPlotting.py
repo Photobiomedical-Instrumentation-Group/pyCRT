@@ -109,7 +109,9 @@ def plotAvgIntens(
                 **plotOptions,
             )
         else:
-            plotAvgIntens(figAxTuple, timeScdsArr, channelsAvgIntensArr, channels="bgr")
+            plotAvgIntens(
+                figAxTuple, timeScdsArr, channelsAvgIntensArr, channels="bgr"
+            )
     else:
         channels = channels.strip().lower()
         if len(channels) == 1:
@@ -381,7 +383,10 @@ def makePCRTPlot(
     # }}}
 
     fig, ax = makeFigAxes(
-        ("Time since release of compression (s)", "Average intensities (u.a.)"),
+        (
+            "Time since release of compression (s)",
+            "Average intensities (u.a.)",
+        ),
         "Average intensities and fitted functions",
     )
 
@@ -425,7 +430,9 @@ def makePCRTPlot(
     relativeUncertainty = calculateRelativeUncertainty(pCRTTuple)
 
     addTextToLabel(
-        ax, f"pCRT={pCRT:.2f}±{100*relativeUncertainty:.2f}%", loc="upper right"
+        ax,
+        f"pCRT={pCRT:.2f}±{100*relativeUncertainty:.2f}%",
+        loc="upper right",
     )
 
     return fig, ax
@@ -487,6 +494,8 @@ def figVisualizationFunctions(
 # }}}
 
 
-showAvgIntensPlot, saveAvgIntensPlot = figVisualizationFunctions(makeAvgIntensPlot)
+showAvgIntensPlot, saveAvgIntensPlot = figVisualizationFunctions(
+    makeAvgIntensPlot
+)
 
 showPCRTPlot, savePCRTPlot = figVisualizationFunctions(makePCRTPlot)
