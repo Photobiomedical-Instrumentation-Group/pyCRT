@@ -18,6 +18,7 @@ disable=raw-checker-failed,
         deprecated-pragma,
         use-symbolic-message-instead,
 		c-extension-no-member,
+		import-error,
 
 
 [REFACTORING]
@@ -107,9 +108,3 @@ exclude-protected=_asdict,
                   _make
 valid-classmethod-first-arg=cls
 valid-metaclass-classmethod-first-arg=cls
-
-
-[EXCEPTIONS]
-
-overgeneral-exceptions=BaseException,
-                       Exception
