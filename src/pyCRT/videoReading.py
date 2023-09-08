@@ -16,10 +16,18 @@ Notes
 from contextlib import contextmanager
 from os.path import isfile
 from time import sleep
-from typing import Any, Callable, Generator, Optional, Sequence, Union
+from typing import (
+    Any,
+    Callable,
+    Generator,
+    Iterator,
+    Optional,
+    Sequence,
+    Union,
+)
 from warnings import warn
 
-import cv2 as cv  # type: ignore
+import cv2 as cv
 import numpy as np
 from numpy.typing import NDArray
 
@@ -49,11 +57,11 @@ Integer = Union[int, np.int_]
 TOMLDict = dict[str, Union[list, int, dict[str, Any]]]
 
 # Types for setter and getter functions for CaptureDevice
-SetterType = Callable[[Union[int, bool]], Any]
 GetterType = Callable[[Any], Union[int, bool]]
+SetterType = Callable[[Union[int, bool]], Any]
 # }}}
 
-# Dictionaries containing opcnCV's capture device properties for ease of access
+# Dictionaries containing openCV's capture device properties for ease of access
 NUMERIC_PROPS = {  # {{{
     "width": cv.CAP_PROP_FRAME_WIDTH,
     "height": cv.CAP_PROP_FRAME_HEIGHT,
@@ -238,7 +246,7 @@ def videoCapture(
     cameraResolution: Optional[tuple[int, int]] = None,
     cameraSettings: Optional[str] = None,
     warningLevel=2,
-) -> cv.VideoCapture:
+) -> Iterator[cv.VideoCapture]:
     # {{{
     # {{{
     """
@@ -275,6 +283,8 @@ def videoCapture(
         messages, so care must be taken.
     """
     # }}}
+
+    cap: cv.VideoCapture
 
     if isinstance(videoSource, int):
         if not checkCaptureDevice(videoSource):
@@ -434,7 +444,7 @@ def frameWriter(
     frame = yield
     writer = cv.VideoWriter(
         recordingPath,
-        cv.VideoWriter_fourcc(*codecFourcc),
+        cv.VideoWriter.fourcc(*codecFourcc),
         recordingFps,
         frame.shape[1::-1],
     )
@@ -541,7 +551,8 @@ class CaptureDevice(cv.VideoCapture):
                     except KeyError:
                         self.handleWarnings(
                             f"The {propName} property doesn't have an 'on' or "
-                            " 'off' " "value declared in the camera's"
+                            " 'off' "
+                            "value declared in the camera's"
                             "specification file."
                         )
                 else:

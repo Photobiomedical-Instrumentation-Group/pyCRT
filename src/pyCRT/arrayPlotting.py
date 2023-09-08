@@ -15,10 +15,8 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.ticker import AutoLocator, AutoMinorLocator
 
-# pylint: disable=no-name-in-module,import-error
 from numpy.typing import NDArray
 
-# pylint: disable=import-error
 from .curveFitting import (
     calculateRelativeUncertainty,
     exponential,

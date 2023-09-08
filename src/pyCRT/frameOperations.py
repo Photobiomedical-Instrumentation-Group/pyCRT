@@ -48,7 +48,7 @@ def rescaleFrame(frame: Array, rescaleFactor: Real) -> Array:
     rescaledFrame : 3D np.ndarray
         The rescaled frame, using bilinear interpolation.
     """
-
+    rescaleFactor = float(rescaleFactor)
     return cv.resize(frame, (0, 0), fx=rescaleFactor, fy=rescaleFactor)
 
 
