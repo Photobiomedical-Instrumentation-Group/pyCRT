@@ -5,6 +5,10 @@ persistent=no
 unsafe-load-any-extension=yes
 
 
+[TYPECHECK]
+ignored-classes=cv2
+
+
 [BASIC]
 
 argument-naming-style=camelCase

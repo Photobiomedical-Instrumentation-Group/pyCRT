@@ -9,7 +9,7 @@ calculating average intensity, drawing a ROI, etc,
 
 from typing import Optional, Union
 
-import cv2 as cv  # type: ignore
+import cv2 as cv
 import numpy as np
 
 from numpy.typing import NDArray
