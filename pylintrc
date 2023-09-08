@@ -1,0 +1,91 @@
+[MAIN]
+
+jobs=0
+persistent=no
+unsafe-load-any-extension=yes
+
+
+[BASIC]
+
+argument-naming-style=camelCase
+attr-naming-style=camelCase
+bad-names=foo,
+          bar,
+          baz,
+          toto,
+          tutu,
+          tata
+class-attribute-naming-style=camelCase
+class-const-naming-style=UPPER_CASE
+class-naming-style=PascalCase
+const-naming-style=UPPER_CASE
+function-naming-style=camelCase
+good-names=i,
+           j,
+           k,
+           ex,
+           Run,
+           _,
+		   B, G, R,
+		   x1, y1, x2, y2,
+		   a, b, c, d, e, f, x, y,
+		   p0, fig, ax
+good-names-rgxs=
+include-naming-hint=yes
+inlinevar-naming-style=any
+method-naming-style=camelCase
+module-naming-style=any
+name-group=
+no-docstring-rgx=^_
+property-classes=abc.abstractproperty
+variable-naming-style=camelCase
+
+
+[DESIGN]
+
+max-args=5
+max-attributes=7
+max-bool-expr=5
+max-branches=12
+max-locals=15
+max-parents=7
+max-public-methods=20
+max-returns=6
+max-statements=50
+min-public-methods=2
+
+
+[EXCEPTIONS]
+
+overgeneral-exceptions=builtins.BaseException,builtins.Exception
+
+
+[FORMAT]
+
+max-line-length=79
+max-module-lines=1000
+
+
+[MESSAGES CONTROL]
+
+confidence=HIGH,
+           CONTROL_FLOW,
+           INFERENCE,
+           INFERENCE_FAILURE,
+           UNDEFINED
+
+disable=raw-checker-failed,
+        bad-inline-option,
+        locally-disabled,
+        file-ignored,
+        suppressed-message,
+        useless-suppression,
+        deprecated-pragma,
+        use-symbolic-message-instead,
+		import-error,
+
+
+[REFACTORING]
+
+max-nested-blocks=5
+never-returning-functions=sys.exit,argparse.parse_error

@@ -1,8 +1,8 @@
 """
 Simple functions for manipulating arrays (pyCRT.arrayOperations)
 
-This module is mostly functions that receive two arrays as input and returns two arrays,
-intended to be used with the timeScds and avgInten arrays.
+This module is mostly functions that receive two arrays as input and returns
+two arrays, intended to be used with the timeScds and avgInten arrays.
 """
 
 from typing import Any, Optional, Union
@@ -18,8 +18,8 @@ from numpy.typing import NDArray
 # Array of arbitraty size with float elements.
 Array = NDArray[np.float_]
 
-# Tuples of two numpy arrays, typically an array of the timestamp for each frame and an
-# array of average intensities within a given ROI
+# Tuples of two numpy arrays, typically an array of the timestamp for each
+# frame and an array of average intensities within a given ROI
 ArrayTuple = tuple[Array, Array]
 
 Real = Union[float, int, np.float_, np.int_]
@@ -30,8 +30,9 @@ def sliceFromMaxToEnd(intenArr: Array) -> slice:
     # {{{
     # {{{
     """
-    Returns a slice object that slices the input array from the index of its absolute
-    maximum to its end. It's literally just slice(intenArr.argmax(), -1)
+    Returns a slice object that slices the input array from the index of its
+    absolute maximum to its end. It's literally just slice(intenArr.argmax(),
+    -1)
     """
     # }}}
     return slice(intenArr.argmax(), -1)
@@ -49,8 +50,8 @@ def sliceByTime(
     # {{{
     """
 
-    Creates a slice object specifying timeArr's section which is between fromTime and
-    toTime.
+    Creates a slice object specifying timeArr's section which is between
+    fromTime and toTime.
 
     Parameters
     ----------
@@ -58,12 +59,14 @@ def sliceByTime(
         The array whose slice is to be calculated
 
     fromTime : real number or None, default=None
-        The slice's "start" argument will be the index of the first element of timeArr
-        whose value is greater or equal to fromTime. If None, -np.inf will be used.
+        The slice's "start" argument will be the index of the first element of
+        timeArr whose value is greater or equal to fromTime. If None, -np.inf
+        will be used.
 
     toTime : real number or None, default=None
-        The slice's "stop" argument will be the index of the first element of timeArr
-        whose value is less or equal to fromTime. If None, np.inf will be used.
+        The slice's "stop" argument will be the index of the first element of
+        timeArr whose value is less or equal to fromTime. If None, np.inf will
+        be used.
 
     Returns
     -------
@@ -94,9 +97,9 @@ def sliceFromLocalMax(
     # {{{
     # {{{
     """
-    Applies sliceByTime and sliceFromMaxToEnd (in this order) to the input arrays with
-    fromTime and toTime as arguments, such that the resulting slice starts at intenArr's
-    maximum value and ends at toTime.
+    Applies sliceByTime and sliceFromMaxToEnd (in this order) to the input
+    arrays with fromTime and toTime as arguments, such that the resulting slice
+    starts at intenArr's maximum value and ends at toTime.
     """
 
     # }}}
@@ -122,8 +125,8 @@ def minMaxNormalize(array: Array) -> np.ndarray:
 
 def stripArr(timeArr: Array, arr: Array) -> ArrayTuple:
     # {{{
-    """Ridiculous workaround for mp4 files. Simply removes the trailing zeros from
-    timeArr and the corresponding arr elements."""
+    """Ridiculous workaround for mp4 files. Simply removes the trailing zeros
+    from timeArr and the corresponding arr elements."""
 
     timeArr = np.trim_zeros(timeArr, trim="b")
     arr = arr[: len(timeArr)]
@@ -136,8 +139,8 @@ def stripArr(timeArr: Array, arr: Array) -> ArrayTuple:
 def subtractMinimum(arr: Array) -> Array:
     # {{{
     """
-    Subtracts the array's elements by the array's minimum value. What else did you
-    expect?
+    Subtracts the array's elements by the array's minimum value. What else did
+    you expect?
     """
 
     return arr - arr.min()
@@ -149,19 +152,22 @@ def subtractMinimum(arr: Array) -> Array:
 # You should look into mypy generics to avoid the value: Any here
 def findValueIndex(arr: Array, value: Any) -> int:
     # {{{
-    """Returns the index of the first element in arr which is greater than value."""
+    """Returns the index of the first element in arr which is greater than
+    value."""
     try:
         index = int(np.where(arr >= float(value))[0][0])
         valueRatio = abs(arr[index] / value)
         if valueRatio > 1.5:
             warn(
-                f"The array's closest value greater than {value} is {arr[index]}, "
-                f"which is {100*valueRatio:.0f}% the specified value. "
-                "This may not be what you want."
+                f"The array's closest value greater than {value} is "
+                f"{arr[index]},  which is {100*valueRatio:.0f}% the "
+                "specified value. This may not be what you want."
             )
         return int(np.where(arr >= float(value))[0][0])
     except IndexError as err:
-        raise IndexError(f"No value in arr is greater or equal than {value}") from err
+        raise IndexError(
+            f"No value in arr is greater or equal than {value}"
+        ) from err
 
 
 # }}}

@@ -1,19 +1,17 @@
 """
 Frame manipulation functions (pyCRT.frameOperations)
 
-A collection of small functions that that do something to frames (which are 3D numpy
-arrays that represent each channel of each pixel of an image), typically recieving a
-frame and returning another. Functionality includes cropping, calculating average
-intensity, drawing a ROI, etc,
+A collection of small functions that that do something to frames (which are 3D
+numpy arrays that represent each channel of each pixel of an image), typically
+recieving a frame and returning another. Functionality includes cropping,
+calculating average intensity, drawing a ROI, etc,
 """
 
 from typing import Optional, Union
 
-# pylint: disable=import-error
 import cv2 as cv  # type: ignore
 import numpy as np
 
-# pylint: disable=no-name-in-module,import-error
 from numpy.typing import NDArray
 
 # Type aliases for commonly used types
@@ -39,7 +37,8 @@ def rescaleFrame(frame: Array, rescaleFactor: Real) -> Array:
     Parameters
     ----------
     frame : 3D np.ndarray
-        A matrix with each channel's intensity for each pixel. The output of cv2.imread.
+        A matrix with each channel's intensity for each pixel. The output of
+        cv2.imread.
 
     rescaleFactor : real number
         The factor by which the frame's dimensions will be multiplied.
@@ -64,20 +63,23 @@ def drawRoi(frame: Array, roi: Optional[RoiType]) -> Array:
     Parameters
     ----------
     frame : 3D np.ndarray
-        A matrix with each channel's intensity for each pixel. The output of cv2.imread.
+        A matrix with each channel's intensity for each pixel. The output of
+        cv2.imread.
 
     roi : tuple of 4 ints, str or None
-        The ROI. It can be a tuple of 4 ints, in which case the first two are the x and
-        y coordinates of the rectangle's top-left corner, and the other two are the
-        lengths of its sides. If not a tuple, it'll just assume the ROI hasn't been
-        specified yet or is supposed to be the entire frame, in which case the original
-        frame will be returned unmodified.
+        The ROI. It can be a tuple of 4 ints, in which case the first two are
+        the x and y coordinates of the rectangle's top-left corner, and the
+        other two are the lengths of its sides. If not a tuple, it'll just
+        assume the ROI hasn't been specified yet or is supposed to be the
+        entire frame, in which case the original frame will be returned
+        unmodified.
 
     Returns
     -------
     frameWithRoi : 3D np.ndarray
-        The original frame passed to this function, either unmodified or with the sides
-        of a red rectangle drawn on the coordinates specified by the roi tuple.
+        The original frame passed to this function, either unmodified or with
+        the sides of a red rectangle drawn on the coordinates specified by the
+        roi tuple.
     """
 
     if isinstance(roi, tuple):
@@ -98,21 +100,23 @@ def cropFrame(frame: Array, roi: Optional[RoiType]) -> Array:
     Parameters
     ----------
     frame : 3D np.ndarray
-        A matrix with each channel's intensity for each pixel. The output of cv2.imread.
+        A matrix with each channel's intensity for each pixel. The output of
+        cv2.imread.
 
     roi : tuple of 4 ints, str or None
-        The ROI. It can be a tuple of 4 ints, in which case the first two are the x and
-        y coordinates of the rectangle's top-left corner, and the other two are the
-        lengths of its sides. If not a tuple, it'll just assume the ROI hasn't been
-        specified yet or is supposed to be the entire frame, in which case the original
-        frame will be returned unmodified.
+        The ROI. It can be a tuple of 4 ints, in which case the first two are
+        the x and y coordinates of the rectangle's top-left corner, and the
+        other two are the lengths of its sides. If not a tuple, it'll just
+        assume the ROI hasn't been specified yet or is supposed to be the
+        entire frame, in which case the original frame will be returned
+        unmodified.
 
     Returns
     -------
     croppedFrame : 3D np.ndarray
-        The portion of the frame inside the rectangle specified by the roi parameter.
-        This array's dimensions will be the last two elements of the roi tuple. If roi
-        is not a tuple, it'll just return the entire frame.
+        The portion of the frame inside the rectangle specified by the roi
+        parameter. This array's dimensions will be the last two elements of the
+        roi tuple. If roi is not a tuple, it'll just return the entire frame.
     """
 
     if isinstance(roi, tuple):
@@ -132,19 +136,20 @@ def calcAvgInten(frame: Array, roi: Optional[RoiType]) -> Array:
     Parameters
     ----------
     frame : 3D np.ndarray
-        A matrix with each channel's intensity for each pixel. The output of cv2.imread.
+        A matrix with each channel's intensity for each pixel. The output of
+        cv2.imread.
 
     roi : tuple of 4 ints, str or None
-        The ROI. It can be a tuple of 4 ints, in which case the first two are the x and
-        y coordinates of the rectangle's top-left corner, and the other two are the
-        lengths of its sides. If not a tuple, the average will be computed over the
-        entire frame.
+        The ROI. It can be a tuple of 4 ints, in which case the first two are
+        the x and y coordinates of the rectangle's top-left corner, and the
+        other two are the lengths of its sides. If not a tuple, the average
+        will be computed over the entire frame.
 
     Returns
     -------
     channelsAvgInten : 3x1 np.ndarray
-        The average intensity for each channel (in the order of BGR), calcualted with
-        the pixels inside the ROI.
+        The average intensity for each channel (in the order of BGR),
+        calcualted with the pixels inside the ROI.
     """
 
     croppedFrame = cropFrame(frame, roi)

@@ -1,15 +1,15 @@
 """
 Video reading functionality (pyCRT.videoReading)
 
-This module contains everything directly related to extracting lightly processed data
-from video files or cameras, in particular obtaining the arrays with each frame's time
-within the video and the average intensities array calculated within a region of
-interest of each frame.
+This module contains everything directly related to extracting lightly
+processed data from video files or cameras, in particular obtaining the arrays
+with each frame's time within the video and the average intensities array
+calculated within a region of interest of each frame.
 
 Notes
 -----
-    This module has only been tested with wmv and mp4 files, with WMV2, and DIVX and
-    MP4V codecs respectively.
+    This module has only been tested with wmv and mp4 files, with WMV2, and
+    DIVX and MP4V codecs respectively.
 """
 
 
@@ -38,8 +38,8 @@ RoiTuple = tuple[int, int, int, int]
 # Either a RoiTuple, or "all"
 RoiType = Union[RoiTuple, str]
 
-# Tuples of two numpy arrays, typically an array of the timestamp for each frame and an
-# array of average intensities within a given ROI
+# Tuples of two numpy arrays, typically an array of the timestamp for each
+# frame and an array of average intensities within a given ROI
 ArrayTuple = tuple[Array, Array]
 
 Real = Union[float, int, np.float_, np.int_]
@@ -95,63 +95,65 @@ def readVideo(
     # {{{
     # {{{
     """
-    Extracts the time in seconds of each frame and the average pixel intensities of each
-    channel within the region of interest (ROI).
+    Extracts the time in seconds of each frame and the average pixel
+    intensities of each channel within the region of interest (ROI).
 
     Parameters
     ----------
     videoSource : int or str
         The first argument to cv2.VideoCapture. If an int, it will take the
-        corresponding detected camera as the video source. If a str, It'll take it as a
-        path in the filesystem for a video file.
+        corresponding detected camera as the video source. If a str, It'll take
+        it as a path in the filesystem for a video file.
 
     roi : Tuple[int, int, int, int] or "all"
-        The region of interest, inside which the average of each pixel will be computed.
-        This tuple must contain 4 integers: (x, y, length_x, and length_y), where x and
-        y are the coordinates of the rectangle's center. If roi == "all", then the
-        average will be computed on the entire frame. You can also select the ROI at any
-        time during the video by pressing the space bar and dragging the square around
-        the desired region.
+        The region of interest, inside which the average of each pixel will be
+        computed. This tuple must contain 4 integers: (x, y, length_x, and
+        length_y), where x and y are the coordinates of the rectangle's center.
+        If roi == "all", then the average will be computed on the entire frame.
+        You can also select the ROI at any time during the video by pressing
+        the space bar and dragging the square around the desired region.
 
     displayVideo : bool, default=True
-        Whether or not to display the video while it is being read. This must be set to
-        True if no ROI is specified, so the ROI can be manually selected by pressing the
-        spacebar during the video exhibition.
+        Whether or not to display the video while it is being read. This must
+        be set to True if no ROI is specified, so the ROI can be manually
+        selected by pressing the spacebar during the video exhibition.
 
     recordingPath : str, default=None
-        The path (with the extension!) in the filesystem wherein to save the recording.
-        If falsy, it won't record the video.
+        The path (with the extension!) in the filesystem wherein to save the
+        recording. If false, it won't record the video.
 
     rescaleFactor : real number, optional
-        Factor by which each frame will be scaled. This can help reduce the load on the
-        hardware and speed up computation. By default the video won't be scaled.
+        Factor by which each frame will be scaled. This can help reduce the
+        load on the hardware and speed up computation. By default the video
+        won't be scaled.
 
     waitKeyTime : int, optional
-        How many milliseconds to wait for user input between each frame. The default
-        value is 1, so on most machines the video will appear "sped up" relative to it
-        being played on a regular video player. See cv2.waitKey for more information.
+        How many milliseconds to wait for user input between each frame. The
+        default value is 1, so on most machines the video will appear "sped up"
+        relative to it being played on a regular video player. See cv2.waitKey
+        for more information.
 
     cameraResolution : tuple of 2 ints, default=None
         Used to optionally change the camera resolution before handing over the
         VideoCapture instance. If reading from a video file, it does nothing.
 
     codecFourcc : str, default='mp4v'
-        The fourcc identifier for the video codec to be used for the recording. Refer to
-        www.fourcc.org/codecs.php for a list of possible codes.
+        The fourcc identifier for the video codec to be used for the recording.
+        Refer to www.fourcc.org/codecs.php for a list of possible codes.
 
     recordingFps : float, default=None
-        The FPS (frames per second) for the recording, which doesn't need to correspond
-        to the FPS of the camera or the source video.
+        The FPS (frames per second) for the recording, which doesn't need to
+        correspond to the FPS of the camera or the source video.
 
     Returns
     -------
     fullTimeScdsArr : 1D np.ndarray
         Time in seconds of each frame in the video.
     channelsAvgIntensArr : 2D np.ndarray
-        Average pixel intensity inside the region of interest with respect to time. It
-        is an array with shape (len(fullTimeScdsArr), 3), wherein each element is an
-        array with the average intensity of the B, G and R (respectively) channels at
-        that instant.
+        Average pixel intensity inside the region of interest with respect to
+        time. It is an array with shape (len(fullTimeScdsArr), 3), wherein each
+        element is an array with the average intensity of the B, G and R
+        (respectively) channels at that instant.
 
     Raises
     ------
@@ -160,20 +162,21 @@ def readVideo(
     ValueError
         If roi is a string, but not "all", or isn't a tuple of 4 elements
     RuntimeError
-        If this function finished reading the video but no ROI was passed or selected.
+        If this function finished reading the video but no ROI was passed or
+        selected.
     """
     # }}}
 
     if isinstance(roi, (tuple, str)):
         if not (len(roi) == 4 or roi == "all"):
             raise ValueError(
-                "Invalid value for the ROI. The roi parameter should be either a tuple"
-                "of 4 ints or 'all' to use the entire frame."
+                "Invalid value for the ROI. The roi parameter should be "
+                "either a tuple of 4 ints or 'all' to use the entire frame."
             )
     elif roi is not None:
         raise TypeError(
-            "Invalid type for the ROI. The roi parameter should be either a tuple of 4 "
-            "ints or 'all' to use the entire frame."
+            "Invalid type for the ROI. The roi parameter should be either a "
+            "tuple of 4 ints or 'all' to use the entire frame."
         )
 
     if recordingPath:
@@ -181,8 +184,8 @@ def readVideo(
         # initialize generator
         writer.send(None)  # type: ignore
 
-    # Yup, I just assume the ROI is valid if it's a tuple of 4 elements. I'll probably
-    # have to change this later.
+    # Yup, I just assume the ROI is valid if it's a tuple of 4 elements. I'll
+    # probably have to change this later.
 
     timeScdsList: list[float] = []
     avgIntenList: list[Array] = []
@@ -234,7 +237,7 @@ def videoCapture(
     videoSource: Union[int, str],
     cameraResolution: Optional[tuple[int, int]] = None,
     cameraSettings: Optional[str] = None,
-    warningLevel = 2,
+    warningLevel=2,
 ) -> cv.VideoCapture:
     # {{{
     # {{{
@@ -245,8 +248,8 @@ def videoCapture(
     ----------
     videoSource : int or str
         The first argument to cv2.VideoCapture. If an int, it will take the
-        corresponding detected camera as the video source. If a str, It'll take it as a
-        path in the filesystem for a video file.
+        corresponding detected camera as the video source. If a str, It'll take
+        it as a path in the filesystem for a video file.
 
     cameraResolution : tuple of 2 ints, default=None
         Used to optionally change the camera resolution before handing over the
@@ -266,18 +269,19 @@ def videoCapture(
 
     Notes
     -----
-        This context manager performs no other checks other than those indicated on the
-        Raises section. This warrants mentioning because OpenCV gives the most cryptic,
-        confusing and even misleading error messages, so care must be taken.
+        This context manager performs no other checks other than those
+        indicated on the Raises section. This warrants mentioning because
+        OpenCV gives the most cryptic, confusing and even misleading error
+        messages, so care must be taken.
     """
     # }}}
 
     if isinstance(videoSource, int):
         if not checkCaptureDevice(videoSource):
             raise ValueError(
-                f"The provided capture device index ({videoSource}) is not a valid "
-                "capture device. For a list of available capture devices, use "
-                "listCaptureDevices"
+                f"The provided capture device index ({videoSource}) is not a "
+                "valid capture device. For a list of available capture"
+                " devices, use listCaptureDevices"
             )
 
         cap = CaptureDevice(videoSource, cameraSettings, warningLevel)
@@ -290,18 +294,18 @@ def videoCapture(
     elif isinstance(videoSource, str):
         if not isfile(videoSource):
             raise ValueError(
-                f"The path ({videoSource}) passed to the videoCapture context manager"
-                "is not a file."
+                f"The path ({videoSource}) passed to the videoCapture context "
+                "manager is not a file."
             )
         cap = cv.VideoCapture(videoSource)
 
     else:
         raise TypeError(
             f"Invalid type of {type(videoSource)} passed as the first argument"
-            "to videoCapture. Valid types: int (for a video capture device) and"
+            "to videoCapture. Valid types: int "
+            "(for a video capture device) and"
             "str (for a path to a video in the filesystem."
         )
-
 
     try:
         yield cap
@@ -317,8 +321,8 @@ def listCaptureDevices(checkUpTo: int = 10) -> list[int]:
     # {{{
     # {{{
     """
-    Checks the first checkUpTo indexes for cv2.VideoCapture and returns a list with all
-    the indexes that are available. See checkCaptureDevice.
+    Checks the first checkUpTo indexes for cv2.VideoCapture and returns a list
+    with all the indexes that are available. See checkCaptureDevice.
     """
     # }}}
     capDeviceList: list[int] = []
@@ -335,14 +339,14 @@ def checkCaptureDevice(capDeviceIndex: int) -> bool:
     # {{{
     # {{{
     """
-    Checks if the capture device with the provided index is available, returning True if
-    it is and False otherwise.
+    Checks if the capture device with the provided index is available,
+    returning True if it is and False otherwise.
     """
     # }}}
     if not isinstance(capDeviceIndex, int):
         raise TypeError(
-            f"Invalid value of {capDeviceIndex} for the capture device index. Valid "
-            "values are int."
+            f"Invalid value of {capDeviceIndex} for the capture device index. "
+            "Valid values are int."
         )
 
     cap = cv.VideoCapture(capDeviceIndex)
@@ -362,7 +366,8 @@ def frameReader(
     # {{{
     # {{{
     """
-    A generator for reading each frame from the VideoCapture instance, and optionally
+    A generator for reading each frame from the VideoCapture instance, and
+    optionally
     rescaling it.
 
     Parameters
@@ -372,8 +377,9 @@ def frameReader(
         pyCRT.videoReading.videoCapture
 
     rescaleFactor : int or float, default=1.0
-        Factor by which each frame will be scaled. This can help reduce the load on the
-        hardware and speed up computation. By default the video won't be scaled.
+        Factor by which each frame will be scaled. This can help reduce the
+        load on the hardware and speed up computation. By default the video
+        won't be scaled.
 
     Yields
     ------
@@ -403,22 +409,23 @@ def frameWriter(
     # {{{
     # {{{
     """
-    A generator that acts as a coroutine for recording the capture's frames. The idea is
-    that you initialize this generator with the arguments described below and send each
-    frame to be recorded with the send method.
+    A generator that acts as a coroutine for recording the capture's frames.
+    The idea is that you initialize this generator with the arguments described
+    below and send each frame to be recorded with the send method.
 
     Parameters
     ----------
     recordingPath : str, default=None
-        The path (with the extension!) in the filesystem wherein to save the recording.
+        The path (with the extension!) in the filesystem wherein to save the
+        recording.
 
     codecFourcc : str, default='mp4v'
-        The fourcc identifier for the video codec to be used for the recording. Refer to
-        www.fourcc.org/codecs.php for a list of possible codes.
+        The fourcc identifier for the video codec to be used for the recording.
+        Refer to www.fourcc.org/codecs.php for a list of possible codes.
 
     recordingFps : int, default=None
-        The FPS (frames per second) for the recording, which doesn't need to correspond
-        to the FPS of the camera or the source video.
+        The FPS (frames per second) for the recording, which doesn't need to
+        correspond to the FPS of the camera or the source video.
     """
     # }}}
 
@@ -466,7 +473,8 @@ class CaptureDevice(cv.VideoCapture):
                 self.cameraSettings = cameraSettings
             else:
                 raise TypeError(
-                    "Invalid type for cameraSettings. Valid types: str (path to a "
+                    "Invalid type for cameraSettings. Valid types: "
+                    "str (path to a "
                     "TOML settings file) or dict."
                 )
 
@@ -482,7 +490,9 @@ class CaptureDevice(cv.VideoCapture):
     # }}}
 
     @staticmethod
-    def propGetterSetterFactory(propName: str) -> tuple[GetterType, SetterType]:
+    def propGetterSetterFactory(
+        propName: str,
+    ) -> tuple[GetterType, SetterType]:
         # {{{
         propCode = ALL_PROPS[propName]
 
@@ -502,8 +512,9 @@ class CaptureDevice(cv.VideoCapture):
                         receivedValue = receivedValue == onValue
                     except KeyError:
                         self.handleWarnings(
-                            f"The {propName} property doesn't have an 'on' or 'off' "
-                            "value declared in the camera's specification file."
+                            f"The {propName} property doesn't have an 'on' or "
+                            "'off' value declared in the camera's "
+                            "specification file."
                         )
 
             return receivedValue
@@ -513,7 +524,6 @@ class CaptureDevice(cv.VideoCapture):
         def setProperty(self, value: Union[int, bool, float]):
             # {{{
             if propName in self.cameraSettings:
-
                 # pylint: disable=unidiomatic-typecheck
                 if type(value) in (int, float):
                     if not self.isValid(propName, value):
@@ -521,20 +531,23 @@ class CaptureDevice(cv.VideoCapture):
                             "The capture device doesn't support setting "
                             f"'{propName}' to {value}."
                         )
-                elif type(value) == bool:
+                elif isinstance(value, bool):
                     try:
                         onValue = self.cameraSettings[propName]["values"]["on"]
-                        offValue = self.cameraSettings[propName]["values"]["off"]
+                        offValue = self.cameraSettings[propName]["values"][
+                            "off"
+                        ]
                         value = onValue if value else offValue
                     except KeyError:
                         self.handleWarnings(
-                            f"The {propName} property doesn't have an 'on' or 'off' "
-                            "value declared in the camera's specification file."
+                            f"The {propName} property doesn't have an 'on' or "
+                            " 'off' " "value declared in the camera's"
+                            "specification file."
                         )
                 else:
                     raise TypeError(
-                        f"Invalid type ({type(value)}) for the {propName} property "
-                        "value. Valid types are int, float or bool."
+                        f"Invalid type ({type(value)}) for the {propName} "
+                        "property value. Valid types are int, float or bool."
                     )
 
             setStatus: bool = super().set(propCode, value)
@@ -593,8 +606,8 @@ class CaptureDevice(cv.VideoCapture):
 
         if not isinstance(propTable, dict):
             raise TypeError(
-                f"Invalid type for the {propName} property. Expected a dictionary "
-                "but got a {type(propTable)}"
+                f"Invalid type for the {propName} property. Expected a "
+                "dictionary but got a {type(propTable)}"
             )
 
         propValidValues = propTable["values"]
@@ -619,7 +632,8 @@ class CaptureDevice(cv.VideoCapture):
         # {{{
         if self.cameraSettings == {}:
             self.handleWarnings(
-                "The cameraSettings dict is empty; resetValues will have no effect."
+                "The cameraSettings dict is empty; resetValues will have no "
+                "effect."
             )
         for propName, table in self.cameraSettings.items():
             if propName in ALL_PROPS or propName == "frameSize":
@@ -629,4 +643,6 @@ class CaptureDevice(cv.VideoCapture):
                     setattr(self, propName, table["default"])
 
     # }}}
+
+
 # }}}

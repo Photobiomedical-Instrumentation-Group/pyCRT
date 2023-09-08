@@ -15,15 +15,14 @@ TOMLDict = dict[str, Union[list, int, dict[str, Any]]]
 
 
 def loadTOML(filePath: str) -> TOMLDict:
-
     """
     Reads a TOML config file and returns its contents as a dictionary.
 
     Parameters
     ----------
     filePath : str
-        The path for the TOML file (be it a camera settings specification file or a
-        pyCRT configuration file).
+        The path for the TOML file (be it a camera settings specification file
+        or a pyCRT configuration file).
 
     Returns
     -------
