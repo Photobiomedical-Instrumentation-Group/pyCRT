@@ -16,15 +16,7 @@ Notes
 from contextlib import contextmanager
 from os.path import isfile
 from time import sleep
-from typing import (
-    Any,
-    Callable,
-    Generator,
-    Iterator,
-    Optional,
-    Sequence,
-    Union,
-)
+from typing import Any, Generator, Iterator, Optional, Sequence, Union
 from warnings import warn
 
 import cv2 as cv
@@ -55,14 +47,10 @@ Integer = Union[int, np.int_]
 
 # Dictionary created from a TOML configuration file
 TOMLDict = dict[str, Union[list, int, dict[str, Any]]]
-
-# Types for setter and getter functions for CaptureDevice
-GetterType = Callable[[Any], Union[int, bool]]
-SetterType = Callable[[Union[int, bool]], Any]
 # }}}
 
 # Dictionaries containing openCV's capture device properties for ease of access
-NUMERIC_PROPS = {  # {{{
+NUMERIC_CODES = {  # {{{
     "width": cv.CAP_PROP_FRAME_WIDTH,
     "height": cv.CAP_PROP_FRAME_HEIGHT,
     "brightness": cv.CAP_PROP_BRIGHTNESS,
@@ -80,13 +68,16 @@ NUMERIC_PROPS = {  # {{{
     "hue": cv.CAP_PROP_HUE,
 }
 
-BOOLEAN_PROPS = {
+BOOLEAN_CODES = {
     "autoWBTemp": cv.CAP_PROP_AUTO_WB,
     "autoExposure": cv.CAP_PROP_AUTO_EXPOSURE,
     "autoFocus": cv.CAP_PROP_AUTOFOCUS,
 }
 
-ALL_PROPS = {**NUMERIC_PROPS, **BOOLEAN_PROPS}  # }}}
+ALL_CODES = {**NUMERIC_CODES, **BOOLEAN_CODES}  # }}}
+
+# Dictionary for the property name that corresponds to each openCV prop code
+ALL_PROPS = {v: k for k, v in ALL_CODES.items()}
 
 
 def readVideo(
@@ -499,86 +490,140 @@ class CaptureDevice(cv.VideoCapture):
 
     # }}}
 
-    @staticmethod
-    def propGetterSetterFactory(
-        propName: str,
-    ) -> tuple[GetterType, SetterType]:
+    def get(self, prop: Union[str, int]) -> Union[float, bool]:
         # {{{
-        propCode = ALL_PROPS[propName]
+        propCode, propName = self.propCodeAndName(prop)
 
-        def getProperty(self) -> Union[int, bool]:
-            # {{{
-            receivedValue: int = self.get(propCode)
+        receivedValue = super().get(propCode)
 
-            if receivedValue == -1:
-                self.handleWarnings(
-                    f"{str(self)} doesn't support the property '{propName}'."
-                )
+        if receivedValue == -1:
+            self.handleWarnings(
+                f"{str(self)} doesn't support the property '{propName}'."
+            )
 
-            if propName in self.cameraSettings:
-                if propName in BOOLEAN_PROPS:
+        if propName in BOOLEAN_CODES:
+            return self._getBool(prop, receivedValue)
+
+        return receivedValue
+
+    # }}}
+
+    def _getBool(
+        self, prop: Union[str, int], receivedValue: float
+    ) -> Union[float, bool]:
+        # {{{
+        _, propName = self.propCodeAndName(prop)
+
+        if propName in self.cameraSettings:
+            propTable = self.cameraSettings[propName]
+
+            if isinstance(propTable, dict):
+                propValues = propTable["values"]
+
+                if isinstance(propValues, dict):
                     try:
-                        onValue = self.cameraSettings[propName]["values"]["on"]
+                        onValue = propValues["on"]
                         receivedValue = receivedValue == onValue
                     except KeyError:
                         self.handleWarnings(
-                            f"The {propName} property doesn't have an 'on' or "
-                            "'off' value declared in the camera's "
+                            f"The {propName} property doesn't have an "
+                            "'on' or 'off' value declared in the camera's "
                             "specification file."
                         )
+            else:
+                self.handleWarnings(
+                    f"The {propName} property doesn't have an 'on' or "
+                    "'off' value declared in the camera's "
+                    "specification file."
+                )
 
-            return receivedValue
+        return receivedValue
 
-        # }}}
+    # }}}
 
-        def setProperty(self, value: Union[int, bool, float]):
-            # {{{
-            if propName in self.cameraSettings:
-                # pylint: disable=unidiomatic-typecheck
-                if type(value) in (int, float):
-                    if not self.isValid(propName, value):
-                        self.handleWarnings(
-                            "The capture device doesn't support setting "
-                            f"'{propName}' to {value}."
-                        )
-                elif isinstance(value, bool):
-                    try:
-                        onValue = self.cameraSettings[propName]["values"]["on"]
-                        offValue = self.cameraSettings[propName]["values"][
-                            "off"
-                        ]
-                        value = onValue if value else offValue
-                    except KeyError:
-                        self.handleWarnings(
-                            f"The {propName} property doesn't have an 'on' or "
-                            " 'off' "
-                            "value declared in the camera's"
-                            "specification file."
-                        )
-                else:
-                    raise TypeError(
-                        f"Invalid type ({type(value)}) for the {propName} "
-                        "property value. Valid types are int, float or bool."
-                    )
+    def set(self, prop: Union[str, int], value: Union[int, bool, float]):
+        # {{{
+        propCode, propName = self.propCodeAndName(prop)
 
-            setStatus: bool = super().set(propCode, value)
+        if propName in self.cameraSettings and isinstance(value, bool):
+            value = self._setBool(prop, value)
 
-            if not setStatus:
+        elif isinstance(value, (int, float)):
+            if not self.isValid(propName, value):
                 self.handleWarnings(
                     "The capture device doesn't support setting "
                     f"'{propName}' to {value}."
                 )
-            sleep(self.cameraSettings.get("sleepTime", 1))
+        else:
+            raise TypeError(
+                f"Invalid type ({type(value)}) for the {propName} "
+                "property value. Valid types are int, float or bool."
+            )
 
-        # }}}
+        value = float(value)
+        setStatus = super().set(propCode, value)
 
-        return (getProperty, setProperty)
+        if not setStatus:
+            self.handleWarnings(
+                "The capture device doesn't support setting "
+                f"'{propName}' to {value}."
+            )
+
+        sleepTime = self.cameraSettings.get("sleepTime", 1)
+        if not isinstance(sleepTime, (int, float)):
+            raise TypeError(
+                f"Invalid type ({type(sleepTime)}) for the sleepTime camera "
+                "setting. Valid types are float or int."
+            )
+        sleep(sleepTime)
 
     # }}}
 
-    for key in ALL_PROPS:
-        # pylint: disable=exec-used
-        exec(f"{key} = property(*propGetterSetterFactory('{key}'))")
+    def _setBool(self, prop: Union[str, int], value: bool):
+        # {{{
+        _, propName = self.propCodeAndName(prop)
+
+        propTable = self.cameraSettings[propName]
+        if isinstance(propTable, dict):
+            propValues = propTable["values"]
+            if isinstance(propValues, dict):
+                try:
+                    onValue = propValues["on"]
+                    offValue = propValues["off"]
+                    value = onValue if value else offValue
+                    return value
+                except KeyError:
+                    self.handleWarnings(
+                        f"The {propName} property doesn't have an "
+                        "'on' or 'off' "
+                        "value declared in the camera's"
+                        "specification file."
+                    )
+
+        self.handleWarnings(
+            f"The {propName} property doesn't have an 'on' or "
+            " 'off' "
+            "value declared in the camera's"
+            "specification file."
+        )
+
+        return value
+
+    # }}}
+
+    @staticmethod
+    def propCodeAndName(prop: Union[str, int]):
+        # {{{
+        if isinstance(prop, str):
+            propCode = ALL_CODES[prop]
+            propName = prop
+        else:
+            propCode = prop
+            propName = ALL_PROPS[prop]
+
+        return propCode, propName
+
+    # }}}
 
     @property
     def frameSize(self) -> tuple[int, int]:
@@ -608,7 +653,7 @@ class CaptureDevice(cv.VideoCapture):
 
     # }}}
 
-    def isValid(self, propName: str, value: int) -> bool:
+    def isValid(self, propName: str, value: Union[int, float]) -> bool:
         # {{{
         try:
             propTable = self.cameraSettings[propName]
@@ -647,7 +692,7 @@ class CaptureDevice(cv.VideoCapture):
                 "effect."
             )
         for propName, table in self.cameraSettings.items():
-            if propName in ALL_PROPS or propName == "frameSize":
+            if propName in ALL_CODES or propName == "frameSize":
                 if "initial-value" in table:
                     setattr(self, propName, table["initial-value"])
                 elif "default" in table:

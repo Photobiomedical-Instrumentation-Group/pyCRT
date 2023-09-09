@@ -5,8 +5,8 @@
 # v4l2-ctl -D -l -d <device number>. Use this command to make your own camera
 # settings specification files.
 
-# Calling this an 'HD camera" is an insult to all cameras. But this is the name v4l2
-# gave it, so...
+# Calling this an 'HD camera" is an insult to all cameras. But this is the name
+# v4l2 gave it, so...
 name = "HD camera"
 
 [resolution]

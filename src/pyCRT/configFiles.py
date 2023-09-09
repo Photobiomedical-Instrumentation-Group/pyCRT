@@ -15,6 +15,7 @@ TOMLDict = dict[str, Union[list, int, dict[str, Any]]]
 
 
 def loadTOML(filePath: str) -> TOMLDict:
+    # {{{
     """
     Reads a TOML config file and returns its contents as a dictionary.
 
@@ -35,3 +36,6 @@ def loadTOML(filePath: str) -> TOMLDict:
         tomlDict = tomli.load(arq)
 
     return tomlDict
+
+
+# }}}

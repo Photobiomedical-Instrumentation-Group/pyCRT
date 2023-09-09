@@ -123,7 +123,7 @@ def fitExponential(
             ydata=y,
             p0=p0,
             bounds=([0.0, -np.inf, -np.inf], [np.inf, 0.0, np.inf]),
-            full_output = True,
+            full_output=False,
         )
         expStdDev = covToStdDev(expCov)
         return expParams, expStdDev
@@ -179,13 +179,16 @@ def fitPolynomial(
 
     try:
         # pylint: disable=unbalanced-tuple-unpacking
-        polyParams, polyCov, = curve_fit(
+        (
+            polyParams,
+            polyCov,
+        ) = curve_fit(
             f=polynomial,
             xdata=x,
             ydata=y,
             p0=p0,
             bounds=(-np.inf, np.inf),
-            full_output = False,
+            full_output=False,
         )
         polyStdDev = covToStdDev(polyCov)
         return polyParams, polyStdDev
@@ -866,7 +869,8 @@ def calcPCRTFirstThatWorks(
     raise RuntimeError(
         f"No pCRT parameters passed the exclusion criteria of "
         f"{exclusionCriteria}, with initial guesses = {pCRTInitialGuesses}"
-        f"and critical time candidates = " f"{criticalTimeList}."
+        f"and critical time candidates = "
+        f"{criticalTimeList}."
     )
 
 
