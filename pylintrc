@@ -78,6 +78,11 @@ confidence=HIGH,
            INFERENCE_FAILURE,
            UNDEFINED
 
+# Justifications for disabling checkers
+# import-error: perma disabled. It's ALE's fault
+# too-many-*-*: may be temporarily disabled to focus on other problems
+# missing-*-docstring: may be temporarily disabled to focus on other problems
+
 disable=raw-checker-failed,
         bad-inline-option,
         locally-disabled,
