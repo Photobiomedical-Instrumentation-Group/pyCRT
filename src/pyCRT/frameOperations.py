@@ -11,7 +11,6 @@ from typing import Optional, Union
 
 import cv2 as cv
 import numpy as np
-
 from numpy.typing import NDArray
 
 # Type aliases for commonly used types
@@ -26,32 +25,6 @@ RoiTuple = tuple[int, int, int, int]
 RoiType = Union[RoiTuple, str]
 
 Real = Union[float, int, np.float_, np.int_]
-# }}}
-
-
-def rescaleFrame(frame: Array, rescaleFactor: Real) -> Array:
-    # {{{
-    """
-    Changes the frame's dimensions, using bilinear interpolation.
-
-    Parameters
-    ----------
-    frame : 3D np.ndarray
-        A matrix with each channel's intensity for each pixel. The output of
-        cv2.imread.
-
-    rescaleFactor : real number
-        The factor by which the frame's dimensions will be multiplied.
-
-    Returns
-    -------
-    rescaledFrame : 3D np.ndarray
-        The rescaled frame, using bilinear interpolation.
-    """
-    rescaleFactor = float(rescaleFactor)
-    return cv.resize(frame, (0, 0), fx=rescaleFactor, fy=rescaleFactor)
-
-
 # }}}
 
 
@@ -158,3 +131,46 @@ def calcAvgInten(frame: Array, roi: Optional[RoiType]) -> Array:
 
 
 # }}}
+
+
+# Frame funcs for readVideo
+
+
+def doNothing(frame):
+    return frame
+
+
+def rescaleFrame(frame: Array, rescaleFactor: Real) -> Array:
+    # {{{
+    """
+    Changes the frame's dimensions, using bilinear interpolation.
+
+    Parameters
+    ----------
+    frame : 3D np.ndarray
+        A matrix with each channel's intensity for each pixel. The output of
+        cv2.imread.
+
+    rescaleFactor : real number
+        The factor by which the frame's dimensions will be multiplied.
+
+    Returns
+    -------
+    rescaledFrame : 3D np.ndarray
+        The rescaled frame, using bilinear interpolation.
+    """
+    rescaleFactor = float(rescaleFactor)
+    return cv.resize(frame, (0, 0), fx=rescaleFactor, fy=rescaleFactor)
+
+
+# }}}
+
+
+def bgrToHls(frame):
+    return cv.cvtColor(frame, cv.COLOR_BGR2HLS)
+
+def bgrToLab(frame):
+    return cv.cvtColor(frame, cv.COLOR_BGR2LAB)
+
+def bgrToHsv(frame):
+    return cv.cvtColor(frame, cv.COLOR_BGR2HSV)

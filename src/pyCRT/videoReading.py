@@ -24,8 +24,9 @@ import numpy as np
 from numpy.typing import NDArray
 
 from .arrayOperations import stripArr
+from .arrayPlotting import liveAvgIntensPlot
 from .configFiles import loadTOML
-from .frameOperations import calcAvgInten, drawRoi, rescaleFrame
+from .frameOperations import calcAvgInten, doNothing, drawRoi
 
 # Type aliases for commonly used types
 # {{{
@@ -66,6 +67,7 @@ NUMERIC_CODES = {  # {{{
     "zoom": cv.CAP_PROP_ZOOM,
     "FPS": cv.CAP_PROP_FPS,
     "hue": cv.CAP_PROP_HUE,
+    "timeScds": cv.CAP_PROP_POS_MSEC,
 }
 
 BOOLEAN_CODES = {
@@ -85,7 +87,9 @@ def readVideo(
     roi: Optional[RoiType] = None,
     displayVideo: bool = True,
     recordingPath: Optional[str] = None,
-    rescaleFactor: Real = 1.0,
+    frameFunc=None,
+    camSettings=None,
+    livePlot=False,
     waitKeyTime: int = 1,
     cameraResolution: Optional[tuple[int, int]] = None,
     codecFourcc: str = "mp4v",
@@ -190,12 +194,22 @@ def readVideo(
     avgIntenList: list[Array] = []
 
     with videoCapture(videoSource, cameraResolution) as cap:
-        for frame in frameReader(cap, rescaleFactor):
+        if camSettings is not None:
+            setSettings(cap, camSettings, verbose=True)
+
+        if livePlot:
+            livePlotter = liveAvgIntensPlot()
+            livePlotter.send(None)
+
+        for frame in frameReader(cap, frameFunc):
             if roi is not None:
                 timeScds = cap.get(cv.CAP_PROP_POS_MSEC) / 1000.0
                 channelsAvgInten = calcAvgInten(frame, roi)
                 timeScdsList.append(timeScds)
                 avgIntenList.append(channelsAvgInten)
+
+                if livePlot:
+                    livePlotter.send((timeScds, channelsAvgInten))
 
             if recordingPath:
                 writer.send(frame)
@@ -285,12 +299,14 @@ def videoCapture(
                 " devices, use listCaptureDevices"
             )
 
-        cap = CaptureDevice(videoSource, cameraSettings, warningLevel)
+        cap = cv.VideoCapture(videoSource)
 
         # Set camera resolution
         if cameraResolution:
             resX, resY = cameraResolution
-            cap.frameSize = resX, resY
+            # cap.frameSize = resX, resY
+            cap.set(cv.CAP_PROP_FRAME_WIDTH, resX)
+            cap.set(cv.CAP_PROP_FRAME_HEIGHT, resY)
 
     elif isinstance(videoSource, str):
         if not isfile(videoSource):
@@ -362,7 +378,7 @@ def checkCaptureDevice(capDeviceIndex: int) -> bool:
 
 def frameReader(
     capture: cv.VideoCapture,
-    rescaleFactor: Real = 1.0,
+    frameFunc=None,
 ) -> Generator[Array, None, None]:
     # {{{
     # {{{
@@ -389,11 +405,13 @@ def frameReader(
     """
     # }}}
 
+    frameFunc = frameFunc if frameFunc is not None else doNothing
+
     while True:
         status, frame = capture.read()
 
         if status:
-            frame = rescaleFrame(frame, rescaleFactor)
+            frame = frameFunc(frame)
             yield frame
         else:
             break
@@ -444,6 +462,39 @@ def frameWriter(
     while True:
         frame = yield
         writer.write(frame)
+
+
+# }}}
+
+
+def setSettings(cap, cameraSettings, verbose=False):
+    # {{{
+    if isinstance(cameraSettings, str):
+        cameraSettings = loadTOML(cameraSettings)
+    elif not isinstance(cameraSettings, dict):
+        raise TypeError(
+            "Invalid type for cameraSettings. Valid types: "
+            "str (path to a "
+            "TOML settings file) or dict."
+        )
+
+    for propName, table in cameraSettings.items():
+        if propName == "frameSize":
+            if "initial-value" in table:
+                cap.set(ALL_CODES["width"], table["initial-value"][0])
+                cap.set(ALL_CODES["height"], table["initial-value"][1])
+            elif "default" in table:
+                cap.set(ALL_CODES["width"], table["default"][0])
+                cap.set(ALL_CODES["height"], table["default"][1])
+
+        elif propName in ALL_CODES:
+            if "initial-value" in table:
+                cap.set(ALL_CODES[propName], table["initial-value"])
+            elif "default" in table:
+                cap.set(ALL_CODES[propName], table["default"])
+
+            if verbose:
+                print(f"set {propName} to {cap.get(ALL_CODES[propName])}")
 
 
 # }}}
