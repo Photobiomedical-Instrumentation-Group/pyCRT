@@ -141,7 +141,7 @@ def plotAvgIntens(
 
 
 def liveAvgIntensPlot(
-    numPoints: int = 50, figSizePx: tuple[int, int] = (480, 300)
+    numPoints: int = 199, figSizePx: tuple[int, int] = (480, 300)
 ) -> Generator[None, ArrayTuple, None]:
     # {{{
     fig, ax = makeFigAxes(
@@ -153,13 +153,13 @@ def liveAvgIntensPlot(
     channelsAvgIntensArr = np.array([[0, 0, 0]] * numPoints)
 
     bLine = ax.plot(
-        timeScdsArr, channelsAvgIntensArr[:, 0], "b", label="Channel B"
+        timeScdsArr, channelsAvgIntensArr[:, 0], "b", label="Channel 0"
     )[0]
     gLine = ax.plot(
-        timeScdsArr, channelsAvgIntensArr[:, 1], "g", label="Channel G"
+        timeScdsArr, channelsAvgIntensArr[:, 1], "g", label="Channel 1"
     )[0]
     rLine = ax.plot(
-        timeScdsArr, channelsAvgIntensArr[:, 2], "r", label="Channel R"
+        timeScdsArr, channelsAvgIntensArr[:, 2], "r", label="Channel 2"
     )[0]
     ax.set_ylim(0, 255)
     ax.legend()
