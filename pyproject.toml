@@ -43,3 +43,9 @@ include = [
 
 [tool.hatch.version]
 path = "src/pyCRT/__about__.py"
+
+[tool.ruff]
+line-length = 79
+
+[tool.black]
+line-length = 79
