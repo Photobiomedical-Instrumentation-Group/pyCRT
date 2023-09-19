@@ -1,8 +1,9 @@
-# Camera specification file for the x230 Integrated Camera. You may copy and modify this
-# file to implement specification files for your own cameras
+# Camera specification file for the x230 Integrated Camera. You may copy and
+# modify this file to implement specification files for your own cameras
 
-# This file contains camera-specific options, according to the output of v4l2-ctl -D -l
-# -d <device number>. Use this command to make your own camera config files.
+# This file contains camera-specific options, according to the output of
+# v4l2-ctl -D -l -d <device number>. Use this command to make your own camera
+# config files.
 
 name = "Integrated Camera: Integrated C"
 
