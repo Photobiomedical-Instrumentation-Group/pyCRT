@@ -199,10 +199,11 @@ def plotPCRT(
 ) -> None:
     # {{{
     """
-    Basically a special case of curveFitting.plotFunction that specifically plots an
-    exponential function with the given parameters, and a vertical line on
-    timeScdsArr[maxDiv] (the critical time 'tc'), and sets the line's legend to be about
-    pCRT. See the documentation the aforementioned function for more information.
+    Basically a special case of curveFitting.plotFunction that specifically
+    plots an exponential function with the given parameters, and a vertical
+    line on timeScdsArr[maxDiv] (the critical time 'tc'), and sets the line's
+    legend to be about pCRT. See the documentation the aforementioned function
+    for more information.
     """
     _, ax = figAxTuple
 
@@ -246,8 +247,8 @@ def makeFigAxes(
     # {{{
     # {{{
     """
-    Creates and formats the figure and axes. To be used with plotFunction, plotPCRT and
-    plotAvgIntens.
+    Creates and formats the figure and axes. To be used with plotFunction,
+    plotPCRT and plotAvgIntens.
 
     Parameters
     ----------
@@ -258,8 +259,8 @@ def makeFigAxes(
         Self explanatory. If None, the figure will just have no title.
 
     figSizePx : tuple of int, default=(960, 600)
-        Figure dimensions in pixels. More adequate for primarily digital figures than
-        matplotlib's default of specifying everything in inches.
+        Figure dimensions in pixels. More adequate for primarily digital
+        figures than matplotlib's default of specifying everything in inches.
 
     dpi : real number, default=100
         The figure's resolution in pixels per inch.

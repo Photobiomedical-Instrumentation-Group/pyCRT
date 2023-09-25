@@ -338,9 +338,9 @@ def pCRTFromParameters(pCRTTuple: FitParametersTuple) -> tuple[float, float]:
 def calculateRelativeUncertainty(pCRTTuple: FitParametersTuple) -> np.float_:
     # {{{
     """
-    Calculates the pCRT's relative uncertainty (with a 95% confidence interval) given a
-    tuple with the optimized pCRT exponential parameters and their respective standard
-    deviations.
+    Calculates the pCRT's relative uncertainty (with a 95% confidence interval)
+    given a tuple with the optimized pCRT exponential parameters and their
+    respective standard deviations.
     """
 
     pCRTParams, pCRTStdDev = pCRTTuple
@@ -607,41 +607,42 @@ def calcPCRTBestFit(
     # {{{
     # {{{
     """
-    Fits the pCRT exponential on the f(timeScds)=avgIntens data given by timeScdsArr and
-    avgIntensArr respectively using the candidate critical times given by
-    criticalTimeList, returning the fitted parameters, their standard deviations and the
-    criticalTime that gave the lowest relative uncertainty for the 1/pCRT parameter.
+    Fits the pCRT exponential on the f(timeScds)=avgIntens data given by
+    timeScdsArr and avgIntensArr respectively using the candidate critical
+    times given by criticalTimeList, returning the fitted parameters, their
+    standard deviations and the criticalTime that gave the lowest relative
+    uncertainty for the 1/pCRT parameter.
 
     Parameters
     ----------
     timeScdsArr : np.ndarray of float
-        An array of time instants in seconds. Typically corresponding to the timestamp
-        of each frame in a video recording.
+        An array of time instants in seconds. Typically corresponding to the
+        timestamp of each frame in a video recording.
 
     avgIntensArr : np.ndarray of float
-        The array of average intensities for a given channel inside the region of
-        interest (ROI), with respect to timeScdsArr.
+        The array of average intensities for a given channel inside the region
+        of interest (ROI), with respect to timeScdsArr.
 
     criticalTimeList : iterable of float
-        An iterable of candidate critical times. curveFitting.fitPCRT will be called
-        with each criticalTime.
+        An iterable of candidate critical times. curveFitting.fitPCRT will be
+        called with each criticalTime.
 
     pCRTInitialGuesses : sequence of float or None, default=None
-        The initial guesses for the rRCT exponential fitting. If None, p0=[1.0, -0.3,
-        0.0] will be used by default (see curveFitting.fitPCRT and
+        The initial guesses for the rRCT exponential fitting. If None, p0=[1.0,
+        -0.3, 0.0] will be used by default (see curveFitting.fitPCRT and
         curveFitting.fitExponential).
 
     exclusionCriteria : float, default=np.inf
         The maximum relative uncertainty a pCRT measurement can have and not be
-        rejected. If all fits on the criticalTime candidates fail this criteria, a
-        RuntimeError will be raised.
+        rejected. If all fits on the criticalTime candidates fail this
+        criteria, a RuntimeError will be raised.
 
     Returns
     -------
     pCRTTuple : tuple of np.ndarray of float
-        The optimized parameters and their standard deviations, respectively, that gave
-        the least standard deviation for the 1/pCRT parameter of the pCRT exponential
-        function.
+        The optimized parameters and their standard deviations, respectively,
+        that gave the least standard deviation for the 1/pCRT parameter of the
+        pCRT exponential function.
 
     criticalTime : float
         The critical time associated with the aforementioned parameters.
@@ -707,33 +708,34 @@ def calcPCRTStrict(
     # {{{
     # {{{
     """
-    Fits the pCRT exponential on the f(timeScds)=avgIntens data given by timeScdsArr and
-    avgIntensArr respectively using criticalTime as the critical time, returning the
-    fitted parameters, their standard deviations and the critical time itself.
+    Fits the pCRT exponential on the f(timeScds)=avgIntens data given by
+    timeScdsArr and avgIntensArr respectively using criticalTime as the
+    critical time, returning the fitted parameters, their standard deviations
+    and the critical time itself.
 
     Parameters
     ----------
     timeScdsArr : np.ndarray of float
-        An array of time instants in seconds. Typically corresponding to the timestamp
-        of each frame in a video recording.
+        An array of time instants in seconds. Typically corresponding to the
+        timestamp of each frame in a video recording.
 
     avgIntensArr : np.ndarray of float
-        The array of average intensities for a given channel inside the region of
-        interest (ROI), with respect to timeScdsArr.
+        The array of average intensities for a given channel inside the region
+        of interest (ROI), with respect to timeScdsArr.
 
     criticalTime : float
-        The critical time. The pCRT exponential will be fitted on timeScdsArr and
-        avgIntenArr up until this value in timeScdsArr.
+        The critical time. The pCRT exponential will be fitted on timeScdsArr
+        and avgIntenArr up until this value in timeScdsArr.
 
     pCRTInitialGuesses : sequence of float or None, default=None
-        The initial guesses for the rRCT exponential fitting. If None, p0=[1.0, -0.3,
-        0.0] will be used by default (see curveFitting.fitPCRT and
+        The initial guesses for the rRCT exponential fitting. If None, p0=[1.0,
+        -0.3, 0.0] will be used by default (see curveFitting.fitPCRT and
         curveFitting.fitExponential).
 
     exclusionCriteria : float, default=np.inf
         The maximum relative uncertainty a pCRT measurement can have and not be
-        rejected. If all fits on the criticalTime candidates fail this criteria, a
-        RuntimeError will be raised.
+        rejected. If all fits on the criticalTime candidates fail this
+        criteria, a RuntimeError will be raised.
 
     Returns
     -------

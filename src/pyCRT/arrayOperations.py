@@ -94,9 +94,9 @@ def sliceFromLocalMax(
     # {{{
     # {{{
     """
-    Applies sliceByTime and sliceFromMaxToEnd (in this order) to the input arrays with
-    fromTime and toTime as arguments, such that the resulting slice starts at intenArr's
-    maximum value and ends at toTime.
+    Applies sliceByTime and sliceFromMaxToEnd (in this order) to the input
+    arrays with fromTime and toTime as arguments, such that the resulting slice
+    starts at intenArr's maximum value and ends at toTime.
     """
 
     # }}}
@@ -122,8 +122,8 @@ def minMaxNormalize(array: Array) -> np.ndarray:
 
 def stripArr(timeArr: Array, arr: Array) -> ArrayTuple:
     # {{{
-    """Ridiculous workaround for mp4 files. Simply removes the trailing zeros from
-    timeArr and the corresponding arr elements."""
+    """Ridiculous workaround for mp4 files. Simply removes the trailing zeros
+    from timeArr and the corresponding arr elements."""
 
     timeArr = np.trim_zeros(timeArr, trim="b")
     arr = arr[: len(timeArr)]
