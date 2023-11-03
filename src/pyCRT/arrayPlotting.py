@@ -91,6 +91,7 @@ def plotAvgIntens(
     # }}}
 
     _, ax = figAxTuple
+    ax.tick_params(axis='both', labelsize=16)
 
     plotOptions = kwargs.get("plotOptions", None)
     legendOptions = kwargs.get("legendOptions", None)
@@ -385,8 +386,8 @@ def makePCRTPlot(
 
     fig, ax = makeFigAxes(
         (
-            "Time since release of compression (s)",
-            "Average intensities (u.a.)",
+            "Time (s)",
+            "Normalized hemoglobin pixel value",
         ),
         "Average intensities and fitted functions",
     )
@@ -427,12 +428,13 @@ def makePCRTPlot(
         **funcOptions.get("intensities", {}),
     )
 
-    pCRT, _ = pCRTFromParameters(pCRTTuple)
+    #pCRT, _ = pCRTFromParameters(pCRTTuple)
+    pCRT, error = pCRTFromParameters(pCRTTuple)
     relativeUncertainty = calculateRelativeUncertainty(pCRTTuple)
 
     addTextToLabel(
         ax,
-        f"pCRT={pCRT:.2f}±{100*relativeUncertainty:.2f}%",
+        f"pCRT={pCRT:.2f}±{error:.2f}%",
         loc="upper right",
     )
 
