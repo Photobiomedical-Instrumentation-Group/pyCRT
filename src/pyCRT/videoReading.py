@@ -52,6 +52,7 @@ Integer = Union[int, np.int_]
 
 def readVideo(
     videoSource: Union[str, int],
+    gamma: float = 1.0,
     roi: Optional[RoiType] = None,
     displayVideo: bool = True,
     recordingPath: Optional[str] = None,
@@ -160,7 +161,7 @@ def readVideo(
         for frame in frameReader(cap, rescaleFactor):
             if roi is not None:
                 timeScds = cap.get(cv.CAP_PROP_POS_MSEC) / 1000.0
-                channelsAvgInten = calcAvgInten(frame, roi)
+                channelsAvgInten = calcAvgInten(frame, roi,gamma)
                 timeScdsList.append(timeScds)
                 avgIntenList.append(channelsAvgInten)
 

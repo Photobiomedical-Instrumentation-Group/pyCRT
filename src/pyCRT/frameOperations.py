@@ -124,7 +124,7 @@ def cropFrame(frame: Array, roi: Optional[RoiType]) -> Array:
 # }}}
 
 
-def calcAvgInten(frame: Array, roi: Optional[RoiType]) -> Array:
+def calcAvgInten(frame: Array, roi: Optional[RoiType],gamma: float) -> Array:
     # {{{
     """
     Calculates the average channel intensity on the pixels inside the ROI.
@@ -139,6 +139,21 @@ def calcAvgInten(frame: Array, roi: Optional[RoiType]) -> Array:
         y coordinates of the rectangle's top-left corner, and the other two are the
         lengths of its sides. If not a tuple, the average will be computed over the
         entire frame.
+    
+    gamma : float
+        A parameter represents the gamma correction value, which is used to adjust the
+      brightness of an image. This value is obtained by comparing the color intensity values 
+      from a standard color chart (a reference using Colorimeter) with the actual RGB values 
+      in the image. The goal is to correct for non-linearities in how colors are captured or displayed, 
+      ensuring that the output image accurately represents the original scene's colors.
+
+      def gamma_fit(x, a, b, c):
+        result = (a * x) ** b + c
+             return result
+             
+    Here, x represents the input pixel values, and a, b, and c are parameters
+    derived from the fitting process. The key component is b,
+    where 1/b gives us the gamma correction value. This value is used to correct the image's brightness and contrast.
 
     Returns
     -------
@@ -149,7 +164,15 @@ def calcAvgInten(frame: Array, roi: Optional[RoiType]) -> Array:
 
     croppedFrame = cropFrame(frame, roi)
     channelsAvgInten = cv.mean(croppedFrame)[:3]
-    return channelsAvgInten
+    
+    # sem correção Gamma:
+    channelsAvgIntenArray = np.array(channelsAvgInten)
+    
+    # Correção gamma
+    channelsAvgIntenCorrigido = (channelsAvgIntenArray / 255.0) ** gamma * 255
+    
+
+    return channelsAvgIntenCorrigido
 
 
 # }}}
