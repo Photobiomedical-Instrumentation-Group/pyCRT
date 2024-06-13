@@ -1,6 +1,45 @@
 [build-system]
-requires = [
-    "setuptools>=42",
-    "wheel"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pyCRT"
+dynamic = ["version"]
+description = "Tools for measuring Capillary Refill Time using Python."
+readme = "README.md"
+license = "GPL-3.0-or-later"
+requires-python = ">=3.9"
+authors = [
+    { name = "Eduardo Lopes Dias", email = "eduardosprp@protonmail.com" },
 ]
-build-backend = "setuptools.build_meta"
+classifiers = [
+    "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "matplotlib",
+    "opencv-python",
+    "scipy",
+	"tomli",
+]
+
+[project.urls]
+"Homepage" = "https://pycrt.readthedocs.io/en/stable/"
+"Bug Tracker" = "https://github.com/Photobiomedical-Instrumentation-Group/pyCRT/issues"
+"Source" = "https://github.com/Photobiomedical-Instrumentation-Group/pyCRT"
+
+
+[tool.hatch.build.targets.wheel]
+packages = [
+    "src/pyCRT",
+]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+]
+
+
+[tool.hatch.version]
+path = "src/pyCRT/__about__.py"

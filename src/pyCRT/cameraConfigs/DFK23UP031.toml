@@ -1,0 +1,36 @@
+# Camera specification file for the DFK23UP031 camera. You may copy and modify this file
+# to implement specification files for your own cameras
+
+# This file contains camera-specific options, according to the output of
+# v4l2-ctl -D -l -d <device number>. Use this command to make your own camera
+# config files.
+
+name = "DFK 23UP031"
+
+[resolution]
+values = [
+	[640, 480],
+]
+default = [640, 480]
+value = [640, 480]
+
+# CAP_PROP_BRIGHTNESS
+[brightness]
+values.min = 0
+values.max = 4095
+values.step = 1
+default = 168
+
+# CAP_PROP_GAIN
+[gain]
+values.min = 4
+values.max = 63
+values.step = 1
+default = 4
+
+# CAP_PROP_EXPOSURE
+[exposure]
+values.min = 1
+values.max = 300000
+values.step = 1
+default = 333
