@@ -12,7 +12,6 @@ Notes
     DIVX and MP4V codecs respectively.
 """
 
-
 from contextlib import contextmanager
 from os.path import isfile
 from time import sleep
@@ -125,6 +124,7 @@ def readVideo(
         The path (with the extension!) in the filesystem wherein to save the
         recording. If false, it won't record the video.
 
+    # TODO
     rescaleFactor : real number, optional
         Factor by which each frame will be scaled. This can help reduce the
         load on the hardware and speed up computation. By default the video

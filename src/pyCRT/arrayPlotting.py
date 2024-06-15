@@ -49,7 +49,37 @@ FigAxTuple = tuple[Figure, Axes]
 # }}}
 
 # Constants
-CHANNEL_INDICES_DICT = {"b": 0, "g": 1, "r": 2}
+BGR_INDICES_DICT = {"b": 0, "g": 1, "r": 2}
+channelColors = {
+    "b": "blue",
+    "g": "green",
+    "r": "red",
+    "h": "magenta",
+    "l": "gray",
+    "s": "orange",
+    "v": "cyan",
+    "a": "y",
+}
+
+
+class ColorCounter:
+    # {{{
+    i = 0
+    channelColorsList = list(channelColors.values())
+
+    def get(self, key):
+        return channelColors[key]
+        # try:
+        #     return channelColors[key]
+        # except KeyError:
+        #     channelColors[key] = self.channelColorsList[self.i]
+        #     self.i += 1
+        #     return channelColors[key]
+
+
+# }}}
+
+colorCounter = ColorCounter()
 
 
 def plotAvgIntens(
@@ -57,6 +87,7 @@ def plotAvgIntens(
     timeScdsArr: Array,
     channelsAvgIntensArr: Array,
     channels: Optional[str] = None,
+    channelNames=BGR_INDICES_DICT,
     **kwargs: Any,
 ) -> None:
     # {{{
@@ -93,7 +124,8 @@ def plotAvgIntens(
     # }}}
 
     _, ax = figAxTuple
-    ax.tick_params(axis="both", labelsize=16)
+    # ax.tick_params(axis="both", labelsize=16)
+    # print(f"INSIDE plotAvgIntens {channelNames}")
 
     plotOptions = kwargs.get("plotOptions", None)
     legendOptions = kwargs.get("legendOptions", None)
@@ -112,8 +144,13 @@ def plotAvgIntens(
                 **plotOptions,
             )
         else:
+            channels = "".join(list(channelNames.keys()))
             plotAvgIntens(
-                figAxTuple, timeScdsArr, channelsAvgIntensArr, channels="bgr"
+                figAxTuple,
+                timeScdsArr,
+                channelsAvgIntensArr,
+                channels=channels,
+                channelNames=channelNames,
             )
     else:
         channels = channels.strip().lower()
@@ -121,16 +158,19 @@ def plotAvgIntens(
             ax.plot(
                 timeScdsArr,
                 channelsAvgIntensArr,
-                color=channels,
+                color=colorCounter.get(channels),
                 label=f"Channel {channels.upper()}",
                 **plotOptions,
             )
         else:
             for channel in channels.strip().lower():
+                print(channel)
+                print(colorCounter.get(channel))
+                print(channelNames)
                 ax.plot(
                     timeScdsArr,
-                    channelsAvgIntensArr[:, CHANNEL_INDICES_DICT[channel]],
-                    color=channel,
+                    channelsAvgIntensArr[:, channelNames[channel]],
+                    color=colorCounter.get(channel),
                     label=f"Channel {channel.upper()}",
                     **plotOptions,
                 )
@@ -328,7 +368,7 @@ def makeFigAxes(
     xlabel, ylabel = axisLabels
 
     fig, ax = plt.subplots(
-        constrained_layout=True,
+        # layout="constrained",
         dpi=dpi,
         figsize=tuple(dim / dpi for dim in figSizePx),
     )
@@ -349,8 +389,7 @@ def makeFigAxes(
 
 
 def makeAvgIntensPlot(
-    timeScdsArr: Array,
-    channelsAvgIntensArr: Array,
+    timeScdsArr: Array, channelsAvgIntensArr: Array, figSizePx=(960, 600)
 ) -> FigAxTuple:
     # {{{
 
@@ -361,8 +400,9 @@ def makeAvgIntensPlot(
     """
 
     fig, ax = makeFigAxes(
-        ("Time (s)", "Average intensities (u.a.)"),
+        ("Time (s)", "Average intensities (a.u.)"),
         "Channel average intensities",
+        figSizePx=figSizePx,
     )
 
     plotAvgIntens(
@@ -384,6 +424,7 @@ def makePCRTPlot(
     criticalTime: Optional[float] = None,
     channel: Optional[str] = None,
     funcOptions: Optional[dict[str, Any]] = None,
+    figSizePx=(960, 600),
 ) -> FigAxTuple:
     # {{{
     # {{{
@@ -442,9 +483,10 @@ def makePCRTPlot(
     fig, ax = makeFigAxes(
         (
             "Time since release of compression (s)",
-            "Average intensities (u.a.)",
+            "Average intensities (a.u.)",
         ),
         "Average intensities and fitted functions",
+        figSizePx=figSizePx,
     )
 
     if funcOptions is None:
@@ -489,11 +531,117 @@ def makePCRTPlot(
 
     addTextToLabel(
         ax,
-        f"pCRT={pCRT:.2f}±{error:.2f} {100*relativeUncertainty:.2f}%",
+        f"pCRT={pCRT:.2f}±{error:.2f} ({100*relativeUncertainty:.2f}%)",
         loc="upper right",
     )
 
     return fig, ax
+
+
+# }}}
+
+
+def makePlots(
+    avgIntensArgs,
+    pCRTArgs,
+    dpi=100,
+    figSizePx=(1200, 600),
+    orientation="vertical",
+):
+    # {{{
+
+    # TODO clean this up
+    # omg... thanks, matplotlib...
+
+    if orientation == "vertical":
+        fig, (channelsAx, pCRTAx) = plt.subplots(
+            ncols=1,
+            nrows=2,
+            layout="tight",
+            dpi=dpi,
+            figsize=tuple(dim / dpi for dim in figSizePx),
+        )
+
+    elif orientation == "horizontal":
+        fig, (channelsAx, pCRTAx) = plt.subplots(
+            ncols=2,
+            nrows=1,
+            layout="tight",
+            dpi=dpi,
+            figsize=tuple(dim / dpi for dim in figSizePx),
+        )
+
+    print(avgIntensArgs["channelNames"],)
+    plotAvgIntens(
+        (fig, channelsAx),
+        avgIntensArgs["timeScdsArr"],
+        avgIntensArgs["channelsAvgIntensArr"],
+        channelNames=avgIntensArgs["channelNames"],
+    )
+    channelsAx.margins(0, None)
+    channelsAx.set_title("Channel average intensities")
+    channelsAx.set_xlabel("Time (s)")
+    channelsAx.set_ylabel("Average intensities (a.u.)")
+
+    timeScdsArr = pCRTArgs["timeScdsArr"]
+    avgIntensArr = pCRTArgs["avgIntensArr"]
+    funcParamsTuples = pCRTArgs["funcParamsTuples"]
+    criticalTime = pCRTArgs.get("criticalTime", None)
+    channel = pCRTArgs.get("channel", None)
+    funcOptions = pCRTArgs.get("funcOptions", None)
+
+    if funcOptions is None:
+        funcOptions = {}
+
+    if expTuple := funcParamsTuples.get("exponential", None):
+        plotFunction(
+            (fig, pCRTAx),
+            timeScdsArr,
+            exponential,
+            expTuple[0],
+            **funcOptions.get("exponential", {}),
+        )
+    if polyTuple := funcParamsTuples.get("polynomial", None):
+        plotFunction(
+            (fig, pCRTAx),
+            timeScdsArr,
+            polynomial,
+            polyTuple[0],
+            **funcOptions.get("polynomial", {}),
+        )
+
+    pCRTTuple = funcParamsTuples["pCRT"]
+    plotPCRT(
+        (fig, pCRTAx),
+        timeScdsArr,
+        pCRTTuple[0],
+        criticalTime,
+        **funcOptions.get("pCRT", {}),
+    )
+    plotAvgIntens(
+        (fig, pCRTAx),
+        timeScdsArr,
+        avgIntensArr,
+        channel,
+        **funcOptions.get("intensities", {}),
+    )
+
+    # pCRT, _ = pCRTFromParameters(pCRTTuple)
+    pCRT, error = pCRTFromParameters(pCRTTuple)
+    relativeUncertainty = calculateRelativeUncertainty(pCRTTuple)
+
+    addTextToLabel(
+        pCRTAx,
+        f"pCRT={pCRT:.2f}±{error:.2f} ({100*relativeUncertainty:.2f}%)",
+        loc="upper right",
+    )
+
+    pCRTAx.margins(0, None)
+    pCRTAx.set_title("Average intensities and fitted functions")
+    pCRTAx.set_xlabel("Time since release of compression (s)")
+    pCRTAx.set_ylabel("Average intensities (a.u.)")
+
+    return fig, (channelsAx, pCRTAx)
 
 
 # }}}
@@ -559,3 +707,5 @@ showAvgIntensPlot, saveAvgIntensPlot = figVisualizationFunctions(
 )
 
 showPCRTPlot, savePCRTPlot = figVisualizationFunctions(makePCRTPlot)
+
+showPlots, savePlots = figVisualizationFunctions(makePlots)

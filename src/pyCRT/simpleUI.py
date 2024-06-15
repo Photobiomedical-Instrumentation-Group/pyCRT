@@ -24,10 +24,15 @@ from .arrayOperations import (
     subtractMinimum,
 )
 from .arrayPlotting import (
+    makeAvgIntensPlot,
+    makePCRTPlot,
+    makePlots,
     saveAvgIntensPlot,
     savePCRTPlot,
+    savePlots,
     showAvgIntensPlot,
     showPCRTPlot,
+    showPlots,
 )
 from .curveFitting import (
     calcPCRT,
@@ -36,7 +41,6 @@ from .curveFitting import (
     fitPolynomial,
     pCRTFromParameters,
 )
-
 from .videoReading import readVideo
 
 # Type aliases for commonly used types
@@ -71,7 +75,7 @@ RoiType = Union[RoiTuple, str]
 # }}}
 
 # Constants
-CHANNEL_INDICES_DICT = {"b": 0, "g": 1, "r": 2}
+BGR_INDICES_DICT = {"b": 0, "g": 1, "r": 2}
 
 
 class PCRT:
@@ -95,8 +99,9 @@ class PCRT:
         funcParamsTuples: Optional[dict[str, FitParametersTuple]] = None,
         initialGuesses: Optional[dict[str, ParameterSequence]] = None,
         criticalTime: Optional[float] = None,
-        exclusionCriteria: float = 0.12,
-        exclusionMethod: str = "first that works",
+        exclusionCriteria: float = np.inf,
+        exclusionMethod: str = "best fit",
+        channelNames=BGR_INDICES_DICT,
     ):
         # {{{
         # {{{
@@ -184,6 +189,7 @@ class PCRT:
         self.fullTimeScdsArr = fullTimeScdsArr
         self.channelsAvgIntensArr = channelsAvgIntensArr
         self.channel = channel.strip().lower()
+        self.channelNames = channelNames
         self.setSlice(fromTime, toTime, sliceMethod)
 
         if initialGuesses is None:
@@ -234,7 +240,9 @@ class PCRT:
         videoPath: str,
         roi: Optional[RoiType] = None,
         displayVideo: bool = True,
-        rescaleFactor: Real = 1.0,
+        frameFunc=None,
+        livePlot=False,
+        camSettings=None,
         waitKeyTime: int = 1,
         **kwargs: Any,
     ) -> PCRT:
@@ -262,6 +270,7 @@ class PCRT:
             manually selected by pressing the spacebar during the video
             exhibition.
 
+        # TODO
         rescaleFactor : real number, optional
             Factor by which each frame will be scaled. This can help reduce the
             load on the hardware and speed up computation. By default the video
@@ -296,7 +305,9 @@ class PCRT:
             videoPath,
             roi=roi,
             displayVideo=displayVideo,
-            rescaleFactor=rescaleFactor,
+            frameFunc=frameFunc,
+            camSettings=camSettings,
+            livePlot=livePlot,
             waitKeyTime=waitKeyTime,
         )
         return cls(fullTimeScdsArr, channelsAvgIntensArr, **kwargs)
@@ -583,6 +594,16 @@ class PCRT:
 
     # }}}
 
+    def getAvgIntensPlot(self):
+        # {{{
+        fig, ax = makeAvgIntensPlot(
+            self.fullTimeScdsArr, self.channelsAvgIntensArr
+        )
+
+        return (fig, ax)
+
+    # }}}
+
     def showPCRTPlot(self) -> None:
         # {{{
         # {{{
@@ -634,6 +655,96 @@ class PCRT:
         )
 
     # }}}
+
+    def getPCRTPlot(self):
+        # {{{
+        fig, ax = makePCRTPlot(
+            self.timeScdsArr,
+            self.avgIntensArr,
+            {
+                "exponential": self.expTuple,
+                "polynomial": self.polyTuple,
+                "pCRT": self.pCRTTuple,
+            },
+            self.criticalTime,
+            self.channel,
+        )
+        return (fig, ax)
+
+    # }}}
+
+    def showPlots(self, orientation="vertical"):
+        # {{{
+        channelsArgs = {
+            "timeScdsArr": self.fullTimeScdsArr,
+            "channelsAvgIntensArr": self.channelsAvgIntensArr,
+            "channelNames": self.channelNames,
+        }
+
+        pcrtArgs = {
+            "timeScdsArr": self.timeScdsArr,
+            "avgIntensArr": self.avgIntensArr,
+            "funcParamsTuples": {
+                "exponential": self.expTuple,
+                "polynomial": self.polyTuple,
+                "pCRT": self.pCRTTuple,
+            },
+            "criticalTime": self.criticalTime,
+            "channel": self.channel,
+        }
+
+        showPlots(channelsArgs, pcrtArgs, orientation=orientation)
+
+    # }}}
+
+    def getPlots(self, orientation="vertical"):
+        # {{{
+        channelsArgs = {
+            "timeScdsArr": self.fullTimeScdsArr,
+            "channelsAvgIntensArr": self.channelsAvgIntensArr,
+        }
+
+        pcrtArgs = {
+            "timeScdsArr": self.timeScdsArr,
+            "avgIntensArr": self.avgIntensArr,
+            "funcParamsTuples": {
+                "exponential": self.expTuple,
+                "polynomial": self.polyTuple,
+                "pCRT": self.pCRTTuple,
+            },
+            "criticalTime": self.criticalTime,
+            "channel": self.channel,
+        }
+
+        fig, axes = makePlots(channelsArgs, pcrtArgs, orientation=orientation)
+
+        return (fig, axes)
+
+    # }}}
+
+    def savePlots(self, figPath, orientation="vertical"):
+        # {{{
+        channelsArgs = {
+            "timeScdsArr": self.fullTimeScdsArr,
+            "channelsAvgIntensArr": self.channelsAvgIntensArr,
+        }
+
+        pcrtArgs = {
+            "timeScdsArr": self.timeScdsArr,
+            "avgIntensArr": self.avgIntensArr,
+            "funcParamsTuples": {
+                "exponential": self.expTuple,
+                "polynomial": self.polyTuple,
+                "pCRT": self.pCRTTuple,
+            },
+            "criticalTime": self.criticalTime,
+            "channel": self.channel,
+        }
+
+        savePlots(figPath, channelsArgs, pcrtArgs, orientation=orientation)
+
+    # }}}
+
     # }}}
 
     # Several properties, mostly for convenience and organization{{{
@@ -686,7 +797,7 @@ class PCRT:
         instance attribute, measured from the start of the recording.
         """
         # }}}
-        return self.channelsAvgIntensArr[:, CHANNEL_INDICES_DICT[self.channel]]
+        return self.channelsAvgIntensArr[:, self.channelNames[self.channel]]
 
     # }}}
 
@@ -824,7 +935,9 @@ class PCRT:
         with the pCRT and relative uncertainty.
         """
         # }}}
-        return f"{self.pCRT[0]:.2f}±{100*self.relativeUncertainty:.2f}%"
+
+        percentUncertainty = f"{100*self.relativeUncertainty:.2f}%"
+        return f"{self.pCRT[0]:.2f}±{self.pCRT[1]:.2f} ({percentUncertainty})"
 
     # }}}
 
