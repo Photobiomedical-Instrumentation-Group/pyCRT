@@ -166,11 +166,31 @@ def rescaleFrame(frame: Array, rescaleFactor: Real) -> Array:
 # }}}
 
 
-def bgrToHls(frame):
-    return cv.cvtColor(frame, cv.COLOR_BGR2HLS)
+def colorConvertFactory(to_space, from_space="bgr", to_f32bits=True):
+    # {{{
+    cvAttrName = (
+        f"COLOR_{from_space.strip().upper()}2{to_space.strip().upper()}"
+    )
+    cvAttr = getattr(cv, cvAttrName)
 
-def bgrToLab(frame):
-    return cv.cvtColor(frame, cv.COLOR_BGR2LAB)
+    if to_f32bits:
 
-def bgrToHsv(frame):
-    return cv.cvtColor(frame, cv.COLOR_BGR2HSV)
+        def convertFunc(frame):
+            frame = (frame / 255).astype(np.float32)
+            return cv.cvtColor(frame, cvAttr)
+
+    else:
+
+        def convertFunc(frame):
+            return cv.cvtColor(frame, cvAttr)
+
+    return convertFunc
+
+
+# }}}
+
+
+bgrToHls = colorConvertFactory("HLS")
+bgrToHsv = colorConvertFactory("HSV")
+bgrToLab = colorConvertFactory("LAB")
+bgrToGray = colorConvertFactory("GRAY")
