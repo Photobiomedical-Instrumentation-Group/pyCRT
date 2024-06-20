@@ -1,0 +1,18 @@
+# Camera settings file for some cheap generic webcam. You may copy and modify
+# this file to implement specification files for your own cameras
+
+# This file contains camera-specific settings, according to the output of
+# v4l2-ctl -D -l -d <device number>. Use this command to make your own camera
+# settings specification files.
+
+# Calling this an 'HD camera" is an insult to all cameras. But this is the name
+# v4l2 gave it, so...
+name = "HD camera"
+
+[resolution]
+values = [
+	[640, 480],
+	[320, 240],
+]
+default = [640, 480]
+value = [640, 480]

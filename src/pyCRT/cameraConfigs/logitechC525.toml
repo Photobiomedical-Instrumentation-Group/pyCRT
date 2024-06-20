@@ -1,0 +1,149 @@
+# Camera settings file for the Logitech C525 webcam. You may copy and modify
+# this file to implement specification files for your own cameras
+
+# This file contains camera-specific settings, according to the output of
+# v4l2-ctl -D -l -d <device number>. Use this command to make your own camera
+# settings specification files.
+
+name = "HD Webcam C525"
+
+sleepTime = 2
+
+[frameSize]
+values = [
+	[640, 480],
+	[160, 120],
+	[176, 144],
+	[320, 176],
+	[320, 240],
+	[432, 240],
+	[352, 288],
+	[544, 288],
+	[640, 360],
+	[752, 416],
+	[800, 448],
+	[864, 480],
+	[960, 544],
+	[1024, 576],
+	[800, 600],
+	[1184, 656],
+	[960, 720],
+	[1280, 720],
+	[1392, 768],
+	[1504, 832],
+	[1600, 896],
+	[1280, 960],
+	[1712, 960],
+	[1792, 1008],
+	[1920, 1080],
+]
+default = [640, 480]
+initial-value = [640, 480]
+
+# CAP_PROP_BRIGHTNESS
+[brightness]
+values.min = 0
+values.max = 255
+values.step = 1
+default = 128
+initial-value = 53
+
+# CAP_PROP_CONTRAST
+[contrast]
+values.min = 0
+values.max = 255
+values.step = 1
+default = 32
+initial-value = 32
+
+# CAP_PROP_SATURATION
+[saturation]
+values.min = 0
+values.max = 255
+values.step = 1
+default = 32
+initial-value = 32
+
+# CAP_PROP_AUTO_WB
+[autoWBTemp]
+values.on = 1
+values.off = 0
+default = 1
+initial-value = 1
+
+# CAP_PROP_WB_TEMPERATURE
+[WBTemp]
+values.min = 2800
+values.max = 6900
+values.step = 1
+
+# CAP_PROP_GAIN
+[gain]
+values.min = 0
+values.max = 255
+values.step = 1
+default = 64
+initial-value = 109
+
+# CAP_PROP_SHARPNESS
+[sharpness]
+values.min = 0
+values.max = 255
+values.step = 1
+default = 22
+initial-value = 22
+
+# CAP_PROP_AUTO_EXPOSURE
+[autoExposure]
+values.on = 3
+values.off = 1
+default = 3
+initial-value = 1
+
+# CAP_PROP_EXPOSURE
+[exposure]
+values.min = 3
+values.max = 2047
+values.step = 1
+default = 166
+initial-value = 581
+
+# CAP_PROP_PAN
+[pan]
+values.min = -36000
+values.max = 36000
+values.step = 3600
+default = 0
+initial-value = 0
+
+# CAP_PROP_TILT
+[tilt]
+values.min = -36000
+values.max = 36000
+values.step = 3600
+default = 0
+initial-value = 0
+
+# CAP_PROP_AUTOFOCUS
+[autoFocus]
+values.on = 1
+values.off = 0
+default = 1
+initial-value = 0
+
+# CAP_PROP_FOCUS
+[focus]
+values.min = 0
+values.max = 255
+values.step = 5
+default = 60
+initial-value = 0
+
+
+# CAP_PROP_ZOOM
+[zoom]
+values.min = 1
+values.max = 5
+values.step = 1
+default = 1
+initial-value = 1
