@@ -156,7 +156,7 @@ def findValueIndex(arr: Array, value: Any) -> int:
     # {{{
     """
     Returns the index of the first element in arr which is greater than
-    valuea.
+    value.
     """
     try:
         index = int(np.where(arr >= float(value))[0][0])

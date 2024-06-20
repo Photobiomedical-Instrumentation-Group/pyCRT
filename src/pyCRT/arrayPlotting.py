@@ -16,6 +16,7 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import AutoLocator, AutoMinorLocator
 from numpy.typing import NDArray
 
+from .arrayOperations import minMaxNormalize
 from .curveFitting import (
     calculateRelativeUncertainty,
     exponential,
@@ -88,6 +89,7 @@ def plotAvgIntens(
     channelsAvgIntensArr: Array,
     channels: Optional[str] = None,
     channelNames=BGR_INDICES_DICT,
+    normIntens=False,
     **kwargs: Any,
 ) -> None:
     # {{{
@@ -124,8 +126,6 @@ def plotAvgIntens(
     # }}}
 
     _, ax = figAxTuple
-    # ax.tick_params(axis="both", labelsize=16)
-    # print(f"INSIDE plotAvgIntens {channelNames}")
 
     plotOptions = kwargs.get("plotOptions", None)
     legendOptions = kwargs.get("legendOptions", None)
@@ -136,6 +136,8 @@ def plotAvgIntens(
 
     if channels is None:
         if len(channelsAvgIntensArr.shape) == 1:  # a single channel
+            if normIntens:
+                channelsAvgIntensArr = minMaxNormalize(channelsAvgIntensArr)
             ax.plot(
                 timeScdsArr,
                 channelsAvgIntensArr,
@@ -151,25 +153,31 @@ def plotAvgIntens(
                 channelsAvgIntensArr,
                 channels=channels,
                 channelNames=channelNames,
+                normIntens=normIntens,
             )
     else:
         channels = channels.strip().lower()
         if len(channels) == 1:
+            channelIntens = channelsAvgIntensArr
+            if normIntens:
+                channelIntens = minMaxNormalize(channelIntens)
+
             ax.plot(
                 timeScdsArr,
-                channelsAvgIntensArr,
+                channelIntens,
                 color=colorCounter.get(channels),
                 label=f"Channel {channels.upper()}",
                 **plotOptions,
             )
         else:
             for channel in channels.strip().lower():
-                print(channel)
-                print(colorCounter.get(channel))
-                print(channelNames)
+                channelIntens = channelsAvgIntensArr[:, channelNames[channel]]
+                if normIntens:
+                    channelIntens = minMaxNormalize(channelIntens)
+
                 ax.plot(
                     timeScdsArr,
-                    channelsAvgIntensArr[:, channelNames[channel]],
+                    channelIntens,
                     color=colorCounter.get(channel),
                     label=f"Channel {channel.upper()}",
                     **plotOptions,
@@ -318,6 +326,53 @@ def plotPCRT(
 # }}}
 
 
+def plotCRT9010(
+    figAxTuple,
+    timeScdsArr,
+    avgIntensArr,
+    channel,
+    crt9010Params,
+    criticalTime=None,
+):
+    # {{{
+    _, ax = figAxTuple
+
+    ax.plot(
+        timeScdsArr,
+        avgIntensArr,
+        color=channelColors[channel],
+        label=f"Channel {channel.upper()}",
+    )
+
+    if criticalTime is not None:
+        ax.axvline(criticalTime, label=f"tc={criticalTime:.3g}", c="k", ls=":")
+
+    crt9010, time90, time10, polyCoeffs = crt9010Params
+
+    if polyCoeffs is not None:
+        ntimes = len(timeScdsArr)
+        polyTimesArr = np.linspace(0, timeScdsArr.max(), 4 * ntimes)
+        polyvals = np.polyval(polyCoeffs, polyTimesArr)
+        ax.plot(
+            polyTimesArr,
+            polyvals,
+            label="Polynomial interpolation",
+            ls="--",
+        )
+
+    ax.axvline(time90, label=f"time 90%: {time90:.3g}", c="r", ls=":", lw=2)
+    ax.axvline(time10, label=f"time 10%: {time10:.3g}", c="r", ls=":", lw=2)
+    ax.legend(loc="upper right")
+    addTextToLabel(
+        ax,
+        f"CRT90-10={crt9010:.2f}",
+        loc="upper right",
+    )
+
+
+# }}}
+
+
 def addTextToLabel(ax: Axes, text: str, **kwargs: Any) -> None:
     # {{{
     """Adds some text to the axes' legend and redraws the legend."""
@@ -368,7 +423,7 @@ def makeFigAxes(
     xlabel, ylabel = axisLabels
 
     fig, ax = plt.subplots(
-        # layout="constrained",
+        layout="tight",
         dpi=dpi,
         figsize=tuple(dim / dpi for dim in figSizePx),
     )
@@ -389,7 +444,11 @@ def makeFigAxes(
 
 
 def makeAvgIntensPlot(
-    timeScdsArr: Array, channelsAvgIntensArr: Array, figSizePx=(960, 600)
+    timeScdsArr: Array,
+    channelsAvgIntensArr: Array,
+    figSizePx=(960, 600),
+    channelNames=BGR_INDICES_DICT,
+    normIntens=False,
 ) -> FigAxTuple:
     # {{{
 
@@ -409,6 +468,38 @@ def makeAvgIntensPlot(
         (fig, ax),
         timeScdsArr,
         channelsAvgIntensArr,
+        channelNames=channelNames,
+        normIntens=normIntens,
+    )
+
+    return fig, ax
+
+
+# }}}
+
+
+def makeCRT9010Plot(
+    timeScdsArr,
+    avgIntensArr,
+    channel,
+    crt9010Params,
+    criticalTime=None,
+    figSizePx=(960, 600),
+):
+    # {{{
+    fig, ax = makeFigAxes(
+        ("Time (s)", "Average intensities (a.u.)"),
+        "CRT 90-10 calculation",
+        figSizePx=figSizePx,
+    )
+
+    plotCRT9010(
+        (fig, ax),
+        timeScdsArr,
+        avgIntensArr,
+        channel=channel,
+        crt9010Params=crt9010Params,
+        criticalTime=criticalTime,
     )
 
     return fig, ax
@@ -571,12 +662,12 @@ def makePlots(
             figsize=tuple(dim / dpi for dim in figSizePx),
         )
 
-    print(avgIntensArgs["channelNames"],)
     plotAvgIntens(
         (fig, channelsAx),
         avgIntensArgs["timeScdsArr"],
         avgIntensArgs["channelsAvgIntensArr"],
         channelNames=avgIntensArgs["channelNames"],
+        normIntens=avgIntensArgs["normIntens"],
     )
     channelsAx.margins(0, None)
     channelsAx.set_title("Channel average intensities")
@@ -709,3 +800,5 @@ showAvgIntensPlot, saveAvgIntensPlot = figVisualizationFunctions(
 showPCRTPlot, savePCRTPlot = figVisualizationFunctions(makePCRTPlot)
 
 showPlots, savePlots = figVisualizationFunctions(makePlots)
+
+showCRT9010Plot, saveCRT9010Plot = figVisualizationFunctions(makeCRT9010Plot)

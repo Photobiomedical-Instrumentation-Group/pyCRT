@@ -33,8 +33,10 @@ from .arrayPlotting import (
     showAvgIntensPlot,
     showPCRTPlot,
     showPlots,
+    showCRT9010Plot,
 )
 from .curveFitting import (
+    calcCRT9010,
     calcPCRT,
     calculateRelativeUncertainty,
     fitExponential,
@@ -232,6 +234,8 @@ class PCRT:
                 exclusionCriteria,
             )
 
+        self.calcCRT9010()
+
     # }}}
 
     @classmethod
@@ -421,6 +425,16 @@ class PCRT:
         # }}}
 
         archive = np.load(filePath)
+        # This has to be done just because dictionaries cannot be saved with
+        # pickle=false
+        try:
+            channelNames = archive["channelNames"]
+        except KeyError:  # old archives
+            channelNames = "b_g_r"
+        channelNames = str(channelNames)
+        channelNames = {
+            key: i for i, key in enumerate(channelNames.split("_"))
+        }
 
         return cls(
             fullTimeScdsArr=archive["fullTimeScdsArr"],
@@ -435,6 +449,7 @@ class PCRT:
             },
             criticalTime=float(archive["criticalTime"]),
             sliceMethod="from local max",
+            channelNames=channelNames,
         )
         # }}}}}}
 
@@ -460,6 +475,7 @@ class PCRT:
             polyTuple=np.array(self.polyTuple),
             pCRTTuple=np.array(self.pCRTTuple),
             criticalTime=self.criticalTime,
+            channelNames="_".join(self.channelNames.keys()),
         )
 
     # }}}
@@ -566,7 +582,31 @@ class PCRT:
 
     # }}}
 
-    def showAvgIntensPlot(self) -> None:
+    def calcCRT9010(
+        self,
+        fitPoly=True,
+        useCriticalTime=False,
+    ):
+        # {{{
+        if useCriticalTime:
+            self.params9010 = calcCRT9010(
+                self.timeScdsArr,
+                self.avgIntensArr,
+                fitPoly=fitPoly,
+                criticalTimeIdx=self.maxDiv,
+            )
+        else:
+            self.params9010 = calcCRT9010(
+                self.timeScdsArr,
+                self.avgIntensArr,
+                fitPoly=fitPoly,
+            )
+
+        return self.crt9010
+
+    # }}}
+
+    def showAvgIntensPlot(self, normIntens=False) -> None:
         # {{{
         # {{{
         """
@@ -575,11 +615,16 @@ class PCRT:
         arrayPlotting.makeAvgIntensPlot and arrayPlotting.showAvgIntensPlot.
         """
         # }}}
-        showAvgIntensPlot(self.fullTimeScdsArr, self.channelsAvgIntensArr)
+        showAvgIntensPlot(
+            self.fullTimeScdsArr,
+            self.channelsAvgIntensArr,
+            normIntens=normIntens,
+            channelNames=self.channelNames,
+        )
 
     # }}}
 
-    def saveAvgIntensPlot(self, figPath: str) -> None:
+    def saveAvgIntensPlot(self, figPath: str, normIntens=False) -> None:
         # {{{
         # {{{
         """
@@ -589,15 +634,22 @@ class PCRT:
         """
         # }}}
         saveAvgIntensPlot(
-            figPath, self.fullTimeScdsArr, self.channelsAvgIntensArr
+            figPath,
+            self.fullTimeScdsArr,
+            self.channelsAvgIntensArr,
+            normIntens=normIntens,
+            channelNames=self.channelNames,
         )
 
     # }}}
 
-    def getAvgIntensPlot(self):
+    def getAvgIntensPlot(self, normIntens=False):
         # {{{
         fig, ax = makeAvgIntensPlot(
-            self.fullTimeScdsArr, self.channelsAvgIntensArr
+            self.fullTimeScdsArr,
+            self.channelsAvgIntensArr,
+            normIntens=normIntens,
+            channelNames=self.channelNames,
         )
 
         return (fig, ax)
@@ -673,12 +725,68 @@ class PCRT:
 
     # }}}
 
-    def showPlots(self, orientation="vertical"):
+    def showCRT9010Plot(self, showCriticalTime=False) -> None:
+        # {{{
+        showCRT9010Plot(
+            self.timeScdsArr,
+            self.avgIntensArr,
+            self.channel,
+            self.params9010,
+            self.criticalTime if showCriticalTime else None,
+        )
+
+    # }}}
+
+    def saveCRT9010Plot(self, figPath: str) -> None:
+        # {{{
+        """
+        Saves the plot of normalized average intensities for the channel
+        specified in the initialization of the PCRT instance, in function of
+        the time since the removal of the pressure from the skin, and the
+        fitted functions on this data. This is supposed to show only the CRT
+        phenomenon. See arrayPlotting.makePCRTPlot and
+        arrayPlotting.showPCRTPlot.
+        """
+
+        savePCRTPlot(
+            figPath,
+            self.timeScdsArr,
+            self.avgIntensArr,
+            {
+                "exponential": self.expTuple,
+                "polynomial": self.polyTuple,
+                "pCRT": self.pCRTTuple,
+            },
+            self.criticalTime,
+            self.channel,
+        )
+
+    # }}}
+
+    def getCRT9010Plot(self):
+        # {{{
+        fig, ax = makePCRTPlot(
+            self.timeScdsArr,
+            self.avgIntensArr,
+            {
+                "exponential": self.expTuple,
+                "polynomial": self.polyTuple,
+                "pCRT": self.pCRTTuple,
+            },
+            self.criticalTime,
+            self.channel,
+        )
+        return (fig, ax)
+
+    # }}}
+
+    def showPlots(self, normIntens=False, orientation="vertical"):
         # {{{
         channelsArgs = {
             "timeScdsArr": self.fullTimeScdsArr,
             "channelsAvgIntensArr": self.channelsAvgIntensArr,
             "channelNames": self.channelNames,
+            "normIntens": normIntens,
         }
 
         pcrtArgs = {
@@ -697,11 +805,13 @@ class PCRT:
 
     # }}}
 
-    def getPlots(self, orientation="vertical"):
+    def getPlots(self, normIntens=False, orientation="vertical"):
         # {{{
         channelsArgs = {
             "timeScdsArr": self.fullTimeScdsArr,
             "channelsAvgIntensArr": self.channelsAvgIntensArr,
+            "channelNames": self.channelNames,
+            "normIntens": normIntens,
         }
 
         pcrtArgs = {
@@ -722,11 +832,13 @@ class PCRT:
 
     # }}}
 
-    def savePlots(self, figPath, orientation="vertical"):
+    def savePlots(self, figPath, normIntens=False, orientation="vertical"):
         # {{{
         channelsArgs = {
             "timeScdsArr": self.fullTimeScdsArr,
             "channelsAvgIntensArr": self.channelsAvgIntensArr,
+            "channelNames": self.channelNames,
+            "normIntens": normIntens,
         }
 
         pcrtArgs = {
@@ -924,6 +1036,10 @@ class PCRT:
         return calculateRelativeUncertainty(self.pCRTTuple)
 
     # }}}
+
+    @property
+    def crt9010(self):
+        return self.params9010[0]
     # }}}
 
     # Magic methods{{{

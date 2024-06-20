@@ -6,11 +6,10 @@ average intensities array and the frame times array, namely fitting a
 polynomial and two exponential curves on the data.
 """
 
-from typing import Iterable, Optional, Sequence, Tuple, Union, overload
+from typing import Iterable, Optional, Sequence, Tuple, Union
 from warnings import filterwarnings
 
 import numpy as np
-
 from numpy.typing import NDArray
 from scipy.optimize import OptimizeWarning, curve_fit
 from scipy.signal import find_peaks
@@ -364,16 +363,16 @@ def calculateRelativeUncertainty(pCRTTuple: FitParametersTuple) -> np.float_:
 # }}}
 
 
-@overload
-def findMaxDivergencePeaks(x: Array, y: Array) -> list[int]:
-    ...
+# @overload
+# def findMaxDivergencePeaks(x: Array, y: Array) -> list[int]:
+#     ...
 
 
-@overload
-def findMaxDivergencePeaks(
-    x: Array, expTuple: FitParametersTuple, polyTuple: FitParametersTuple
-) -> list[int]:
-    ...
+# @overload
+# def findMaxDivergencePeaks(
+#     x: Array, expTuple: FitParametersTuple, polyTuple: FitParametersTuple
+# ) -> list[int]:
+#     ...
 
 
 def findMaxDivergencePeaks(
@@ -872,6 +871,39 @@ def calcPCRTFirstThatWorks(
         f"and critical time candidates = "
         f"{criticalTimeList}."
     )
+
+
+# }}}
+
+
+def calcCRT9010(
+    timeScdsArr,
+    avgIntensArr,
+    fitPoly=True,
+    criticalTimeIdx=None,
+):
+    # {{{
+    timeArr = timeScdsArr[:criticalTimeIdx]
+
+    if fitPoly:
+        coeffs = np.polyfit(timeArr, avgIntensArr[:criticalTimeIdx], deg=6)
+        ntimes = len(timeArr)
+        timeArr = np.linspace(0, timeArr.max(), 4 * ntimes)
+        intensArr = np.polyval(coeffs, timeArr)
+    else:
+        intensArr = avgIntensArr[:criticalTimeIdx]
+        coeffs = None
+
+    maxIntens = np.max(intensArr)
+
+    idx90 = np.where(intensArr <= 0.9 * maxIntens)[0][0]
+    idx10 = np.where(intensArr <= 0.1 * maxIntens)[0][0]
+
+    time90 = timeArr[idx90]
+    time10 = timeArr[idx10]
+    crt9010 = time10 - time90
+
+    return crt9010, time90, time10, coeffs
 
 
 # }}}
