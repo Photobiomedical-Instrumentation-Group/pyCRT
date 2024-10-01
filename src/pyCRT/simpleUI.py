@@ -230,7 +230,7 @@ class PCRT:
     def calculate_crt_10010(self):
         self.crt_10010 = fit_crt10010(self.timeScdsArr, self.avgIntensArr)
 
-        
+
 
     # }}}
 
@@ -780,6 +780,28 @@ class PCRT:
         return pCRTFromParameters(self.pCRTTuple)
 
     # }}}
+
+
+    @property
+    def crt_10010(self) -> float:
+        """
+        Get the value of the CRT 10010 time .
+        Returns:
+        float: The value of the CRT 10010 time.
+        """
+
+        return self._crt_10010
+
+    @crt_10010.setter
+    def crt_10010(self, value: float):
+            """
+            Set the value of the CRT 10010 time .
+
+            Parameters:
+                value (float): The new value for the CRT 10010 time .
+            """
+            self._crt_10010 = value
+        
 
     @property
     def criticalTime(self) -> float:
