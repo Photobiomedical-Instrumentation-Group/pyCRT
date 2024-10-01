@@ -35,6 +35,7 @@ from .curveFitting import (
     fitExponential,
     fitPolynomial,
     pCRTFromParameters,
+    fit_crt10010exp,
     fit_crt10010,
     fit_CRT9010,
 )
@@ -184,7 +185,9 @@ class PCRT:
         # }}}
         self._crt_10010 = None
         self._crt_9010 = None
-        #self._crt_10010exp = None
+        self._crt_10010exp = None
+        self.incer_10010exp = None
+        self.k_10 = None
         self.fullTimeScdsArr = fullTimeScdsArr
         self.channelsAvgIntensArr = channelsAvgIntensArr
         self.channel = channel.strip().lower()
@@ -234,7 +237,10 @@ class PCRT:
         self.crt_10010 = fit_crt10010(self.timeScdsArr, self.avgIntensArr)
 
     def calculate_crt_9010(self):
-        self.crt_9010 = fit_CRT9010(self.timeScdsArr, self.avgIntensArr)
+        self.crt_9010, self.k_10 = fit_CRT9010(self.timeScdsArr, self.avgIntensArr)
+    
+    def calculate_crt_10010exp(self):
+        self.crt_10010exp,self.incer_10010exp = fit_crt10010exp(self.timeScdsArr, self.avgIntensArr,self.k_10)
 
     # }}}
 
@@ -826,6 +832,49 @@ class PCRT:
             value (float): The new value for the CRT 9010 time.
         """
         self._crt_9010 = value
+
+
+    
+    @property
+    def crt_10010exp(self) -> float:
+        """
+        Get the value of the CRT 10010 exponential time.
+
+        Returns:
+        float: The value of the CRT 10010 exponential time.
+        """
+        return self._crt_10010exp
+
+    @crt_10010exp.setter
+    def crt_10010exp(self, value: float):
+        """
+        Set the value of the CRT 10010 exponential time.
+
+        Parameters:
+            value (float): The new value for the CRT 10010 exponential .
+        """
+        self._crt_10010exp = value
+
+    # Você também pode adicionar um getter e setter para a incerteza do CRT 10010 exp, se necessário
+    @property
+    def incer_10010exp(self) -> float:
+        """
+        Get the uncertainty of the CRT 10010 exponential .
+
+        Returns:
+        float: The uncertainty of the CRT 10010 exponential .
+        """
+        return self._incer_10010exp
+
+    @incer_10010exp.setter
+    def incer_10010exp(self, value: float):
+        """
+        Set the uncertainty of the CRT 10010 exponential .
+
+        Parameters:
+            value (float): The new uncertainty value for the CRT 10010 exponential .
+        """
+        self._incer_10010exp = value
         
 
     @property

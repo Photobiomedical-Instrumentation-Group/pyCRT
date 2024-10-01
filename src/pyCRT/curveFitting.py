@@ -876,8 +876,77 @@ def calcPCRTFirstThatWorks(
 
 # }}}
 
+
+
 # {{{
-def fit_crt10010(x: Array, y: Array) -> float:
+
+
+def fit_crt10010exp(x: Array, y: Array,k_10: int) -> float:
+
+    
+    # Normalizar os dados
+    normalized_Y = (y - np.min(y)) / (np.max(y) - np.min(y))
+    normalized_Y_10 = normalized_Y[:k_10]
+    X_green_exp_10 = x[:k_10]
+
+    # Definir os parâmetros iniciais para o ajuste exponencial
+    x0_exp2 = [1, 1, 0.1]
+
+
+    # Chamar a função de ajuste exponencial para obter os parâmetros
+    pars, cov = curve_fit(exponential, x, normalized_Y_10, p0=x0_exp2)
+    rr = np.sqrt(np.diag(cov))  # Erro padrão dos parâmetros
+
+    # Ajuste exponencial para começar no ponto de intensidade igual a 1
+    f_exp = exponential(X_green_exp_10, *pars)
+
+    # Calcular CRT10010 da exponencial
+    CRT10010exp = pars[2]
+    CRT10010expincCRT = rr[2]
+
+    # Plotagem
+    plt.plot(x, normalized_Y, 'o', markersize=6, markeredgecolor='black', markerfacecolor='black', linewidth=3)
+    plt.plot(X_green_exp_10, f_exp, linestyle='-', color='red', linewidth=1.5)
+    
+    # Adicionar a linha vertical de 10% e a linha horizontal correspondente ao valor de 10%
+    if k_10:
+        Xtc10010 = x[k_10-1]
+        plt.axvline(Xtc10010, linestyle='--', color='blue', linewidth=1.5)
+        plt.axhline(0.10, linestyle='--', color='blue', linewidth=1.5)
+    else:
+        print('Erro: Não foi possível encontrar o ponto de 10% da intensidade máxima.')
+
+    # Adicionar uma linha no ponto de 100%
+    threshold_100_percent = 1
+    idx_100_percent = np.argmin(np.abs(normalized_Y - threshold_100_percent))
+    time_at_100_percent = x[idx_100_percent]
+    plt.axvline(time_at_100_percent, linestyle='--', color='blue', linewidth=1.5)
+    plt.axhline(threshold_100_percent, linestyle='--', color='blue', linewidth=1.5)
+
+    plt.ylabel('Normalized Pixel Colour Value', fontsize=15, ha='center')
+    plt.xlabel('Time (s)', fontsize=20, ha='center')
+    plt.title('CRT_{100-10}exp Method', fontsize=22)
+
+    text_position_x = np.mean(x)
+    text_position_y = 0.8
+    text_str = f'CRT_{{100-10}} exp (s) = {CRT10010exp:.2f} ± {CRT10010expincCRT:.2f}'
+    plt.text(text_position_x, text_position_y, text_str, fontsize=15, color='black', ha='center')
+
+    plt.legend(['Green Channel', 'Exponential Fit'], fontsize=15)
+    plt.show()
+
+    return CRT10010exp, CRT10010expincCRT  
+
+
+
+#}}}}
+
+
+
+
+
+# {{{
+def fit_crt10010(x: Array, y: Array,k_10_index:int) -> float:
     """
     Calculate the CRT_100-10 value, which is the time difference between the peak
     intensity and the time when the intensity reaches 10% of the peak value after
@@ -921,9 +990,6 @@ def fit_crt10010(x: Array, y: Array) -> float:
     # Calculate the threshold value (10% of the maximum)
     threshold_val = 0.10 * max_val
 
-    # Find the index where the filtered signal is approximately at the threshold value
-    k_10_index = np.where(np.abs(filtered_y - threshold_val) < 0.05)[0][0]
-
     # Calculate the CRT_100-10 time difference
     crt_10010 = x[k_10_index] - x[k_100]
 
@@ -937,7 +1003,7 @@ def fit_crt10010(x: Array, y: Array) -> float:
     plt.xlabel('Time(s)', fontsize=20, horizontalalignment='center')
     plt.ylabel('Normalized Pixel Colour Value', fontsize=15, horizontalalignment='center')
     plt.title(r'$\mathrm{CRT_{100-10}}$', fontsize=22)
-    plt.text(np.mean(x), 0.8, r'$\mathrm{CRT_{100-10}}$ = {:.2f}'.format(crt_10010), fontsize=15, color='black', horizontalalignment='center')
+    plt.text(np.mean(x), 0.8, rf'$\mathrm{{CRT_{{100-10}}}}$ = {crt_10010:.2f}', fontsize=15, color='black', horizontalalignment='center')
     plt.legend(['Color Space', 'High-order Butterworth Filter'], fontsize=15)
     plt.show()
 
@@ -981,7 +1047,6 @@ def fit_CRT9010(x: np.ndarray, y: np.ndarray) -> float:
 
     # Find the maximum value and its index in the filtered signal
     max_val = np.max(filtered_y)
-    k_max = np.argmax(filtered_y)
 
     # Calculate the threshold values (10% and 90% of the maximum)
     threshold_val_10 = 0.10 * max_val
@@ -1008,11 +1073,11 @@ def fit_CRT9010(x: np.ndarray, y: np.ndarray) -> float:
     plt.xlabel('Time(s)', fontsize=20, horizontalalignment='center')
     plt.ylabel('Normalized Pixel Colour Value', fontsize=15, horizontalalignment='center')
     plt.title(r'$\mathrm{CRT_{90-10}}$', fontsize=22)
-    plt.text(np.mean(x), 0.8, r'$\mathrm{CRT_{90-10}}$ = {:.2f}'.format(crt_9010), fontsize=15, color='black', horizontalalignment='center')
+    plt.text(np.mean(x), 0.8, rf'$\mathrm{{CRT_{{90-10}}}}$ = {crt_9010:.2f}', fontsize=15, color='black', horizontalalignment='center')
     plt.legend(['Color Space', 'High-order Butterworth Filter'], fontsize=15)
     plt.show()
 
-    return crt_9010
+    return crt_9010,k_10_index
 
 
 
