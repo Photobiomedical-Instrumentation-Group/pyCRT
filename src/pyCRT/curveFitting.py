@@ -8,12 +8,12 @@ polynomial and two exponential curves on the data.
 
 from typing import Iterable, Optional, Sequence, Tuple, Union, overload
 from warnings import filterwarnings
-
+import matplotlib.pyplot as plt
 import numpy as np
 
 from numpy.typing import NDArray
 from scipy.optimize import OptimizeWarning, curve_fit
-from scipy.signal import find_peaks
+from scipy.signal import find_peaks,butter, filtfilt
 
 from .arrayOperations import findValueIndex
 
@@ -875,3 +875,75 @@ def calcPCRTFirstThatWorks(
 
 
 # }}}
+
+# {{{
+def fit_crt10010(x: Array, y: Array) -> float:
+    """
+    Calculate the CRT_100-10 value, which is the time difference between the peak
+    intensity and the time when the intensity reaches 10% of the peak value after
+    applying a high-order Butterworth filter to smooth the signal.
+
+    Parameters
+    ----------
+    x : np.ndarray
+        Array of time points corresponding to the data points in `y`.
+    y : np.ndarray
+        Array of intensity values to be analyzed.
+
+    Returns
+    -------
+    crt_10010 : float
+        The calculated CRT_100-10 value in seconds.
+
+    Raises
+    ------
+    ValueError
+        If the index of the maximum value in the filtered signal is not found or
+        exceeds the length of the `x` array.
+    """
+    # Normalize the data
+    normalized_y = (y - np.min(y)) / (np.max(y) - np.min(y))
+
+    # Apply a high-order Butterworth filter to smooth the signal
+    order = 6  # Filter order
+    cutoff_freq = 0.08  # Cutoff frequency
+    b, a = butter(order, cutoff_freq, 'low')  # Low-pass Butterworth filter
+    filtered_y = filtfilt(b, a, normalized_y)  # Apply the filter to the normalized signal
+
+    # Find the maximum value and its index in the filtered signal
+    max_val = np.max(filtered_y)
+    k_100 = np.argmax(filtered_y)
+
+    # Check if k_100 is found correctly
+    if k_100 >= len(x):
+        raise ValueError('Unable to find the index of the maximum value in the filtered signal.')
+
+    # Calculate the threshold value (10% of the maximum)
+    threshold_val = 0.10 * max_val
+
+    # Find the index where the filtered signal is approximately at the threshold value
+    k_10_index = np.where(np.abs(filtered_y - threshold_val) < 0.05)[0][0]
+
+    # Calculate the CRT_100-10 time difference
+    crt_10010 = x[k_10_index] - x[k_100]
+
+    # Plot the results
+    plt.plot(x, normalized_y, 'o', markersize=6, markeredgecolor='black', markerfacecolor='black', linewidth=3)
+    plt.plot(x, filtered_y, '-', color='orange', linewidth=2)
+    plt.axvline(x=x[k_10_index], color='b', linestyle='--', linewidth=1.5, label='I(10%)')
+    plt.axhline(y=threshold_val, color='b', linestyle='--', linewidth=1.5)
+    plt.axvline(x=x[k_100], color='b', linestyle='--', linewidth=1.5, label='I(100%)')
+    plt.axhline(y=max_val, color='b', linestyle='--', linewidth=1.5)
+    plt.xlabel('Time(s)', fontsize=20, horizontalalignment='center')
+    plt.ylabel('Normalized Pixel Colour Value', fontsize=15, horizontalalignment='center')
+    plt.title('CRT_{100-10} Method', fontsize=22)
+    plt.text(np.mean(x), 0.8, f'CRT_{{100-10}} (s) = {crt_10010:.2f}', fontsize=15, color='black', horizontalalignment='center')
+    plt.legend(['Color Space', 'High-order Butterworth Filter'], fontsize=15)
+    plt.show()
+
+    return crt_10010
+
+
+
+# }}}
+
