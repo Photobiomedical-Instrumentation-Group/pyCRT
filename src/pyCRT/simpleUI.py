@@ -240,7 +240,7 @@ class PCRT:
         videoPath: str,
         roi: Optional[RoiType] = None,
         displayVideo: bool = True,
-        rescaleFactor: Real = 1.0,
+        #rescaleFactor: Real = 1.0,
         waitKeyTime: int = 1,
         **kwargs: Any,
     ) -> PCRT:
@@ -302,7 +302,7 @@ class PCRT:
             videoPath,
             roi=roi,
             displayVideo=displayVideo,
-            rescaleFactor=rescaleFactor,
+            #rescaleFactor=rescaleFactor,
             waitKeyTime=waitKeyTime,
         )
         return cls(fullTimeScdsArr, channelsAvgIntensArr, **kwargs)

@@ -117,7 +117,7 @@ def fitExponential(
 
     try:
         # pylint: disable=unbalanced-tuple-unpacking
-        expParams, expCov, _, _, _ = curve_fit(
+        expParams, expCov = curve_fit(
             f=exponential,
             xdata=x,
             ydata=y,
@@ -181,7 +181,7 @@ def fitPolynomial(
         # pylint: disable=unbalanced-tuple-unpacking
         (
             polyParams,
-            polyCov, _, _, _
+            polyCov
         ) = curve_fit(
             f=polynomial,
             xdata=x,
