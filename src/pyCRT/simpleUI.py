@@ -181,7 +181,7 @@ class PCRT:
             description of the effect of these possible values).
         """
         # }}}
-
+        self._crt_10010 = None
         self.fullTimeScdsArr = fullTimeScdsArr
         self.channelsAvgIntensArr = channelsAvgIntensArr
         self.channel = channel.strip().lower()
@@ -226,6 +226,11 @@ class PCRT:
                 exclusionMethod,
                 exclusionCriteria,
             )
+    # calculate CRT100-10
+    def calculate_crt_10010(self):
+        self.crt_10010 = fit_crt10010(self.timeScdsArr, self.avgIntensArr)
+
+        
 
     # }}}
 
