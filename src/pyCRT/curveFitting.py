@@ -181,7 +181,7 @@ def fitPolynomial(
         # pylint: disable=unbalanced-tuple-unpacking
         (
             polyParams,
-            polyCov,
+            polyCov, _, _, _
         ) = curve_fit(
             f=polynomial,
             xdata=x,
