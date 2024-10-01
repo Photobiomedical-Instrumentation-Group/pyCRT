@@ -117,7 +117,7 @@ def fitExponential(
 
     try:
         # pylint: disable=unbalanced-tuple-unpacking
-        expParams, expCov = curve_fit(
+        expParams, expCov, _, _, _ = curve_fit(
             f=exponential,
             xdata=x,
             ydata=y,
