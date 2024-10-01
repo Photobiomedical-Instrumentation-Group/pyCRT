@@ -946,7 +946,7 @@ def fit_crt10010(x: Array, y: Array) -> float:
 
 
 
-def Fit_CRT9010(x: np.ndarray, y: np.ndarray) -> float:
+def fit_CRT9010(x: np.ndarray, y: np.ndarray) -> float:
     """
     Calculate the CRT_90-10 value, which is the time difference between the points
     where the intensity reaches 90% and 10% of the peak value after applying a

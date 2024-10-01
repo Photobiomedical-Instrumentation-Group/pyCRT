@@ -36,6 +36,7 @@ from .curveFitting import (
     fitPolynomial,
     pCRTFromParameters,
     fit_crt10010,
+    fit_CRT9010,
 )
 
 from .videoReading import readVideo
@@ -182,6 +183,8 @@ class PCRT:
         """
         # }}}
         self._crt_10010 = None
+        self._crt_9010 = None
+        #self._crt_10010exp = None
         self.fullTimeScdsArr = fullTimeScdsArr
         self.channelsAvgIntensArr = channelsAvgIntensArr
         self.channel = channel.strip().lower()
@@ -230,7 +233,8 @@ class PCRT:
     def calculate_crt_10010(self):
         self.crt_10010 = fit_crt10010(self.timeScdsArr, self.avgIntensArr)
 
-
+    def calculate_crt_9010(self):
+        self.crt_9010 = fit_CRT9010(self.timeScdsArr, self.avgIntensArr)
 
     # }}}
 
@@ -801,6 +805,27 @@ class PCRT:
                 value (float): The new value for the CRT 10010 time .
             """
             self._crt_10010 = value
+
+
+    @property
+    def crt_9010(self) -> float:
+        """
+        Get the value of the CRT 9010 time.
+
+        Returns:
+        float: The value of the CRT 9010 time.
+        """
+        return self._crt_9010
+
+    @crt_9010.setter
+    def crt_9010(self, value: float):
+        """
+        Set the value of the CRT 9010 time.
+
+        Parameters:
+            value (float): The new value for the CRT 9010 time.
+        """
+        self._crt_9010 = value
         
 
     @property
