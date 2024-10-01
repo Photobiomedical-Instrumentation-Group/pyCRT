@@ -35,6 +35,7 @@ from .curveFitting import (
     fitExponential,
     fitPolynomial,
     pCRTFromParameters,
+    fit_crt10010,
 )
 
 from .videoReading import readVideo
