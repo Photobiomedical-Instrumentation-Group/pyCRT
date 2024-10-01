@@ -937,7 +937,7 @@ def fit_crt10010(x: Array, y: Array) -> float:
     plt.xlabel('Time(s)', fontsize=20, horizontalalignment='center')
     plt.ylabel('Normalized Pixel Colour Value', fontsize=15, horizontalalignment='center')
     plt.title(r'$\mathrm{CRT_{100-10}}$', fontsize=22)
-    plt.text(np.mean(x), 0.8, f'CRT_{{100-10}} (s) = {crt_10010:.2f}', fontsize=15, color='black', horizontalalignment='center')
+    plt.text(np.mean(x), 0.8, r'$\mathrm{CRT_{100-10}}$ = {:.2f}'.format(crt_10010), fontsize=15, color='black', horizontalalignment='center')
     plt.legend(['Color Space', 'High-order Butterworth Filter'], fontsize=15)
     plt.show()
 
@@ -996,19 +996,19 @@ def fit_CRT9010(x: np.ndarray, y: np.ndarray) -> float:
         raise ValueError('Unable to find the indices of the threshold values in the filtered signal.')
 
     # Calculate the CRT_90-10 time difference
-    crt_9010 = x[k_90_index] - x[k_10_index]
+    crt_9010 = x[k_10_index] - x[k_90_index]
 
     # Plot the results
     plt.plot(x, normalized_y, 'o', markersize=6, markeredgecolor='black', markerfacecolor='black', linewidth=3)
     plt.plot(x, filtered_y, '-', color='orange', linewidth=2)
     plt.axvline(x=x[k_10_index], color='b', linestyle='--', linewidth=1.5, label='I(10%)')
     plt.axhline(y=threshold_val_10, color='b', linestyle='--', linewidth=1.5)
-    plt.axvline(x=x[k_90_index], color='r', linestyle='--', linewidth=1.5, label='I(90%)')
-    plt.axhline(y=threshold_val_90, color='r', linestyle='--', linewidth=1.5)
+    plt.axvline(x=x[k_90_index], color='b', linestyle='--', linewidth=1.5, label='I(90%)')
+    plt.axhline(y=threshold_val_90, color='b', linestyle='--', linewidth=1.5)
     plt.xlabel('Time(s)', fontsize=20, horizontalalignment='center')
     plt.ylabel('Normalized Pixel Colour Value', fontsize=15, horizontalalignment='center')
     plt.title(r'$\mathrm{CRT_{90-10}}$', fontsize=22)
-    plt.text(np.mean(x), 0.8, f'CRT_{{90-10}} (s) = {crt_9010:.2f}', fontsize=15, color='black', horizontalalignment='center')
+    plt.text(np.mean(x), 0.8, r'$\mathrm{CRT_{90-10}}$ = {:.2f}'.format(crt_9010), fontsize=15, color='black', horizontalalignment='center')
     plt.legend(['Color Space', 'High-order Butterworth Filter'], fontsize=15)
     plt.show()
 
