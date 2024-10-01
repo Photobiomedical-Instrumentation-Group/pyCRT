@@ -186,7 +186,7 @@ class PCRT:
         self._crt_10010 = None
         self._crt_9010 = None
         self._crt_10010exp = None
-        self.incer_10010exp = None
+        self._incer_10010exp = None
         self.k_10 = None
         self.fullTimeScdsArr = fullTimeScdsArr
         self.channelsAvgIntensArr = channelsAvgIntensArr
@@ -232,15 +232,27 @@ class PCRT:
                 exclusionMethod,
                 exclusionCriteria,
             )
+    
+    def calculate_crt_9010(self):
+        try:
+            self.crt_9010, self.k_10 = fit_CRT9010(self.timeScdsArr, self.avgIntensArr)
+        except Exception as e:
+            print(f"Erro durante o cálculo do CRT 9010: {e}")
+            self.crt_9010 = None
+            self.k_10 = None
+
+        # Verifique se a função retornou valores válidos
+        if self.crt_9010 is None or self.k_10 is None:
+            print("Erro: A função fit_CRT9010 retornou None.")
+
     # calculate CRT100-10
     def calculate_crt_10010(self):
-        self.crt_10010 = fit_crt10010(self.timeScdsArr, self.avgIntensArr)
+        self.crt_10010 = fit_crt10010(self.timeScdsArr, self.avgIntensArr,self.k_10)
 
-    def calculate_crt_9010(self):
-        self.crt_9010, self.k_10 = fit_CRT9010(self.timeScdsArr, self.avgIntensArr)
     
     def calculate_crt_10010exp(self):
-        self.crt_10010exp,self.incer_10010exp = fit_crt10010exp(self.timeScdsArr, self.avgIntensArr,self.k_10)
+        self.crt_10010exp = fit_crt10010exp(self.timeScdsArr, self.avgIntensArr, self.k_10)
+        
 
     # }}}
 

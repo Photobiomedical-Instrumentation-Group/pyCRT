@@ -881,42 +881,41 @@ def calcPCRTFirstThatWorks(
 # {{{
 
 
-def fit_crt10010exp(x: Array, y: Array,k_10: int) -> float:
-
-    
+def fit_crt10010exp(x: np.ndarray, y: np.ndarray, k_10: int) -> float:
     # Normalizar os dados
     normalized_Y = (y - np.min(y)) / (np.max(y) - np.min(y))
     normalized_Y_10 = normalized_Y[:k_10]
-    X_green_exp_10 = x[:k_10]
+    x_exponencial = x[:k_10]
 
     # Definir os parâmetros iniciais para o ajuste exponencial
-    x0_exp2 = [1, 1, 0.1]
+    x0_exp2 = [1, -0.1, 0.1]
 
-
-    # Chamar a função de ajuste exponencial para obter os parâmetros
-    pars, cov = curve_fit(exponential, x, normalized_Y_10, p0=x0_exp2)
+    pars, cov = curve_fit(exponential, x_exponencial, normalized_Y_10, p0=x0_exp2, maxfev=10000)
     rr = np.sqrt(np.diag(cov))  # Erro padrão dos parâmetros
 
-    # Ajuste exponencial para começar no ponto de intensidade igual a 1
-    f_exp = exponential(X_green_exp_10, *pars)
 
-    # Calcular CRT10010 da exponencial
-    CRT10010exp = pars[2]
-    CRT10010expincCRT = rr[2]
+    f_exp = exponential(x_exponencial, *pars)
 
-    # Plotagem
+    inverseCRT10010: float = pars[1]
+    inverseCRTStdDev10010: float = rr[1]
+
+    CRT10010exp = -1 / inverseCRT10010
+    Uncertainty_CRT10010 = -2 * CRT10010exp * (inverseCRTStdDev10010 / inverseCRT10010)
+
+   
+        # Plotagem
     plt.plot(x, normalized_Y, 'o', markersize=6, markeredgecolor='black', markerfacecolor='black', linewidth=3)
-    plt.plot(X_green_exp_10, f_exp, linestyle='-', color='red', linewidth=1.5)
-    
-    # Adicionar a linha vertical de 10% e a linha horizontal correspondente ao valor de 10%
+    plt.plot(x_exponencial, f_exp, linestyle='-', color='red', linewidth=1.5)
+        
+        # Adicionar a linha vertical de 10% e a linha horizontal correspondente ao valor de 10%
     if k_10:
         Xtc10010 = x[k_10-1]
         plt.axvline(Xtc10010, linestyle='--', color='blue', linewidth=1.5)
-        plt.axhline(0.10, linestyle='--', color='blue', linewidth=1.5)
+        plt.axhline(normalized_Y[k_10 - 1], linestyle='--', color='blue', linewidth=1.5)
     else:
         print('Erro: Não foi possível encontrar o ponto de 10% da intensidade máxima.')
 
-    # Adicionar uma linha no ponto de 100%
+        # Adicionar uma linha no ponto de 100%
     threshold_100_percent = 1
     idx_100_percent = np.argmin(np.abs(normalized_Y - threshold_100_percent))
     time_at_100_percent = x[idx_100_percent]
@@ -929,14 +928,15 @@ def fit_crt10010exp(x: Array, y: Array,k_10: int) -> float:
 
     text_position_x = np.mean(x)
     text_position_y = 0.8
-    text_str = f'CRT_{{100-10}} exp (s) = {CRT10010exp:.2f} ± {CRT10010expincCRT:.2f}'
+    text_str = f'CRT_{{100-10}} exp (s) = {CRT10010exp:.2f} ± {Uncertainty_CRT10010:.2f}'
     plt.text(text_position_x, text_position_y, text_str, fontsize=15, color='black', ha='center')
 
     plt.legend(['Green Channel', 'Exponential Fit'], fontsize=15)
     plt.show()
 
-    return CRT10010exp, CRT10010expincCRT  
-
+        
+    return CRT10010exp
+    
 
 
 #}}}}
