@@ -250,9 +250,19 @@ class PCRT:
         self.crt_10010 = fit_crt10010(self.timeScdsArr, self.avgIntensArr,self.k_10)
 
     
+    #def calculate_crt_10010exp(self):
+    #    self.crt_10010exp = fit_crt10010exp(self.timeScdsArr, self.avgIntensArr, self.k_10)
+
     def calculate_crt_10010exp(self):
-        self.crt_10010exp = fit_crt10010exp(self.timeScdsArr, self.avgIntensArr, self.k_10)
-        
+        try:
+            #print("Valores de entrada:", self.timeScdsArr, self.avgIntensArr, self.k_10)
+            self.crt_10010exp = fit_crt10010exp(self.timeScdsArr, self.avgIntensArr, self.k_10)
+            print("Resultado de fit_crt10010exp:", self.crt_10010exp)
+        except Exception as e:
+            print(f"Ocorreu uma exceção durante o cálculo de crt_10010exp: {e}")
+            self.crt_10010exp = None  # ou definir um valor padrão, se aplicável
+
+    
 
     # }}}
 
