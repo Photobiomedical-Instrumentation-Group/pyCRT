@@ -890,7 +890,14 @@ def fit_crt10010exp(x: np.ndarray, y: np.ndarray, k_10: int) -> float:
     # Definir os parâmetros iniciais para o ajuste exponencial
     x0_exp2 = [1, -0.1, 0.1]
 
-    pars, cov = curve_fit(exponential, x_exponencial, normalized_Y_10, p0=x0_exp2, maxfev=10000)
+    try:
+        pars, cov = curve_fit(exponential, x_exponencial, normalized_Y_10, p0=x0_exp2, maxfev=10000)
+    except RuntimeError as e:
+        print(f"Erro durante o ajuste exponencial: {e}")
+        return None
+
+
+    #pars, cov = curve_fit(exponential, x_exponencial, normalized_Y_10, p0=x0_exp2, maxfev=10000)
     rr = np.sqrt(np.diag(cov))  # Erro padrão dos parâmetros
 
 
