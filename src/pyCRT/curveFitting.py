@@ -901,39 +901,40 @@ def fit_crt10010exp(x: Array, y: Array,k_10:int) -> tuple[float, float]:
     CRT10010exp = -1 / inverseCRT10010
     Uncertainty_CRT10010 = -2 * CRT10010exp * (inverseCRTStdDev10010 / inverseCRT10010)
 
-   
+    """
     # Plotagem
-    plt.plot(x, normalized_Y, 'o', markersize=6, markeredgecolor='black', markerfacecolor='black', linewidth=3)
-    plt.plot(x_exponencial, f_exp, linestyle='-', color='red', linewidth=1.5)
-        
-    # Adicionar a linha vertical de 10% e a linha horizontal correspondente ao valor de 10%
-    if k_10:
-        Xtc10010 = x[k_10-1]
-        plt.axvline(Xtc10010, linestyle='--', color='blue', linewidth=1.5)
-        plt.axhline(normalized_Y[k_10 - 1], linestyle='--', color='blue', linewidth=1.5)
-    else:
-        print('Erro: Não foi possível encontrar o ponto de 10% da intensidade máxima.')
+        plt.plot(x, normalized_Y, 'o', markersize=6, markeredgecolor='black', markerfacecolor='black', linewidth=3)
+        plt.plot(x_exponencial, f_exp, linestyle='-', color='red', linewidth=1.5)
+            
+        # Adicionar a linha vertical de 10% e a linha horizontal correspondente ao valor de 10%
+        if k_10:
+            Xtc10010 = x[k_10-1]
+            plt.axvline(Xtc10010, linestyle='--', color='blue', linewidth=1.5)
+            plt.axhline(normalized_Y[k_10 - 1], linestyle='--', color='blue', linewidth=1.5)
+        else:
+            print('Erro: Não foi possível encontrar o ponto de 10% da intensidade máxima.')
 
-    # Adicionar uma linha no ponto de 100%
-    threshold_100_percent = 1
-    idx_100_percent = np.argmin(np.abs(normalized_Y - threshold_100_percent))
-    time_at_100_percent = x[idx_100_percent]
-    plt.axvline(time_at_100_percent, linestyle='--', color='blue', linewidth=1.5)
-    plt.axhline(threshold_100_percent, linestyle='--', color='blue', linewidth=1.5)
+        # Adicionar uma linha no ponto de 100%
+        threshold_100_percent = 1
+        idx_100_percent = np.argmin(np.abs(normalized_Y - threshold_100_percent))
+        time_at_100_percent = x[idx_100_percent]
+        plt.axvline(time_at_100_percent, linestyle='--', color='blue', linewidth=1.5)
+        plt.axhline(threshold_100_percent, linestyle='--', color='blue', linewidth=1.5)
 
-    plt.ylabel('Normalized Pixel Colour Value', fontsize=15, ha='center')
-    plt.xlabel('Time (s)', fontsize=20, ha='center')
-    plt.title('CRT_{100-10}exp Method', fontsize=22)
+        plt.ylabel('Normalized Pixel Colour Value', fontsize=15, ha='center')
+        plt.xlabel('Time (s)', fontsize=20, ha='center')
+        plt.title('CRT_{100-10}exp Method', fontsize=22)
 
-    text_position_x = np.mean(x)
-    text_position_y = 0.8
-    text_str = f'CRT_{{100-10}} exp (s) = {CRT10010exp:.2f} ± {Uncertainty_CRT10010:.2f}'
-    plt.text(text_position_x, text_position_y, text_str, fontsize=15, color='black', ha='center')
+        text_position_x = np.mean(x)
+        text_position_y = 0.8
+        text_str = f'CRT_{{100-10}} exp (s) = {CRT10010exp:.2f} ± {Uncertainty_CRT10010:.2f}'
+        plt.text(text_position_x, text_position_y, text_str, fontsize=15, color='black', ha='center')
 
-    plt.legend(['Green Channel', 'Exponential Fit'], fontsize=15)
-    plt.show()
+        plt.legend(['Green Channel', 'Exponential Fit'], fontsize=15)
+        plt.show()
+    """
+    
 
-        
     return CRT10010exp,Uncertainty_CRT10010
     
 
@@ -992,20 +993,23 @@ def fit_crt10010(x: Array, y: Array,k_10_index:int) -> float:
     # Calculate the CRT_100-10 time difference
     crt_10010 = x[k_10_index] - x[k_100]
 
+    """ 
     # Plot the results
-    plt.plot(x, normalized_y, 'o', markersize=6, markeredgecolor='black', markerfacecolor='black', linewidth=3)
-    plt.plot(x, filtered_y, '-', color='orange', linewidth=2)
-    plt.axvline(x=x[k_10_index], color='b', linestyle='--', linewidth=1.5, label='I(10%)')
-    plt.axhline(y=threshold_val, color='b', linestyle='--', linewidth=1.5)
-    plt.axvline(x=x[k_100], color='b', linestyle='--', linewidth=1.5, label='I(100%)')
-    plt.axhline(y=max_val, color='b', linestyle='--', linewidth=1.5)
-    plt.xlabel('Time(s)', fontsize=20, horizontalalignment='center')
-    plt.ylabel('Normalized Pixel Colour Value', fontsize=15, horizontalalignment='center')
-    plt.title(r'$\mathrm{CRT_{100-10}}$', fontsize=22)
-    plt.text(np.mean(x), 0.8, rf'$\mathrm{{CRT_{{100-10}}}}$ = {crt_10010:.2f}', fontsize=15, color='black', horizontalalignment='center')
-    plt.legend(['Color Space', 'High-order Butterworth Filter'], fontsize=15)
-    plt.show()
+        plt.plot(x, normalized_y, 'o', markersize=6, markeredgecolor='black', markerfacecolor='black', linewidth=3)
+        plt.plot(x, filtered_y, '-', color='orange', linewidth=2)
+        plt.axvline(x=x[k_10_index], color='b', linestyle='--', linewidth=1.5, label='I(10%)')
+        plt.axhline(y=threshold_val, color='b', linestyle='--', linewidth=1.5)
+        plt.axvline(x=x[k_100], color='b', linestyle='--', linewidth=1.5, label='I(100%)')
+        plt.axhline(y=max_val, color='b', linestyle='--', linewidth=1.5)
+        plt.xlabel('Time(s)', fontsize=20, horizontalalignment='center')
+        plt.ylabel('Normalized Pixel Colour Value', fontsize=15, horizontalalignment='center')
+        plt.title(r'$\mathrm{CRT_{100-10}}$', fontsize=22)
+        plt.text(np.mean(x), 0.8, rf'$\mathrm{{CRT_{{100-10}}}}$ = {crt_10010:.2f}', fontsize=15, color='black', horizontalalignment='center')
+        plt.legend(['Color Space', 'High-order Butterworth Filter'], fontsize=15)
+        plt.show()
 
+    """
+   
     return crt_10010
 
 
@@ -1061,7 +1065,7 @@ def fit_CRT9010(x: np.ndarray, y: np.ndarray) -> float:
 
     # Calculate the CRT_90-10 time difference
     crt_9010 = x[k_10_index] - x[k_90_index]
-
+    """
     # Plot the results
     plt.plot(x, normalized_y, 'o', markersize=6, markeredgecolor='black', markerfacecolor='black', linewidth=3)
     plt.plot(x, filtered_y, '-', color='orange', linewidth=2)
@@ -1075,6 +1079,8 @@ def fit_CRT9010(x: np.ndarray, y: np.ndarray) -> float:
     plt.text(np.mean(x), 0.8, rf'$\mathrm{{CRT_{{90-10}}}}$ = {crt_9010:.2f}', fontsize=15, color='black', horizontalalignment='center')
     plt.legend(['Color Space', 'High-order Butterworth Filter'], fontsize=15)
     plt.show()
+    """
+    
 
     return crt_9010,k_10_index
 
