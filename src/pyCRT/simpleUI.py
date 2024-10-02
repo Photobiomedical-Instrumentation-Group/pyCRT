@@ -188,6 +188,7 @@ class PCRT:
         self.k_10 = None
         self._crt_10010exp = None
         self._incer_10010exp = None
+        self._uncertainty_crt_10010=None
         self.fullTimeScdsArr = fullTimeScdsArr
         self.channelsAvgIntensArr = channelsAvgIntensArr
         self.channel = channel.strip().lower()
@@ -250,65 +251,22 @@ class PCRT:
         self.crt_10010 = fit_crt10010(self.timeScdsArr, self.avgIntensArr,self.k_10)
 
     
-    #def calculate_crt_10010exp(self):
-    #    self.crt_10010exp = fit_crt10010exp(self.timeScdsArr, self.avgIntensArr, self.k_10)
-    '''
-    def calculate_crt_10010exp(self):
-            try:
-                #print("Valores de entrada:", self.timeScdsArr, self.avgIntensArr, self.k_10)
-                self.crt_10010exp = fit_crt10010exp(self.timeScdsArr, self.avgIntensArr, self.k_10)
-                print("Resultado de fit_crt10010exp:", self.crt_10010exp)
-            except Exception as e:
-                print(f"Ocorreu uma exceção durante o cálculo de crt_10010exp: {e}")
-                self.crt_10010exp = None  # ou definir um valor padrão, se aplicável
-    
-   
 
-    def calculate_crt_10010exp(self):
+    def calculate_crt_10010exp(self) -> float:
         try:
-            # Calcular o CRT_10010exp chamando a função fit_crt10010exp
-            resultado = fit_crt10010exp(self.timeScdsArr, self.avgIntensArr, self.k_10)
+            # Chamar o cálculo do CRT10010 exp
+            #resultado = fit_crt10010exp(self.timeScdsArr, self.avgIntensArr, self.k_10)
+            crt_10010exp, uncertainty_crt_10010 = fit_crt10010exp(self.timeScdsArr, self.avgIntensArr, self.k_10)
             
-            # Atribuir diretamente ao atributo interno _crt_10010exp
-            self._crt_10010exp = resultado
-            
-            print("Resultado de fit_crt10010exp:", self._crt_10010exp)
+            # Armazenar o valor calculado internamente
+            self._crt_10010exp = crt_10010exp
+            self._uncertainty_crt_10010 = uncertainty_crt_10010
+
+            # Retornar o valor calculado
+            return self._crt_10010exp,self._uncertainty_crt_10010
         except Exception as e:
-            print(f"Ocorreu uma exceção durante o cálculo de crt_10010exp: {e}")
-            self._crt_10010exp = None  # Definir como None em caso de erro
-    '''
-
-
-    @property
-    def crt_10010exp(self) -> float:
-        """
-        Retorna o valor calculado do CRT 10010 exponencial.
-        """
-        return self._crt_10010exp
-
-    @crt_10010exp.setter
-    def crt_10010exp(self, value: float):
-        """
-        Define o valor para o CRT 10010 exponencial.
-        """
-        self._crt_10010exp = value
-
-    def calculate_crt_10010exp(self):
-        """
-        Método para calcular o CRT 10010 exponencial e armazenar o valor.
-        """
-        try:
-            # Calcular o CRT 10010 exp chamando a função fit_crt10010exp
-            resultado = fit_crt10010exp(self.timeScdsArr, self.avgIntensArr, self.k_10)
-            
-            # Atribuir diretamente ao atributo interno
-            self._crt_10010exp = resultado
-            
-            # Imprimir o resultado calculado
-            print("Resultado de fit_crt10010exp:", self._crt_10010exp)
-        except Exception as e:
-            print(f"Ocorreu uma exceção durante o cálculo de crt_10010exp: {e}")
-            self._crt_10010exp = None  # Definir como None em caso de erro
+            print(f"Erro ao calcular crt_10010exp: {e}")
+            return None  # Retornar None em caso de erro
 
 
     @classmethod
@@ -900,6 +858,19 @@ class PCRT:
             """
             self._crt_10010 = value
 
+    @property
+    def crt_10010exp(self) -> float:
+        """
+        Retorna o valor calculado do CRT 10010 exponencial.
+        """
+        return self._crt_10010exp
+
+    @crt_10010exp.setter
+    def crt_10010exp(self, value: float):
+        """
+        Define o valor para o CRT 10010 exponencial.
+        """
+        self._crt_10010exp = value
 
    
 

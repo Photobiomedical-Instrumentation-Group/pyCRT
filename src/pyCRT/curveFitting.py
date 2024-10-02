@@ -876,12 +876,7 @@ def calcPCRTFirstThatWorks(
 
 # }}}
 
-
-
-# {{{
-
-
-def fit_crt10010exp(x: np.ndarray, y: np.ndarray, k_10: int) -> float:
+def fit_crt10010exp(x: Array, y: Array,k_10:int) -> tuple[float, float]:
     # Normalizar os dados
     normalized_Y = (y - np.min(y)) / (np.max(y) - np.min(y))
     normalized_Y_10 = normalized_Y[:k_10]
@@ -896,10 +891,7 @@ def fit_crt10010exp(x: np.ndarray, y: np.ndarray, k_10: int) -> float:
         print(f"Erro durante o ajuste exponencial: {e}")
         return None
 
-
-    #pars, cov = curve_fit(exponential, x_exponencial, normalized_Y_10, p0=x0_exp2, maxfev=10000)
     rr = np.sqrt(np.diag(cov))  # Erro padrão dos parâmetros
-
 
     f_exp = exponential(x_exponencial, *pars)
 
@@ -910,11 +902,11 @@ def fit_crt10010exp(x: np.ndarray, y: np.ndarray, k_10: int) -> float:
     Uncertainty_CRT10010 = -2 * CRT10010exp * (inverseCRTStdDev10010 / inverseCRT10010)
 
    
-        # Plotagem
+    # Plotagem
     plt.plot(x, normalized_Y, 'o', markersize=6, markeredgecolor='black', markerfacecolor='black', linewidth=3)
     plt.plot(x_exponencial, f_exp, linestyle='-', color='red', linewidth=1.5)
         
-        # Adicionar a linha vertical de 10% e a linha horizontal correspondente ao valor de 10%
+    # Adicionar a linha vertical de 10% e a linha horizontal correspondente ao valor de 10%
     if k_10:
         Xtc10010 = x[k_10-1]
         plt.axvline(Xtc10010, linestyle='--', color='blue', linewidth=1.5)
@@ -922,7 +914,7 @@ def fit_crt10010exp(x: np.ndarray, y: np.ndarray, k_10: int) -> float:
     else:
         print('Erro: Não foi possível encontrar o ponto de 10% da intensidade máxima.')
 
-        # Adicionar uma linha no ponto de 100%
+    # Adicionar uma linha no ponto de 100%
     threshold_100_percent = 1
     idx_100_percent = np.argmin(np.abs(normalized_Y - threshold_100_percent))
     time_at_100_percent = x[idx_100_percent]
@@ -942,7 +934,7 @@ def fit_crt10010exp(x: np.ndarray, y: np.ndarray, k_10: int) -> float:
     plt.show()
 
         
-    return CRT10010exp
+    return CRT10010exp,Uncertainty_CRT10010
     
 
 
