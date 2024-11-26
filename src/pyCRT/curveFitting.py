@@ -23,7 +23,7 @@ filterwarnings("error")
 # Type aliases for commonly used types
 # {{{
 # Array of arbitraty size with float elements.
-Array = NDArray[np.float_]
+Array = NDArray[np.float64]
 
 # Tuples of two numpy arrays, typically an array of the timestamp for each
 # frame and an array of average intensities within a given ROI
@@ -37,7 +37,7 @@ ParameterSequence = Union[Sequence[float], Array]
 # optimized parameters and the second their standard deviations
 FitParametersTuple = tuple[ParameterSequence, ParameterSequence]
 
-Real = Union[float, int, np.float_, np.int_]
+Real = Union[float, int, np.float64, np.int_]
 
 # This accounts for the fact that np.int_ doesn't inherit from int
 Integer = Union[int, np.int_]
@@ -349,7 +349,7 @@ def pCRTFromParameters(pCRTTuple: FitParametersTuple) -> tuple[float, float]:
 # }}}
 
 
-def calculateRelativeUncertainty(pCRTTuple: FitParametersTuple) -> np.float_:
+def calculateRelativeUncertainty(pCRTTuple: FitParametersTuple) -> np.float64:
     # {{{
     """
     Calculates the pCRT's relative uncertainty (with a 95% confidence interval)
