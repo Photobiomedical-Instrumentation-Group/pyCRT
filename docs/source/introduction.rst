@@ -2,7 +2,7 @@
 Introduction to pCRT
 ====================
 
-**pCRT** (alternatively called **rCRT**) is an algorithmically calculated
+**pCRT** (alternatively called **pCRT**) is an algorithmically calculated
 metric of peripheral perfusion that is analogous to **CRT** (*Capillary Refill
 Time*). The acronyms stand for *polarized CRT* or *reflective CRT*, in
 reference to the use of polarizers and diffusely reflected light in the
@@ -35,6 +35,5 @@ PyrCRT's data model
 References
 ==========
 
-.. [1] de Souza, Raquel Pantojo, and George Cunha Cardoso. "Skin color independent robust assessment of capillary refill time." arXiv preprint arXiv:2102.13611 (2021).
-
+.. [1] BACHOUR, Raquel P. de Souza; DIAS, Eduardo Lopes; CARDOSO, George C. Skin‐color‐independent robust assessment of capillary refill time. Journal of Biophotonics, v. 16, n. 11, p. e202300063, 2023.
 .. [2] Pickard, Amelia, Walter Karlen, and J. Mark Ansermino. "Capillary refill time: is it still a useful clinical sign?." Anesthesia & Analgesia 113.1 (2011): 120-123.
