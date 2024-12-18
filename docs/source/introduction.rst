@@ -35,5 +35,5 @@ PyrCRT's data model
 References
 ==========
 
-.. [1] BACHOUR, Raquel P. de Souza; DIAS, Eduardo Lopes; CARDOSO, George C. Skin‐color‐independent robust assessment of capillary refill time. Journal of Biophotonics, v. 16, n. 11, p. e202300063, 2023.
+.. [1] Bachour, Raquel P. de Souza, Eduardo Lopes Dias, and George C. Cardoso. "Skin‐color‐independent robust assessment of capillary refill time." Journal of Biophotonics 16.11 (2023): e202300063.
 .. [2] Pickard, Amelia, Walter Karlen, and J. Mark Ansermino. "Capillary refill time: is it still a useful clinical sign?." Anesthesia & Analgesia 113.1 (2011): 120-123.
