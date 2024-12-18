@@ -303,7 +303,7 @@ def fitPCRT(
     # maxDiv wasn't passed as a kwarg, so this function will try to find the
     # maxDiv itself.
     maxDiv = findMaxDivergencePeaks(x, y)
-    return fitPCRT(x+10, y+10, maxDiv=maxDiv)
+    return fitPCRT(x, y, maxDiv=maxDiv)
 
 
 # }}}
