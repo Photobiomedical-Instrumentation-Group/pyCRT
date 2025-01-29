@@ -36,6 +36,7 @@ from .curveFitting import (
     fitPolynomial,
     pCRTFromParameters,
     fit_crt10010exp,
+    fitEcrt10010,
     fit_crt10010,
     fit_CRT9010,
 )
@@ -45,7 +46,7 @@ from .videoReading import readVideo
 # Type aliases for commonly used types
 # {{{
 # Array of arbitraty size with float elements.
-Array = NDArray[np.float64]
+Array = NDArray[np.float_]
 
 # Tuples of two numpy arrays, typically one array of times and one of average
 # intensities or of optimized parameters and their standard deviations.
@@ -59,7 +60,7 @@ ParameterSequence = Union[Sequence[float], Array]
 # optimized parameters and the second their standard deviations
 FitParametersTuple = tuple[ParameterSequence, ParameterSequence]
 
-Real = Union[float, int, np.float64, np.int_]
+Real = Union[float, int, np.float_, np.int_]
 
 # This accounts for the fact that np.int_ doesn't inherit from int
 Integer = Union[int, np.int_]
@@ -99,7 +100,7 @@ class PCRT:
         initialGuesses: Optional[dict[str, ParameterSequence]] = None,
         criticalTime: Optional[float] = None,
         exclusionCriteria: float = 0.12,
-        exclusionMethod: str = "first that works",
+        exclusionMethod: str = "best fit",
     ):
         # {{{
         # {{{
@@ -189,6 +190,11 @@ class PCRT:
         self._crt_10010exp = None
         self._incer_10010exp = None
         self._uncertainty_crt_10010=None
+        self._time10 = None
+        
+        self._eCRT10010=None
+        self._eCRTtime10=None
+        
         self.fullTimeScdsArr = fullTimeScdsArr
         self.channelsAvgIntensArr = channelsAvgIntensArr
         self.channel = channel.strip().lower()
@@ -222,7 +228,7 @@ class PCRT:
 
         if "pCRT" in funcParamsTuples and criticalTime is not None:
             self.pCRTParams, self.pCRTStdDev = funcParamsTuples["pCRT"]
-            self.criticalTime = criticalTime
+
         else:
             (
                 self.pCRTParams,
@@ -256,18 +262,32 @@ class PCRT:
         try:
             # Chamar o cálculo do CRT10010 exp
             #resultado = fit_crt10010exp(self.timeScdsArr, self.avgIntensArr, self.k_10)
-            crt_10010exp, uncertainty_crt_10010 = fit_crt10010exp(self.timeScdsArr, self.avgIntensArr, self.k_10)
+            crt_10010exp, uncertainty_crt_10010,time10 = fit_crt10010exp(self.timeScdsArr, self.avgIntensArr, self.k_10)
             
             # Armazenar o valor calculado internamente
             self._crt_10010exp = crt_10010exp
             self._uncertainty_crt_10010 = uncertainty_crt_10010
+            self._time10 = time10
 
             # Retornar o valor calculado
-            return self._crt_10010exp,self._uncertainty_crt_10010
+            return self._crt_10010exp,self._uncertainty_crt_10010, self._time10
         except Exception as e:
             print(f"Erro ao calcular crt_10010exp: {e}")
             return None  # Retornar None em caso de erro
 
+    def calculate_eCRT10010(self) -> float:
+        try:
+            
+            eCRT10010,eCRTtime10 = fitEcrt10010(self.timeScdsArr, self.avgIntensArr)
+            
+            self._eCRT10010 = eCRT10010
+            self._eCRTtime10 = eCRTtime10
+
+            # Retornar o valor calculado
+            return self._eCRT10010, self._eCRTtime10
+        except Exception as e:
+            print(f"Erro ao calcular eCRT10010: {e}")
+            return None  # Retornar None em caso de erro
 
     @classmethod
     def fromVideoFile(
@@ -275,7 +295,7 @@ class PCRT:
         videoPath: str,
         roi: Optional[RoiType] = None,
         displayVideo: bool = True,
-        #rescaleFactor: Real = 1.0,
+        rescaleFactor: float = 1.0,
         waitKeyTime: int = 1,
         **kwargs: Any,
     ) -> PCRT:
@@ -337,7 +357,7 @@ class PCRT:
             videoPath,
             roi=roi,
             displayVideo=displayVideo,
-            #rescaleFactor=rescaleFactor,
+            rescaleFactor=rescaleFactor,
             waitKeyTime=waitKeyTime,
         )
         return cls(fullTimeScdsArr, channelsAvgIntensArr, **kwargs)
@@ -420,6 +440,7 @@ class PCRT:
             recordingPath=recordingPath,
             codecFourcc=codecFourcc,
             recordingFps=recordingFps,
+            rescaleFactor=1.0,
         )
         return cls(fullTimeScdsArr, channelsAvgIntensArr, **kwargs)
 
@@ -873,6 +894,35 @@ class PCRT:
         self._crt_10010exp = value
 
    
+   
+    @property
+    def eCRT10010(self) -> float:
+            """
+            Retorna o valor calculado do CRT 10010 exponencial.
+            """
+            return self._eCRT10010
+
+    @eCRT10010.setter
+    def eCRT10010(self, value: float):
+            """
+            Define o valor para o CRT 10010 exponencial.
+            """
+            self.eCRT10010 = value
+    @property
+    def eCRTtime10(self) -> float:
+            """
+            Retorna o valor calculado do CRT 10010 exponencial.
+            """
+            return self._eCRTtime10
+
+    @eCRTtime10.setter
+    def eCRTtime10(self, value: float):
+            """
+            Define o valor para o CRT 10010 exponencial.
+            """
+            self._eCRTtime10 = value
+    
+
 
     @property
     def criticalTime(self) -> float:

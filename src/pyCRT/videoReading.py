@@ -31,7 +31,7 @@ from .frameOperations import calcAvgInten, doNothing, drawRoi
 # Type aliases for commonly used types
 # {{{
 # Array of arbitraty size with float elements.
-Array = NDArray[np.float64]
+Array = NDArray[np.float_]
 
 # Standard ROI tuple used by OpenCV
 RoiTuple = tuple[int, int, int, int]
@@ -43,7 +43,7 @@ RoiType = Union[RoiTuple, str]
 # frame and an array of average intensities within a given ROI
 ArrayTuple = tuple[Array, Array]
 
-Real = Union[float, int, np.float64, np.int_]
+Real = Union[float, int, np.float_, np.int_]
 Integer = Union[int, np.int_]
 
 # Dictionary created from a TOML configuration file
@@ -95,6 +95,7 @@ def readVideo(
     cameraResolution: Optional[tuple[int, int]] = None,
     codecFourcc: str = "mp4v",
     recordingFps: float = 30.0,
+    rescaleFactor: Optional[float] = None,
 ) -> ArrayTuple:
     # {{{
     # {{{

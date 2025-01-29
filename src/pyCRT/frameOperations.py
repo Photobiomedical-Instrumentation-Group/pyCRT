@@ -1,6 +1,6 @@
 """
-Frame manipulation functions (pyCRT.frameOperations)
-
+Fram
+manipulation functions (pyCRT.frameOperations)
 A collection of small functions that that do something to frames (which are 3D
 numpy arrays that represent each channel of each pixel of an image), typically
 recieving a frame and returning another. Functionality includes cropping,
@@ -16,7 +16,7 @@ from numpy.typing import NDArray
 # Type aliases for commonly used types
 # {{{
 # Array of arbitraty size with float elements.
-Array = NDArray[np.float64]
+Array = NDArray[np.float_]
 
 # Standard ROI tuple used by OpenCV
 RoiTuple = tuple[int, int, int, int]
@@ -24,7 +24,7 @@ RoiTuple = tuple[int, int, int, int]
 # Either a RoiTuple, or "all"
 RoiType = Union[RoiTuple, str]
 
-Real = Union[float, int, np.float64, np.int_]
+Real = Union[float, int, np.float_, np.int_]
 # }}}
 
 
