@@ -36,9 +36,12 @@ from .curveFitting import (
     fitPolynomial,
     pCRTFromParameters,
     fit_crt10010exp,
-    fitEcrt10010,
+    
     fit_crt10010,
     fit_CRT9010,
+    
+    fitECRTKShinozaki,
+    fitECRT
 )
 
 from .videoReading import readVideo
@@ -192,8 +195,15 @@ class PCRT:
         self._uncertainty_crt_10010=None
         self._time10 = None
         
+         # Input parameters of CRT function with exponential 
+        
+        # Input parameters of CRT function with exponential until 10% decay
         self._eCRT10010=None
         self._eCRTtime10=None
+        
+        # Input parameters of CRT exponential
+        self._eCRT=None
+        self._UncertaintyECRT=None
         
         self.fullTimeScdsArr = fullTimeScdsArr
         self.channelsAvgIntensArr = channelsAvgIntensArr
@@ -275,19 +285,37 @@ class PCRT:
             print(f"Erro ao calcular crt_10010exp: {e}")
             return None  # Retornar None em caso de erro
 
-    def calculate_eCRT10010(self) -> float:
+    #{{{ Analise temporal
+    # Metodo K.Shinozaki exponencial como modelo para adquirir os valores de tempo de 10% e 100% da intensidade máxima  
+    def calculatetCRT10(self) -> float:
         try:
             
-            eCRT10010,eCRTtime10 = fitEcrt10010(self.timeScdsArr, self.avgIntensArr)
+            tCRT10,tctCRT10= fitECRTKShinozaki(self.timeScdsArr, self.avgIntensArr)
             
-            self._eCRT10010 = eCRT10010
-            self._eCRTtime10 = eCRTtime10
+            self._tCRT10 = tCRT10
+            self._tctCRT10 = tctCRT10
 
             # Retornar o valor calculado
-            return self._eCRT10010, self._eCRTtime10
+            return self._tCRT10, self._tctCRT10
         except Exception as e:
-            print(f"Erro ao calcular eCRT10010: {e}")
-            return None  # Retornar None em caso de erro
+            print(f"Erro ao calcular tCRT10: {e}")
+            return None  
+
+    # função que retorna os valores da função fitECRT - exponencial
+    def calculateECRT(self) -> float:
+        try:
+            
+            eCRT,UncertaintyECRT = fitECRT(self.timeScdsArr, self.avgIntensArr)
+            
+            self._eCRT = eCRT
+            self._UncertaintyECRT = UncertaintyECRT
+
+            # Retornar o valor calculado
+            return self._eCRT, self._UncertaintyECRT
+        except Exception as e:
+            print(f"Erro ao usar o método eCRT: {e}")
+            return None  
+
 
     @classmethod
     def fromVideoFile(
@@ -893,34 +921,53 @@ class PCRT:
         """
         self._crt_10010exp = value
 
-   
-   
+    
+    #eCRT = exponencial inteira 
     @property
-    def eCRT10010(self) -> float:
+    def eCRT(self) -> float:
             """
-            Retorna o valor calculado do CRT 10010 exponencial.
+            Retorna o valor calculado do CRT exponencial.
             """
-            return self._eCRT10010
+            return self._eCRT
 
-    @eCRT10010.setter
-    def eCRT10010(self, value: float):
+    @eCRT.setter
+    def eCRT(self, value: float):
             """
-            Define o valor para o CRT 10010 exponencial.
+            Define o valor para o CRT  exponencial.
             """
-            self.eCRT10010 = value
+            self._eCRT = value
+    
     @property
-    def eCRTtime10(self) -> float:
+    def UncertaintyECRT(self) -> float:
             """
-            Retorna o valor calculado do CRT 10010 exponencial.
+            Retorna o valor do erro do CRT calculado pela exponencial 
             """
-            return self._eCRTtime10
+            return self._UncertaintyECRT
 
-    @eCRTtime10.setter
-    def eCRTtime10(self, value: float):
+    @UncertaintyECRT.setter
+    def UncertaintyECRT(self, value: float):
             """
-            Define o valor para o CRT 10010 exponencial.
+            Define o valor do erro do CRT calculado pela exponencial 
             """
-            self._eCRTtime10 = value
+            self._UncertaintyECRT = value
+    
+    # Método K.Shinozaki para calcular o CRT
+    @property
+    def tCRT10(self) -> float:
+            return self._tCRT10
+
+    @tCRT10.setter
+    def tCRT10(self, value: float):
+            self._tCRT10 = value
+    
+    
+    @property
+    def tctCRT10(self) -> float:
+            return self._tctCRT10
+
+    @tctCRT10.setter
+    def tctCRT10(self, value: float):
+            self._tctCRT10 = value
     
 
 

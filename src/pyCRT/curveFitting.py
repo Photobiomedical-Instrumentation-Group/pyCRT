@@ -943,20 +943,17 @@ def fit_crt10010exp(x: Array, y: Array,k_10:int) -> tuple[float, float,float]:
 
 #}}}}
 
-#{{{
+#{{{ Analise temporal
+# Metodo K.Shinozaki exponencial como modelo para adquirir os valores de tempo de 10% e 100% da intensidade máxima 
 
-def fitEcrt10010(x: Array, y: Array) -> tuple[float, float]:
+def fitECRTKShinozaki(x: Array, y: Array) -> tuple[float, float]:
     # Normalizar os dados
     normalized_Y = (y - np.min(y)) / (np.max(y) - np.min(y))
-    #normalized_Y = normalized_Y[:k_10]
-    #x_exponencial = x[:k_10]
 
-    # Definir os parâmetros iniciais para o ajuste exponencial
-    x0_exp2 = [1.0, -0.3, 0.0]
+    p0 = [1.0, -0.3, 0.0]
     
-
     try:
-        pars, cov = curve_fit(exponential, x, normalized_Y, p0=x0_exp2, maxfev=10000)
+        pars, cov = curve_fit(exponential, x, normalized_Y, p0=p0, maxfev=10000)
     except RuntimeError as e:
         print(f"Erro durante o ajuste exponencial: {e}")
         return None
@@ -967,21 +964,18 @@ def fitEcrt10010(x: Array, y: Array) -> tuple[float, float]:
     
 
     max_val = np.max(f_exp)
-    print(max_val)
-    k_10 = 0.10 * max_val
-    
-    # Encontra o índice onde o vetor atinge o valor mais próximo de k_10_val
-    k_10_index = (np.abs(f_exp - k_10)).argmin()
-    print(f"Valor 10% do máximo: {k_10}, Índice correspondente: {k_10_index}")
-    
-    k_90 = 0.90 * max_val
-    # Encontra o índice onde o vetor atinge o valor mais próximo de k_10_val
-    k_90_index = (np.abs(f_exp - k_90)).argmin()
+    #print(max_val)
 
-    # Calculate the CRT_100-10 time difference
-    crt_10010 = x[k_10_index] - x[k_90_index]
+    index10 = (np.abs(f_exp -  (0.10 * max_val))).argmin()
+    #print(f"Valor 10% do máximo: {I10}, Índice correspondente: {index10}")
+    
+    index100 = (np.abs(f_exp - (1 * max_val))).argmin()
 
-    time10=x[k_10_index]
+
+    crt10010 = x[index10] - x[index100]
+
+    # Tempo no ponto de intensidade de 10% - esse tempo sera usado como comparativo com o tempo tc
+    time10=x[index10]
 
     """
     # Plotagem
@@ -1017,14 +1011,38 @@ def fitEcrt10010(x: Array, y: Array) -> tuple[float, float]:
     """
     
 
-    return crt_10010,time10    
+    return crt10010,time10    
     
     
 #}}}
 
+#{{{
+# Função eCRT - Exponential
+def fitECRT(x: Array, y: Array,):
+    # Normalizar os dados   
+    normalized_y = (y - np.min(y)) / (np.max(y) - np.min(y))
+    
+    x0_exp2 = [1.0, -0.3, 0.0]
+    
+    try:
+        pars, cov = curve_fit(exponential, x, normalized_y, p0=x0_exp2, maxfev=10000)
+    except RuntimeError as e:
+        print(f"Erro durante o ajuste exponencial: {e}")
+        return None
+
+    rr = np.sqrt(np.diag(cov))  # Erro padrão dos parâmetros
+
+    inverseCRT10010: float = pars[1]
+    inverseCRTStdDev10010: float = rr[1]
+
+    eCRT = -1 / inverseCRT10010
+    UncertaintyeCRT = -2 * eCRT * (inverseCRTStdDev10010 / inverseCRT10010)
+    
+    return eCRT,UncertaintyeCRT
+#}}}
 
 
-# {{{
+# {{{ Analise temporal 
 def fit_crt10010(x: Array, y: Array,k_10_index:int) -> float:
     """
     Calculate the CRT_100-10 value, which is the time difference between the peak

@@ -28,6 +28,7 @@ from .arrayPlotting import liveAvgIntensPlot
 from .configFiles import loadTOML
 from .frameOperations import calcAvgInten, doNothing, drawRoi
 
+
 # Type aliases for commonly used types
 # {{{
 # Array of arbitraty size with float elements.
