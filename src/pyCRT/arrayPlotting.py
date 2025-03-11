@@ -264,7 +264,7 @@ def plotPCRT(
     plotOptions = kwargs.get("plotOptions", None)
     legendOptions = kwargs.get("legendOptions", None)
     if plotOptions is None:
-        plotOptions = {"label": "pCRT Exp", "color": "cyan"}
+        plotOptions = {"label": "pCRT", "color": "cyan"}
     if legendOptions is None:
         legendOptions = {}
     ax.plot(timeScdsArr, funcY, **plotOptions)
@@ -441,9 +441,11 @@ def makePCRTPlot(
 
     fig, ax = makeFigAxes(
         (
-            "Time (s)",
+            #"Time (s)",
+            "Tempo (s)",
+            "Média da intensidade do canal verde da ROI (u.a)"
             #"Time since release of compression (s)"
-            "Average intensities (u.a.)",
+            #"Average intensities (u.a.)",
         ),
        # "Average intensities and fitted functions ",
        "", # sem titulo

@@ -950,7 +950,7 @@ def fitECRTKShinozaki(x: Array, y: Array) -> tuple[float, float]:
     # Normalizar os dados
     normalized_Y = (y - np.min(y)) / (np.max(y) - np.min(y))
 
-    p0 = [1.0, -0.3, 0.0]
+    p0 = [1.2, -0.3, 0.0]
     
     try:
         pars, cov = curve_fit(exponential, x, normalized_Y, p0=p0, maxfev=10000)
@@ -1011,7 +1011,7 @@ def fitECRTKShinozaki(x: Array, y: Array) -> tuple[float, float]:
     """
     
 
-    return crt10010,time10    
+    return crt10010,time10, rr
     
     
 #}}}
@@ -1022,7 +1022,7 @@ def fitECRT(x: Array, y: Array,):
     # Normalizar os dados   
     normalized_y = (y - np.min(y)) / (np.max(y) - np.min(y))
     
-    x0_exp2 = [1.0, -0.3, 0.0]
+    x0_exp2 = [1.2, -0.3, 0.0]
     
     try:
         pars, cov = curve_fit(exponential, x, normalized_y, p0=x0_exp2, maxfev=10000)
@@ -1033,12 +1033,10 @@ def fitECRT(x: Array, y: Array,):
     rr = np.sqrt(np.diag(cov))  # Erro padrão dos parâmetros
 
     inverseCRT10010: float = pars[1]
-    inverseCRTStdDev10010: float = rr[1]
 
     eCRT = -1 / inverseCRT10010
-    UncertaintyeCRT = -2 * eCRT * (inverseCRTStdDev10010 / inverseCRT10010)
     
-    return eCRT,UncertaintyeCRT
+    return eCRT,rr[1]
 #}}}
 
 

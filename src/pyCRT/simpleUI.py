@@ -290,13 +290,14 @@ class PCRT:
     def calculatetCRT10(self) -> float:
         try:
             
-            tCRT10,tctCRT10= fitECRTKShinozaki(self.timeScdsArr, self.avgIntensArr)
+            BRT,tcBRT,rrBRT= fitECRTKShinozaki(self.timeScdsArr, self.avgIntensArr)
             
-            self._tCRT10 = tCRT10
-            self._tctCRT10 = tctCRT10
+            self._BRT = BRT
+            self._tcBRT = tcBRT
+            self._rrBRT = rrBRT
 
             # Retornar o valor calculado
-            return self._tCRT10, self._tctCRT10
+            return self._BRT, self._tcBRT, self._rrBRT
         except Exception as e:
             print(f"Erro ao calcular tCRT10: {e}")
             return None  
@@ -953,23 +954,31 @@ class PCRT:
     
     # Método K.Shinozaki para calcular o CRT
     @property
-    def tCRT10(self) -> float:
-            return self._tCRT10
+    def BRT(self) -> float:
+            return self._BRT
 
-    @tCRT10.setter
-    def tCRT10(self, value: float):
-            self._tCRT10 = value
+    @BRT.setter
+    def BRT(self, value: float):
+            self._BRT= value
     
     
     @property
-    def tctCRT10(self) -> float:
-            return self._tctCRT10
+    def tcBRT(self) -> float:
+            return self._tcBRT
 
-    @tctCRT10.setter
-    def tctCRT10(self, value: float):
-            self._tctCRT10 = value
+    @tcBRT.setter
+    def tcBRT(self, value: float):
+            self._tcBRT = value
     
+    
+    @property
+    def rrBRT(self) -> float:
+            return self._rrBRT
 
+    @rrBRT.setter
+    def rrBRT(self, value: float):
+            self._rrBRT = value
+    
 
     @property
     def criticalTime(self) -> float:
