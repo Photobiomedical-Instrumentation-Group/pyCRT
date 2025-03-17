@@ -190,10 +190,15 @@ class PCRT:
         self._crt_10010 = None
         self._crt_9010 = None
         self.k_10 = None
+        self.AmplitudeAC = None
+        self.AmplitudeDC = None
+        
         self._crt_10010exp = None
         self._incer_10010exp = None
         self._uncertainty_crt_10010=None
         self._time10 = None
+        
+        
         
          # Input parameters of CRT function with exponential 
         
@@ -252,19 +257,21 @@ class PCRT:
     
     def calculate_crt_9010(self):
         try:
-            self.crt_9010, self.k_10 = fit_CRT9010(self.timeScdsArr, self.avgIntensArr)
+            self.crt_9010, self.k_10,self.AmplitudeAC,self.AmplitudeDC = fit_CRT9010(self.timeScdsArr, self.avgIntensArr)
         except Exception as e:
             print(f"Erro durante o cálculo do CRT 9010: {e}")
             self.crt_9010 = None
             self.k_10 = None
+            self.AmplitudeAC=None
+            self.AmplitudeDC=None
 
         # Verifique se a função retornou valores válidos
-        if self.crt_9010 is None or self.k_10 is None:
+        if self.crt_9010 is None or self.k_10 is None :
             print("Erro: A função fit_CRT9010 retornou None.")
 
     # calculate CRT100-10
     def calculate_crt_10010(self):
-        self.crt_10010 = fit_crt10010(self.timeScdsArr, self.avgIntensArr,self.k_10)
+        self.crt_10010= fit_crt10010(self.timeScdsArr, self.avgIntensArr,self.k_10)
 
     
 
@@ -866,7 +873,52 @@ class PCRT:
 
     # }}}
 
+    #{{amplitudes
+    
+    @property
+    def AmplitudeAC(self) -> float:
+        """
+        Get the value of the CRT 9010 time.
 
+        Returns:
+        float: The value of the CRT 9010 time.
+        """
+        return self._AmplitudeAC
+
+    @AmplitudeAC.setter
+    def AmplitudeAC(self, value: float):
+        """
+        Set the value of the CRT 9010 time.
+
+        Parameters:
+            value (float): The new value for the CRT 9010 time.
+        """
+        self._AmplitudeAC = value
+
+    
+    @property
+    def AmplitudeDC(self) -> float:
+        """
+        Get the value of the CRT 9010 time.
+
+        Returns:
+        float: The value of the CRT 9010 time.
+        """
+        return self._AmplitudeDC
+
+    @AmplitudeDC.setter
+    def AmplitudeDC(self, value: float):
+        """
+        Set the value of the CRT 9010 time.
+
+        Parameters:
+            value (float): The new value for the CRT 9010 time.
+        """
+        self._AmplitudeDC = value
+
+            
+        
+    #}}
 
     @property
     def crt_9010(self) -> float:

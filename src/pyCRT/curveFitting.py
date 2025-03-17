@@ -1135,6 +1135,8 @@ def fit_CRT9010(x: np.ndarray, y: np.ndarray) -> float:
         signal are not found or exceed the length of the `x` array.
     """
     # Normalize the data
+    AmplitudeAC=np.max(y)
+    AmplitudeDC=np.min(y)
     normalized_y = (y - np.min(y)) / (np.max(y) - np.min(y))
 
     # Apply a high-order Butterworth filter to smooth the signal
@@ -1177,7 +1179,7 @@ def fit_CRT9010(x: np.ndarray, y: np.ndarray) -> float:
     """
     
 
-    return crt_9010,k_10_index
+    return crt_9010,k_10_index, AmplitudeAC,AmplitudeDC
 
 
 
