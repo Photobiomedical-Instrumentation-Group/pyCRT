@@ -190,8 +190,8 @@ class PCRT:
         self._crt_10010 = None
         self._crt_9010 = None
         self.k_10 = None
-        self.AmplitudeAC = None
-        self.AmplitudeDC = None
+        self._AmplitudeAC = None
+        self._AmplitudeDC = None
         
         self._crt_10010exp = None
         self._incer_10010exp = None
@@ -257,13 +257,13 @@ class PCRT:
     
     def calculate_crt_9010(self):
         try:
-            self.crt_9010, self.k_10,self.AmplitudeAC,self.AmplitudeDC = fit_CRT9010(self.timeScdsArr, self.avgIntensArr)
+            self.crt_9010, self.k_10, self.AmplitudeAC, self.AmplitudeDC = fit_CRT9010(self.timeScdsArr, self.avgIntensArr)
         except Exception as e:
             print(f"Erro durante o cálculo do CRT 9010: {e}")
             self.crt_9010 = None
             self.k_10 = None
-            self.AmplitudeAC=None
-            self.AmplitudeDC=None
+            self.AmplitudeAC = None
+            self.AmplitudeDC = None
 
         # Verifique se a função retornou valores válidos
         if self.crt_9010 is None or self.k_10 is None :
