@@ -441,11 +441,11 @@ def makePCRTPlot(
 
     fig, ax = makeFigAxes(
         (
-            #"Time (s)",
-            "Tempo (s)",
-            "Média da intensidade do canal verde da ROI (u.a)"
+            "Time (s)",
+            #"Tempo (s)",
+            #"Média da intensidade do canal verde da ROI (u.a)"
             #"Time since release of compression (s)"
-            #"Average intensities (u.a.)",
+            "Average intensities (u.a.)",
         ),
        # "Average intensities and fitted functions ",
        "", # sem titulo
