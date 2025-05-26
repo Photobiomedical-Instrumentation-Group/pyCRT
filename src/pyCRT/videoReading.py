@@ -22,11 +22,12 @@ from warnings import warn
 import cv2 as cv
 import numpy as np
 from numpy.typing import NDArray
+from typing import Callable
 
 from .arrayOperations import stripArr
 from .arrayPlotting import liveAvgIntensPlot
 from .configFiles import loadTOML
-from .frameOperations import calcAvgInten, doNothing, drawRoi
+from .frameOperations import calcAvgInten, doNothing, drawRoi, rescaleFrame
 
 # Type aliases for commonly used types
 # {{{
@@ -87,14 +88,15 @@ def readVideo(
     roi: Optional[RoiType] = None,
     displayVideo: bool = True,
     recordingPath: Optional[str] = None,
-    frameFunc=None,
-    camSettings=None,
-    livePlot=False,
-    gamma: float = 1.0,
+    rescaleFactor: Real = 1.0,
+    frameFunc: Optional[Callable[[Array], Array]] = None,
     waitKeyTime: int = 1,
     cameraResolution: Optional[tuple[int, int]] = None,
     codecFourcc: str = "mp4v",
     recordingFps: float = 30.0,
+    livePlot: bool = False,
+    gamma: float = 1.0,
+    camSettings=None,
 ) -> ArrayTuple:
     # {{{
     # {{{
@@ -131,6 +133,9 @@ def readVideo(
         load on the hardware and speed up computation. By default the video
         won't be scaled.
 
+    frameFunc : Callable[[np.ndarray], np.ndarray], optional
+        Function that is applied to every frame before processing.
+
     waitKeyTime : int, optional
         How many milliseconds to wait for user input between each frame. The
         default value is 1, so on most machines the video will appear "sped up"
@@ -148,6 +153,15 @@ def readVideo(
     recordingFps : float, default=None
         The FPS (frames per second) for the recording, which doesn't need to
         correspond to the FPS of the camera or the source video.
+
+    livePlot : bool, default=False
+        Whether to display a live plot of the pixel intensity over time as the
+        video is read. This can be useful for real-time monitoring of signal
+        changes within the selected region of interest (ROI). The live plot
+        will update dynamically with each processed frame. For this feature to
+        work, a valid ROI must be specified either beforehand or manually
+        selected during playback. If False, no plot will be shown during video
+        capture.
 
     Returns
     -------
@@ -193,6 +207,9 @@ def readVideo(
 
     timeScdsList: list[float] = []
     avgIntenList: list[Array] = []
+
+    if rescaleFactor != 1.0:
+        frameFunc = lambda frame: rescaleFrame(frame, rescaleFactor)
 
     with videoCapture(videoSource, cameraResolution) as cap:
         if camSettings is not None:
@@ -379,7 +396,7 @@ def checkCaptureDevice(capDeviceIndex: int) -> bool:
 
 def frameReader(
     capture: cv.VideoCapture,
-    frameFunc=None,
+    frameFunc = None,
 ) -> Generator[Array, None, None]:
     # {{{
     # {{{
@@ -394,7 +411,7 @@ def frameReader(
         The OpenCV VideoCapture instance from which to extract the frames. See
         pyCRT.videoReading.videoCapture
 
-    rescaleFactor : int or float, default=1.0
+    frameFunc : int or float, default=1.0
         Factor by which each frame will be scaled. This can help reduce the
         load on the hardware and speed up computation. By default the video
         won't be scaled.

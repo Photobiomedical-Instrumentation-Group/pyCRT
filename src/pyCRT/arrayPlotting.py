@@ -93,7 +93,7 @@ def plotAvgIntens(
     # }}}
 
     _, ax = figAxTuple
-    ax.tick_params(axis="both", labelsize=16)
+    # ax.tick_params(axis="both", labelsize=16)
 
     plotOptions = kwargs.get("plotOptions", None)
     legendOptions = kwargs.get("legendOptions", None)
@@ -293,7 +293,7 @@ def addTextToLabel(ax: Axes, text: str, **kwargs: Any) -> None:
 def makeFigAxes(
     axisLabels: tuple[str, str],
     figTitle: Optional[str] = None,
-    figSizePx: tuple[int, int] = (960, 600),
+    figSizePx: tuple[int, int] = (800, 400),
     dpi: Real = 100,
 ) -> FigAxTuple:
     # {{{
