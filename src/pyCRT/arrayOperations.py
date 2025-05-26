@@ -16,13 +16,13 @@ from numpy.typing import NDArray
 # Type aliases for commonly used types
 # {{{
 # Array of arbitraty size with float elements.
-Array = NDArray[np.float_]
+Array = NDArray[np.float64]
 
 # Tuples of two numpy arrays, typically an array of the timestamp for each
 # frame and an array of average intensities within a given ROI
 ArrayTuple = tuple[Array, Array]
 
-Real = Union[float, int, np.float_, np.int_]
+Real = Union[float, int, np.float64, int]
 # }}}
 
 
