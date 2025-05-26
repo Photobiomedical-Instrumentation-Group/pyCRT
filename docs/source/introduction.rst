@@ -2,7 +2,7 @@
 Introduction to pCRT
 ====================
 
-**pCRT** (alternatively called **pCRT**) is an algorithmically calculated
+**pCRT** (alternatively called **rCRT**) is an algorithmically calculated
 metric of peripheral perfusion that is analogous to **CRT** (*Capillary Refill
 Time*). The acronyms stand for *polarized CRT* or *reflective CRT*, in
 reference to the use of polarizers and diffusely reflected light in the
@@ -20,20 +20,9 @@ This library (``pyCRT``) initially sought merely to reimplement the MATLAB
 routines developed by Pantojo & Cunha for the aforementioned master's thesis,
 but over time its features grew beyond the original work's scope.
 
-
-.. _algorithm:
-
-Algorithm for calculation
-=========================
-
-
-
-PyrCRT's data model
-===================
-
-
 References
 ==========
 
 .. [1] Bachour, Raquel P. de Souza, Eduardo Lopes Dias, and George C. Cardoso. "Skin‐color‐independent robust assessment of capillary refill time." Journal of Biophotonics 16.11 (2023): e202300063.
 .. [2] Pickard, Amelia, Walter Karlen, and J. Mark Ansermino. "Capillary refill time: is it still a useful clinical sign?." Anesthesia & Analgesia 113.1 (2011): 120-123.
+

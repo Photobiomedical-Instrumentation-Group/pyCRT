@@ -49,7 +49,7 @@ from .videoReading import readVideo
 # Type aliases for commonly used types
 # {{{
 # Array of arbitraty size with float elements.
-Array = NDArray[np.float_]
+Array = NDArray[np.float64]
 
 # Tuples of two numpy arrays, typically one array of times and one of average
 # intensities or of optimized parameters and their standard deviations.
@@ -63,10 +63,10 @@ ParameterSequence = Union[Sequence[float], Array]
 # optimized parameters and the second their standard deviations
 FitParametersTuple = tuple[ParameterSequence, ParameterSequence]
 
-Real = Union[float, int, np.float_, np.int_]
+Real = Union[float, int, np.float64, int]
 
-# This accounts for the fact that np.int_ doesn't inherit from int
-Integer = Union[int, np.int_]
+# This accounts for the fact that int doesn't inherit from int
+Integer = Union[int, int]
 
 FigAxTuple = tuple[Figure, Axes]
 
@@ -1059,7 +1059,7 @@ class PCRT:
     # }}}
 
     @property
-    def relativeUncertainty(self) -> np.float_:
+    def relativeUncertainty(self) -> np.float64:
         # {{{
         # {{{
         """

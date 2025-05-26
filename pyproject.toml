@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "pyCRT"
+name = "pyCRT-dev"
 dynamic = ["version"]
 description = "Tools for measuring Capillary Refill Time using Python."
 readme = "README.md"
