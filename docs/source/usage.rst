@@ -8,7 +8,7 @@ Basic Usage
 Installation
 ============
 
-Install pyrCRT through pip, preferably in a `virtual environment
+Install pyCRT through pip, preferably in a `virtual environment
 <https://docs.python.org/3/tutorial/venv.html>`_:
 
 .. sourcecode:: shell
@@ -21,8 +21,8 @@ Install pyrCRT through pip, preferably in a `virtual environment
 Reading video files
 ===================
 
-PyCRT's main user interface is its :py:class:`pyrCRT.RCRT` class, which
-represents a single measurement. To calculate the rCRT from a video file, for
+PyCRT's main user interface is its :py:class:`pyCRT.PCRT` class, which
+represents a single measurement. To calculate the CRT from a video file, for
 example, the following code is all that is strictly necessary:
 
 .. sourcecode:: python
@@ -45,7 +45,7 @@ will pause, allowing you to drag a square around the desired ROI.
 Press the space bar again to confirm the selection and the video will resume.
 You'll notice a 4 elements tuple printed on the terminal after confirming the
 ROI. This tuple specifies the ROI, and can be passed to
-:py:meth:`RCRT.fromVideoFile` method via the ``roi`` keyword argument to
+:py:meth:`PCRT.fromVideoFile` method via the ``roi`` keyword argument to
 avoid having to manually select the ROI next time.
 
 If the ROI is already specified via the keyword argument, you can disable the
@@ -60,10 +60,10 @@ exhibition of the video playback, which speeds up computation:
 
     pcrt = PCRT.fromVideoFile(filePath, roi=roi, displayVideo=False)
 
-After the video ends, the window closes automatically and pyrCRT attempts to
-calculate the rCRT. The rCRT and its 0.95 confidence interval uncertainty are
-attributes of the rCRT instance created through the
-:py:meth:`RCRT.fromVideoFile` method, which is now stored by the ``rcrt``
+After the video ends, the window closes automatically and pyCRT attempts to
+calculate the CRT. The CRT and its 0.95 confidence interval uncertainty are
+attributes of the CRT instance created through the
+:py:meth:`PCRT.fromVideoFile` method, which is now stored by the ``rcrt``
 variable:
 
 .. sourcecode:: python
@@ -84,7 +84,7 @@ Reading from a video camera
 ===========================
 
 Calculating the pCRT from the live feed of a video camera (such as a webcam)
-is also simple. Use :py:meth:`RCRT.fromCaptureDevice`:
+is also simple. Use :py:meth:`PCRT.fromCaptureDevice`:
 
 .. sourcecode:: python
 
@@ -98,7 +98,7 @@ This will open a window with video playback from the specified
 ``captureDevice``. Each connected capture device recognized by OpenCV
 corresponds to a different integer. If you have a single webcam connected, it
 will most likely correspond to **0**. You can also list and use the first
-available device with :py:meth:`pyrCRT.videoReading.listCaptureDevices`:
+available device with :py:meth:`pyCRT.videoReading.listCaptureDevices`:
 
 .. sourcecode:: python
 
@@ -106,11 +106,11 @@ available device with :py:meth:`pyrCRT.videoReading.listCaptureDevices`:
 
     captureDevice = listCaptureDevices()[0]
 
-Most options available as keyword arguments for :py:meth:`RCRT.fromVideoFile`
-are also valid for :py:meth:`RCRT.fromCaptureDevice`, except for
+Most options available as keyword arguments for :py:meth:`PCRT.fromVideoFile`
+are also valid for :py:meth:`PCRT.fromCaptureDevice`, except for
 ``displayVideo``, as the user is required to press the **q** key to terminate
 the video playback and enable calculation of the pCRT.
-:py:meth:`RCRT.fromVideoFile`'s exclusive options are ``cameraResolution``,
+:py:meth:`PCRT.fromVideoFile`'s exclusive options are ``cameraResolution``,
 ``recordingPath``, ``codecFourcc`` and ``recordingFps``:
 
 .. sourcecode:: python
@@ -155,10 +155,10 @@ unrelated the ``rescaleFactor`` presented in the section above --
 Calculating pCRT from arrays
 ============================
 
-Often the video reading methods the :py:class:`pyrCRT.RCRT` class provides are
+Often the video reading methods the :py:class:`pyCRT.PCRT` class provides are
 not adequate for a specific problem, and calculating the CRT from average
 channel intensities and times arrays obtained from some other method is
-necessary. For that, :py:class:`pyrCRT.RCRT`'s default init method is used:
+necessary. For that, :py:class:`pyCRT.PCRT`'s default init method is used:
 
 .. sourcecode:: python
 
@@ -185,14 +185,14 @@ Plotting graphs
 ===============
 
 To view graphs of the pixel average intensities inside the ROI for each
-channel, and of the curve fits performed on the channel with which the rCRT is
-calculated (G, by default), use :py:meth:`pyrCRT.RCRT.showAvgIntensPlot` and
-:py:meth:`pyrCRT.RCRT.showRCRTPlot`:
+channel, and of the curve fits performed on the channel with which the CRT is
+calculated (G, by default), use :py:meth:`pyCRT.PCRT.showAvgIntensPlot` and
+:py:meth:`pyCRT.PCRT.showPCRTPlot`:
 
 .. sourcecode:: python
 
     rcrt.showAvgIntensPlot()
-    rcrt.showRCRTPlot()
+    rcrt.showPCRTPlot()
 
 This will produce the following two graphs, respectively:
 
@@ -202,13 +202,13 @@ This will produce the following two graphs, respectively:
 
 To save these graphs to a file, you can either click on the *save* button in
 the plot display window (like the two windows shown above), or use
-:py:meth:`pyrCRT.RCRT.saveAvgIntensPlot` and
-:py:meth:`pyrCRT.RCRT.saveRCRTPlot`:
+:py:meth:`pyCRT.PCRT.saveAvgIntensPlot` and
+:py:meth:`pyCRT.PCRT.savePCRTPlot`:
 
 .. sourcecode:: python
 
     rcrt.saveAvgIntensPlot("avg_intens.png")
-    rcrt.saveRCRTPlot("g_rcrt_fit.png")
+    rcrt.savePCRTPlot("g_rcrt_fit.png")
 
 This will save each plot as PNG images in the specified path without showing
 the plot display window.
@@ -225,8 +225,8 @@ Storing and retrieving measurements
 ===================================
 
 PyCRT natively supports storing pCRT measurements in a *npz-compressed* file
-that is retrievable by pyCRT. For that, use :py:meth:`RCRT.save` and
-:py:meth:`RCRT.fromArchive`:
+that is retrievable by pyCRT. For that, use :py:meth:`PCRT.save` and
+:py:meth:`PCRT.fromArchive`:
 
 .. sourcecode:: python
 
@@ -238,4 +238,4 @@ that is retrievable by pyCRT. For that, use :py:meth:`RCRT.save` and
     pcrt.save("pcrt-backup.npz")
 
     # Loading a measurement
-    pcrt2 = RCRT.fromArchive("pcrt-backup.npz")
+    pcrt2 = PCRT.fromArchive("pcrt-backup.npz")

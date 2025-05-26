@@ -331,7 +331,8 @@ class PCRT:
         videoPath: str,
         roi: Optional[RoiType] = None,
         displayVideo: bool = True,
-        rescaleFactor: float = 1.0,
+        livePlot: bool = False,
+        rescaleFactor: Real = 1.0,
         waitKeyTime: int = 1,
         **kwargs: Any,
     ) -> PCRT:
@@ -358,6 +359,15 @@ class PCRT:
             must be set to True if no ROI is specified, so the ROI can be
             manually selected by pressing the spacebar during the video
             exhibition.
+
+        livePlot : bool, default=True
+            Whether to display a live plot of the pixel intensity over time as
+            the video is read. This can be useful for real-time monitoring of
+            signal changes within the selected region of interest (ROI). The
+            live plot will update dynamically with each processed frame. For
+            this feature to work, a valid ROI must be specified either
+            beforehand or manually selected during playback. If False, no plot
+            will be shown during video capture.
 
         rescaleFactor : real number, optional
             Factor by which each frame will be scaled. This can help reduce the
@@ -395,7 +405,9 @@ class PCRT:
             displayVideo=displayVideo,
             rescaleFactor=rescaleFactor,
             waitKeyTime=waitKeyTime,
+            livePlot=livePlot,
         )
+
         return cls(fullTimeScdsArr, channelsAvgIntensArr, **kwargs)
 
     # }}}
@@ -405,6 +417,7 @@ class PCRT:
         cls,
         capDeviceIndex: int,
         roi: Optional[RoiType] = None,
+        livePlot: bool = True,
         cameraResolution: Optional[Tuple[int, int]] = None,
         recordingPath: Optional[str] = None,
         codecFourcc: str = "mp4v",
@@ -429,6 +442,15 @@ class PCRT:
             entire frame. You can also select the ROI at any time during the
             video by pressing the space bar and dragging the square around the
             desired region.
+
+        livePlot : bool, default=True
+            Whether to display a live plot of the pixel intensity over time as
+            the video is read. This can be useful for real-time monitoring of
+            signal changes within the selected region of interest (ROI). The
+            live plot will update dynamically with each processed frame. For
+            this feature to work, a valid ROI must be specified either
+            beforehand or manually selected during playback. If False, no plot
+            will be shown during video capture.
 
         cameraResolution : tuple of 2 ints, default=None
             Used to optionally change the camera resolution before handing over
@@ -477,6 +499,7 @@ class PCRT:
             codecFourcc=codecFourcc,
             recordingFps=recordingFps,
             rescaleFactor=1.0,
+            livePlot=livePlot,
         )
         return cls(fullTimeScdsArr, channelsAvgIntensArr, **kwargs)
 
