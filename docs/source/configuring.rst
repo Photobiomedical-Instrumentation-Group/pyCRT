@@ -5,8 +5,8 @@ Configuring the pCRT calculation
 
 pyCRT offers several options for configuring each step of the pCRT
 calculation, most of which are accessible through arguments in the
-:py:class:`RCRT` initialization methods (:py:meth:`RCRT.fromVideoFile`,
-:py:meth:`RCRT.fromCaptureDevice` and :py:meth:`RCRT.__init__`). Most of these
+:py:class:`PCRT` initialization methods (:py:meth:`PCRT.fromVideoFile`,
+:py:meth:`PCRT.fromCaptureDevice` and :py:meth:`PCRT.__init__`). Most of these
 options have *sensible* (for a some definition of "sensible") default values,
 so you won't have to bother specifying each of them every time.
 
