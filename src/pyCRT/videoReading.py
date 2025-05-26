@@ -155,14 +155,11 @@ def readVideo(
         The FPS (frames per second) for the recording, which doesn't need to
         correspond to the FPS of the camera or the source video.
 
-    livePlot : bool, default=False
-        Whether to display a live plot of the pixel intensity over time as the
-        video is read. This can be useful for real-time monitoring of signal
-        changes within the selected region of interest (ROI). The live plot
-        will update dynamically with each processed frame. For this feature to
-        work, a valid ROI must be specified either beforehand or manually
-        selected during playback. If False, no plot will be shown during video
-        capture.
+    livePlot : bool, default=True
+        Whether to display a live plot of the pixel intensity in the ROI over
+        time as the video is read. The live plot will update dynamically with
+        each processed frame. For this feature to work, a valid ROI must be
+        specified either beforehand or manually selected during playback.
 
     Returns
     -------
