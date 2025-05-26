@@ -234,7 +234,7 @@ class PCRT:
         videoPath: str,
         roi: Optional[RoiType] = None,
         displayVideo: bool = True,
-        livePlot: bool = False,
+        livePlot: bool = True,
         rescaleFactor: Real = 1.0,
         waitKeyTime: int = 1,
         **kwargs: Any,
@@ -264,13 +264,11 @@ class PCRT:
             exhibition.
 
         livePlot : bool, default=True
-            Whether to display a live plot of the pixel intensity over time as
-            the video is read. This can be useful for real-time monitoring of
-            signal changes within the selected region of interest (ROI). The
-            live plot will update dynamically with each processed frame. For
-            this feature to work, a valid ROI must be specified either
-            beforehand or manually selected during playback. If False, no plot
-            will be shown during video capture.
+            Whether to display a live plot of the pixel intensity in the ROI
+            over time as the video is read. The live plot will update
+            dynamically with each processed frame. For this feature to work, a
+            valid ROI must be specified either beforehand or manually selected
+            during playback.
 
         rescaleFactor : real number, optional
             Factor by which each frame will be scaled. This can help reduce the
@@ -347,13 +345,11 @@ class PCRT:
             desired region.
 
         livePlot : bool, default=True
-            Whether to display a live plot of the pixel intensity over time as
-            the video is read. This can be useful for real-time monitoring of
-            signal changes within the selected region of interest (ROI). The
-            live plot will update dynamically with each processed frame. For
-            this feature to work, a valid ROI must be specified either
-            beforehand or manually selected during playback. If False, no plot
-            will be shown during video capture.
+            Whether to display a live plot of the pixel intensity in the ROI
+            over time as the video is read. The live plot will update
+            dynamically with each processed frame. For this feature to work, a
+            valid ROI must be specified either beforehand or manually selected
+            during playback.
 
         cameraResolution : tuple of 2 ints, default=None
             Used to optionally change the camera resolution before handing over
