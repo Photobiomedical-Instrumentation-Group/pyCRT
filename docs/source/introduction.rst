@@ -20,21 +20,10 @@ This library (``pyCRT``) initially sought merely to reimplement the MATLAB
 routines developed by Pantojo & Cunha for the aforementioned master's thesis,
 but over time its features grew beyond the original work's scope.
 
-
-.. _algorithm:
-
-Algorithm for calculation
-=========================
-
-
-
-PyrCRT's data model
-===================
-
-
 References
 ==========
 
 .. [1] de Souza, Raquel Pantojo, and George Cunha Cardoso. "Skin color independent robust assessment of capillary refill time." arXiv preprint arXiv:2102.13611 (2021).
 
 .. [2] Pickard, Amelia, Walter Karlen, and J. Mark Ansermino. "Capillary refill time: is it still a useful clinical sign?." Anesthesia & Analgesia 113.1 (2011): 120-123.
+
