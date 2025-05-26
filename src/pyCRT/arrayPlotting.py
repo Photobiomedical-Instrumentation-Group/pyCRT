@@ -161,8 +161,8 @@ def liveAvgIntensPlot(
     rLine = ax.plot(
         timeScdsArr, channelsAvgIntensArr[:, 2], "r", label="Channel 2"
     )[0]
-    ax.set_ylim(0, 255, fontsize=14)
-    ax.legend(fontsize=14)
+    ax.set_ylim(0, 255)
+    ax.legend()
 
     fig.canvas.draw()
     axbackground = fig.canvas.copy_from_bbox(ax.bbox)
@@ -333,8 +333,8 @@ def makeFigAxes(
         figsize=tuple(dim / dpi for dim in figSizePx),
     )
 
-    ax.set_xlabel(xlabel,fontsize =14)
-    ax.set_ylabel(ylabel,fontsize =14)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
     ax.autoscale(enable=True, axis="x", tight=True)
 
     ax.xaxis.set_major_locator(AutoLocator())
