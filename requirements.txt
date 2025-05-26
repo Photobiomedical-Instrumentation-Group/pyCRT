@@ -2,3 +2,5 @@ opencv-python
 matplotlib
 scipy
 myst-parser
+sphinx
+sphinx-rtd-theme
