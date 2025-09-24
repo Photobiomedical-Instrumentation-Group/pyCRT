@@ -162,7 +162,10 @@ def calcAvgInten(frame: Array, roi: Optional[RoiType], gamma: float) -> Array:
 
 
 def doNothing(frame):
+# {{{
+    """Does nothing"""
     return frame
+# }}}
 
 
 def rescaleFrame(frame: Array, rescaleFactor: Real) -> Array:
@@ -191,14 +194,33 @@ def rescaleFrame(frame: Array, rescaleFactor: Real) -> Array:
 # }}}
 
 
-def colorConvertFactory(to_space, from_space="BGR", to_f32bits=True):
+def colorConvertFactory(toSpace, fromSpace="BGR", toF32Bits=True):
     # {{{
+    """
+    Create a frame conversion function using OpenCV's cvtColor.
+
+    Parameters
+    ----------
+    toSpace : str
+        Target color space (e.g., "HLS", "HSV", "LAB").
+    fromSpace : str, default="BGR"
+        Source color space. Typically "BGR" for OpenCV frames.
+    toF32Bits : bool, default=True
+        If True, normalize the frame to [0,1] float32 before conversion.
+        If False, leave values in their original integer range.
+
+    Returns
+    -------
+    convertFunc : callable
+        Function that takes a frame (np.ndarray) and returns the converted
+        frame in the target color space.
+    """
     cvAttrName = (
-        f"COLOR_{from_space.strip().upper()}2{to_space.strip()}"
+        f"COLOR_{fromSpace.strip().upper()}2{toSpace.strip()}"
     )
     cvAttr = getattr(cv, cvAttrName)
 
-    if to_f32bits:
+    if toF32Bits:
 
         def convertFunc(frame):
             frame = (frame / 255).astype(np.float32)
@@ -210,9 +232,7 @@ def colorConvertFactory(to_space, from_space="BGR", to_f32bits=True):
             return cv.cvtColor(frame, cvAttr)
 
     return convertFunc
-
-
-# }}}
+    # }}}
 
 
 bgrToHls = colorConvertFactory("HLS")

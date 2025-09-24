@@ -8,12 +8,11 @@ polynomial and two exponential curves on the data.
 
 from typing import Iterable, Optional, Sequence, Tuple, Union, overload
 from warnings import filterwarnings
-import matplotlib.pyplot as plt
 import numpy as np
 
 from numpy.typing import NDArray
 from scipy.optimize import OptimizeWarning, curve_fit
-from scipy.signal import find_peaks,butter, filtfilt
+from scipy.signal import find_peaks, butter, filtfilt
 
 from .arrayOperations import findValueIndex
 
@@ -179,10 +178,7 @@ def fitPolynomial(
 
     try:
         # pylint: disable=unbalanced-tuple-unpacking
-        (
-            polyParams,
-            polyCov
-        ) = curve_fit(
+        (polyParams, polyCov) = curve_fit(
             f=polynomial,
             xdata=x,
             ydata=y,
@@ -365,15 +361,13 @@ def calculateRelativeUncertainty(pCRTTuple: FitParametersTuple) -> np.float64:
 
 
 @overload
-def findMaxDivergencePeaks(x: Array, y: Array) -> list[int]:
-    ...
+def findMaxDivergencePeaks(x: Array, y: Array) -> list[int]: ...
 
 
 @overload
 def findMaxDivergencePeaks(
     x: Array, expTuple: FitParametersTuple, polyTuple: FitParametersTuple
-) -> list[int]:
-    ...
+) -> list[int]: ...
 
 
 def findMaxDivergencePeaks(
@@ -876,7 +870,12 @@ def calcPCRTFirstThatWorks(
 
 # }}}
 
-def fit_crt10010exp(x: Array, y: Array,k_10:int) -> tuple[float, float,float]:
+
+# pylint: disable=invalid-name, missing-function-docstring
+def fit_crt10010exp(
+    x: Array, y: Array, k_10: int
+) -> tuple[float, float, float]:
+    # {{{
     # Normalizar os dados
     normalized_Y = (y - np.min(y)) / (np.max(y) - np.min(y))
     normalized_Y_10 = normalized_Y[:k_10]
@@ -884,42 +883,52 @@ def fit_crt10010exp(x: Array, y: Array,k_10:int) -> tuple[float, float,float]:
 
     # Definir os parâmetros iniciais para o ajuste exponencial
     x0_exp2 = [1.0, -0.3, 0.0]
-    
 
     try:
-        pars, cov = curve_fit(exponential, x_exponencial, normalized_Y_10, p0=x0_exp2, maxfev=10000)
+        pars, cov = curve_fit(
+            exponential,
+            x_exponencial,
+            normalized_Y_10,
+            p0=x0_exp2,
+            maxfev=10000,
+        )
     except RuntimeError as e:
         print(f"Erro durante o ajuste exponencial: {e}")
         return None
 
     rr = np.sqrt(np.diag(cov))  # Erro padrão dos parâmetros
 
-    f_exp = exponential(x_exponencial, *pars)
+    # f_exp = exponential(x_exponencial, *pars)
 
     inverseCRT10010: float = pars[1]
     inverseCRTStdDev10010: float = rr[1]
 
     CRT10010exp = -1 / inverseCRT10010
-    Uncertainty_CRT10010 = -2 * CRT10010exp * (inverseCRTStdDev10010 / inverseCRT10010)
-    time10=x[k_10]
+    Uncertainty_CRT10010 = (
+        -2 * CRT10010exp * (inverseCRTStdDev10010 / inverseCRT10010)
+    )
+    time10 = x[k_10]
 
-    return CRT10010exp,Uncertainty_CRT10010,time10
-    
+    return CRT10010exp, Uncertainty_CRT10010, time10
 
 
-#}}}}
+# }}}
 
-#{{{ Analise temporal
-# Metodo K.Shinozaki exponencial como modelo para adquirir os valores de tempo de 10% e 100% da intensidade máxima 
+# {{{ Analise temporal
+# Metodo K.Shinozaki exponencial como modelo para adquirir os valores de tempo
+# de 10% e 100% da intensidade máxima
+
 
 def fitECRTKShinozaki(x: Array, y: Array) -> tuple[float, float]:
     # Normalizar os dados
     normalized_Y = (y - np.min(y)) / (np.max(y) - np.min(y))
 
     p0 = [1.2, -0.3, 0.0]
-    
+
     try:
-        pars, cov = curve_fit(exponential, x, normalized_Y, p0=p0, maxfev=10000)
+        pars, cov = curve_fit(
+            exponential, x, normalized_Y, p0=p0, maxfev=10000
+        )
     except RuntimeError as e:
         print(f"Erro durante o ajuste exponencial: {e}")
         return None
@@ -927,37 +936,42 @@ def fitECRTKShinozaki(x: Array, y: Array) -> tuple[float, float]:
     rr = np.sqrt(np.diag(cov))  # Erro padrão dos parâmetros
 
     f_exp = exponential(x, *pars)
-    
 
     max_val = np.max(f_exp)
-    #print(max_val)
+    # print(max_val)
 
-    index10 = (np.abs(f_exp -  (0.10 * max_val))).argmin()
-    #print(f"Valor 10% do máximo: {I10}, Índice correspondente: {index10}")
-    
+    index10 = (np.abs(f_exp - (0.10 * max_val))).argmin()
+    # print(f"Valor 10% do máximo: {I10}, Índice correspondente: {index10}")
+
     index100 = (np.abs(f_exp - (1 * max_val))).argmin()
-
 
     crt10010 = x[index10] - x[index100]
 
-    # Tempo no ponto de intensidade de 10% - esse tempo sera usado como comparativo com o tempo tc
-    time10=x[index10]
+    # Tempo no ponto de intensidade de 10% - esse tempo sera usado como
+    # comparativo com o tempo tc
+    time10 = x[index10]
 
-    return crt10010,time10, rr
-    
-    
-#}}}
+    return crt10010, time10, rr
 
-#{{{
+
+# }}}
+
+
+# {{{
 # Função eCRT - Exponential
-def fitECRT(x: Array, y: Array,):
-    # Normalizar os dados   
+def fitECRT(
+    x: Array,
+    y: Array,
+):
+    # Normalizar os dados
     normalized_y = (y - np.min(y)) / (np.max(y) - np.min(y))
-    
+
     x0_exp2 = [1.2, -0.3, 0.0]
-    
+
     try:
-        pars, cov = curve_fit(exponential, x, normalized_y, p0=x0_exp2, maxfev=10000)
+        pars, cov = curve_fit(
+            exponential, x, normalized_y, p0=x0_exp2, maxfev=10000
+        )
     except RuntimeError as e:
         print(f"Erro durante o ajuste exponencial: {e}")
         return None
@@ -967,17 +981,19 @@ def fitECRT(x: Array, y: Array,):
     inverseCRT10010: float = pars[1]
 
     eCRT = -1 / inverseCRT10010
-    
-    return eCRT,rr[1]
-#}}}
+
+    return eCRT, rr[1]
 
 
-# {{{ Analise temporal 
-def fit_crt10010(x: Array, y: Array,k_10_index:int) -> float:
+# }}}
+
+
+# {{{ Analise temporal
+def fit_crt10010(x: Array, y: Array, k_10_index: int) -> float:
     """
-    Calculate the CRT_100-10 value, which is the time difference between the peak
-    intensity and the time when the intensity reaches 10% of the peak value after
-    applying a high-order Butterworth filter to smooth the signal.
+    Calculate the CRT_100-10 value, which is the time difference between the
+    peak intensity and the time when the intensity reaches 10% of the peak
+    value after applying a high-order Butterworth filter to smooth the signal.
 
     Parameters
     ----------
@@ -994,8 +1010,8 @@ def fit_crt10010(x: Array, y: Array,k_10_index:int) -> float:
     Raises
     ------
     ValueError
-        If the index of the maximum value in the filtered signal is not found or
-        exceeds the length of the `x` array.
+        If the index of the maximum value in the filtered signal is not found
+        or exceeds the length of the `x` array.
     """
     # Normalize the data
     normalized_y = (y - np.min(y)) / (np.max(y) - np.min(y))
@@ -1003,33 +1019,36 @@ def fit_crt10010(x: Array, y: Array,k_10_index:int) -> float:
     # Apply a high-order Butterworth filter to smooth the signal
     order = 6  # Filter order
     cutoff_freq = 0.08  # Cutoff frequency
-    b, a = butter(order, cutoff_freq, 'low')  # Low-pass Butterworth filter
-    filtered_y = filtfilt(b, a, normalized_y)  # Apply the filter to the normalized signal
+    b, a = butter(order, cutoff_freq, "low")  # Low-pass Butterworth filter
+    filtered_y = filtfilt(
+        b, a, normalized_y
+    )  # Apply the filter to the normalized signal
 
     # Find the maximum value and its index in the filtered signal
-    max_val = np.max(filtered_y)
+    # max_val = np.max(filtered_y)
     k_100 = np.argmax(filtered_y)
 
     # Check if k_100 is found correctly
     if k_100 >= len(x):
-        raise ValueError('Unable to find the index of the maximum value in the filtered signal.')
+        raise ValueError(
+            "Unable to find the index of the maximum value in the filtered "
+            "signal."
+        )
 
     # Calculate the threshold value (10% of the maximum)
-    threshold_val = 0.10 * max_val
+    # threshold_val = 0.10 * max_val
 
     # Calculate the CRT_100-10 time difference
     crt_10010 = x[k_10_index] - x[k_100]
-   
+
     return crt_10010
-
-
 
 
 def fit_CRT9010(x: np.ndarray, y: np.ndarray) -> float:
     """
-    Calculate the CRT_90-10 value, which is the time difference between the points
-    where the intensity reaches 90% and 10% of the peak value after applying a
-    high-order Butterworth filter to smooth the signal.
+    Calculate the CRT_90-10 value, which is the time difference between the
+    points where the intensity reaches 90% and 10% of the peak value after
+    applying a high-order Butterworth filter to smooth the signal.
 
     Parameters
     ----------
@@ -1046,19 +1065,21 @@ def fit_CRT9010(x: np.ndarray, y: np.ndarray) -> float:
     Raises
     ------
     ValueError
-        If the indices of the maximum value or the threshold values in the filtered
-        signal are not found or exceed the length of the `x` array.
+        If the indices of the maximum value or the threshold values in the
+        filtered signal are not found or exceed the length of the `x` array.
     """
     # Normalize the data
-    AmplitudeAC=np.max(y)
-    AmplitudeDC=np.min(y)
+    AmplitudeAC = np.max(y)
+    AmplitudeDC = np.min(y)
     normalized_y = (y - np.min(y)) / (np.max(y) - np.min(y))
 
     # Apply a high-order Butterworth filter to smooth the signal
     order = 6  # Filter order
     cutoff_freq = 0.08  # Cutoff frequency
-    b, a = butter(order, cutoff_freq, 'low')  # Low-pass Butterworth filter
-    filtered_y = filtfilt(b, a, normalized_y)  # Apply the filter to the normalized signal
+    b, a = butter(order, cutoff_freq, "low")  # Low-pass Butterworth filter
+    filtered_y = filtfilt(
+        b, a, normalized_y
+    )  # Apply the filter to the normalized signal
 
     # Find the maximum value and its index in the filtered signal
     max_val = np.max(filtered_y)
@@ -1067,21 +1088,22 @@ def fit_CRT9010(x: np.ndarray, y: np.ndarray) -> float:
     threshold_val_10 = 0.10 * max_val
     threshold_val_90 = 0.90 * max_val
 
-    # Find the indices where the filtered signal is approximately at the threshold values
+    # Find the indices where the filtered signal is approximately at the
+    # threshold values
     k_10_index = np.where(np.abs(filtered_y - threshold_val_10) < 0.05)[0][0]
     k_90_index = np.where(np.abs(filtered_y - threshold_val_90) < 0.05)[0][0]
 
     # Check if k_10_index and k_90_index are found correctly
     if k_10_index >= len(x) or k_90_index >= len(x):
-        raise ValueError('Unable to find the indices of the threshold values in the filtered signal.')
+        raise ValueError(
+            "Unable to find the indices of the threshold values in the "
+            "filtered signal."
+        )
 
     # Calculate the CRT_90-10 time difference
     crt_9010 = x[k_10_index] - x[k_90_index]
 
-    return crt_9010,k_10_index, AmplitudeAC,AmplitudeDC
-
-
+    return crt_9010, k_10_index, AmplitudeAC, AmplitudeDC
 
 
 # }}}
-

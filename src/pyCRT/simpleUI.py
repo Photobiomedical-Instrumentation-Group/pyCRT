@@ -36,12 +36,10 @@ from .curveFitting import (
     fitPolynomial,
     pCRTFromParameters,
     fit_crt10010exp,
-    
     fit_crt10010,
     fit_CRT9010,
-    
     fitECRTKShinozaki,
-    fitECRT
+    fitECRT,
 )
 
 from .videoReading import readVideo
@@ -192,24 +190,22 @@ class PCRT:
         self.k_10 = None
         self._AmplitudeAC = None
         self._AmplitudeDC = None
-        
+
         self._crt_10010exp = None
         self._incer_10010exp = None
-        self._uncertainty_crt_10010=None
+        self._uncertainty_crt_10010 = None
         self._time10 = None
-        
-        
-        
-         # Input parameters of CRT function with exponential 
-        
+
+        # Input parameters of CRT function with exponential
+
         # Input parameters of CRT function with exponential until 10% decay
-        self._eCRT10010=None
-        self._eCRTtime10=None
-        
+        self._eCRT10010 = None
+        self._eCRTtime10 = None
+
         # Input parameters of CRT exponential
-        self._eCRT=None
-        self._UncertaintyECRT=None
-        
+        self._eCRT = None
+        self._UncertaintyECRT = None
+
         self.fullTimeScdsArr = fullTimeScdsArr
         self.channelsAvgIntensArr = channelsAvgIntensArr
         self.channel = channel.strip().lower()
@@ -246,18 +242,23 @@ class PCRT:
 
         else:
             (
-                self.pCRTParams,
-                self.pCRTStdDev,
-            ), self.criticalTime = self.calcPCRT(
+                (
+                    self.pCRTParams,
+                    self.pCRTStdDev,
+                ),
+                self.criticalTime,
+            ) = self.calcPCRT(
                 criticalTime,
                 self.initialGuesses.get("pCRT", None),
                 exclusionMethod,
                 exclusionCriteria,
             )
-    
+
     def calculate_crt_9010(self):
         try:
-            self.crt_9010, self.k_10, self.AmplitudeAC, self.AmplitudeDC = fit_CRT9010(self.timeScdsArr, self.avgIntensArr)
+            self.crt_9010, self.k_10, self.AmplitudeAC, self.AmplitudeDC = (
+                fit_CRT9010(self.timeScdsArr, self.avgIntensArr)
+            )
         except Exception as e:
             print(f"Erro durante o cálculo do CRT 9010: {e}")
             self.crt_9010 = None
@@ -266,39 +267,46 @@ class PCRT:
             self.AmplitudeDC = None
 
         # Verifique se a função retornou valores válidos
-        if self.crt_9010 is None or self.k_10 is None :
+        if self.crt_9010 is None or self.k_10 is None:
             print("Erro: A função fit_CRT9010 retornou None.")
 
     # calculate CRT100-10
     def calculate_crt_10010(self):
-        self.crt_10010= fit_crt10010(self.timeScdsArr, self.avgIntensArr,self.k_10)
-
-    
+        self.crt_10010 = fit_crt10010(
+            self.timeScdsArr, self.avgIntensArr, self.k_10
+        )
 
     def calculate_crt_10010exp(self) -> float:
         try:
             # Chamar o cálculo do CRT10010 exp
-            #resultado = fit_crt10010exp(self.timeScdsArr, self.avgIntensArr, self.k_10)
-            crt_10010exp, uncertainty_crt_10010,time10 = fit_crt10010exp(self.timeScdsArr, self.avgIntensArr, self.k_10)
-            
+            # resultado = fit_crt10010exp(self.timeScdsArr, self.avgIntensArr, self.k_10)
+            crt_10010exp, uncertainty_crt_10010, time10 = fit_crt10010exp(
+                self.timeScdsArr, self.avgIntensArr, self.k_10
+            )
+
             # Armazenar o valor calculado internamente
             self._crt_10010exp = crt_10010exp
             self._uncertainty_crt_10010 = uncertainty_crt_10010
             self._time10 = time10
 
             # Retornar o valor calculado
-            return self._crt_10010exp,self._uncertainty_crt_10010, self._time10
+            return (
+                self._crt_10010exp,
+                self._uncertainty_crt_10010,
+                self._time10,
+            )
         except Exception as e:
             print(f"Erro ao calcular crt_10010exp: {e}")
             return None  # Retornar None em caso de erro
 
-    #{{{ Analise temporal
-    # Metodo K.Shinozaki exponencial como modelo para adquirir os valores de tempo de 10% e 100% da intensidade máxima  
+    # {{{ Analise temporal
+    # Metodo K.Shinozaki exponencial como modelo para adquirir os valores de tempo de 10% e 100% da intensidade máxima
     def calculatetCRT10(self) -> float:
         try:
-            
-            BRT,tcBRT,rrBRT= fitECRTKShinozaki(self.timeScdsArr, self.avgIntensArr)
-            
+            BRT, tcBRT, rrBRT = fitECRTKShinozaki(
+                self.timeScdsArr, self.avgIntensArr
+            )
+
             self._BRT = BRT
             self._tcBRT = tcBRT
             self._rrBRT = rrBRT
@@ -307,14 +315,15 @@ class PCRT:
             return self._BRT, self._tcBRT, self._rrBRT
         except Exception as e:
             print(f"Erro ao calcular tCRT10: {e}")
-            return None  
+            return None
 
     # função que retorna os valores da função fitECRT - exponencial
     def calculateECRT(self) -> float:
         try:
-            
-            eCRT,UncertaintyECRT = fitECRT(self.timeScdsArr, self.avgIntensArr)
-            
+            eCRT, UncertaintyECRT = fitECRT(
+                self.timeScdsArr, self.avgIntensArr
+            )
+
             self._eCRT = eCRT
             self._UncertaintyECRT = UncertaintyECRT
 
@@ -322,8 +331,7 @@ class PCRT:
             return self._eCRT, self._UncertaintyECRT
         except Exception as e:
             print(f"Erro ao usar o método eCRT: {e}")
-            return None  
-
+            return None
 
     @classmethod
     def fromVideoFile(
@@ -892,8 +900,8 @@ class PCRT:
 
     # }}}
 
-    #{{amplitudes
-    
+    # {{amplitudes
+
     @property
     def AmplitudeAC(self) -> float:
         """
@@ -914,7 +922,6 @@ class PCRT:
         """
         self._AmplitudeAC = value
 
-    
     @property
     def AmplitudeDC(self) -> float:
         """
@@ -935,9 +942,7 @@ class PCRT:
         """
         self._AmplitudeDC = value
 
-            
-        
-    #}}
+    # }}
 
     @property
     def crt_9010(self) -> float:
@@ -971,13 +976,13 @@ class PCRT:
 
     @crt_10010.setter
     def crt_10010(self, value: float):
-            """
-            Set the value of the CRT 10010 time .
+        """
+        Set the value of the CRT 10010 time .
 
-            Parameters:
-                value (float): The new value for the CRT 10010 time .
-            """
-            self._crt_10010 = value
+        Parameters:
+            value (float): The new value for the CRT 10010 time .
+        """
+        self._crt_10010 = value
 
     @property
     def crt_10010exp(self) -> float:
@@ -993,63 +998,59 @@ class PCRT:
         """
         self._crt_10010exp = value
 
-    
-    #eCRT = exponencial inteira 
+    # eCRT = exponencial inteira
     @property
     def eCRT(self) -> float:
-            """
-            Retorna o valor calculado do CRT exponencial.
-            """
-            return self._eCRT
+        """
+        Retorna o valor calculado do CRT exponencial.
+        """
+        return self._eCRT
 
     @eCRT.setter
     def eCRT(self, value: float):
-            """
-            Define o valor para o CRT  exponencial.
-            """
-            self._eCRT = value
-    
+        """
+        Define o valor para o CRT  exponencial.
+        """
+        self._eCRT = value
+
     @property
     def UncertaintyECRT(self) -> float:
-            """
-            Retorna o valor do erro do CRT calculado pela exponencial 
-            """
-            return self._UncertaintyECRT
+        """
+        Retorna o valor do erro do CRT calculado pela exponencial
+        """
+        return self._UncertaintyECRT
 
     @UncertaintyECRT.setter
     def UncertaintyECRT(self, value: float):
-            """
-            Define o valor do erro do CRT calculado pela exponencial 
-            """
-            self._UncertaintyECRT = value
-    
+        """
+        Define o valor do erro do CRT calculado pela exponencial
+        """
+        self._UncertaintyECRT = value
+
     # Método K.Shinozaki para calcular o CRT
     @property
     def BRT(self) -> float:
-            return self._BRT
+        return self._BRT
 
     @BRT.setter
     def BRT(self, value: float):
-            self._BRT= value
-    
-    
+        self._BRT = value
+
     @property
     def tcBRT(self) -> float:
-            return self._tcBRT
+        return self._tcBRT
 
     @tcBRT.setter
     def tcBRT(self, value: float):
-            self._tcBRT = value
-    
-    
+        self._tcBRT = value
+
     @property
     def rrBRT(self) -> float:
-            return self._rrBRT
+        return self._rrBRT
 
     @rrBRT.setter
     def rrBRT(self, value: float):
-            self._rrBRT = value
-    
+        self._rrBRT = value
 
     @property
     def criticalTime(self) -> float:
@@ -1100,7 +1101,7 @@ class PCRT:
         with the pCRT and relative uncertainty.
         """
         # }}}
-        return f"{self.pCRT[0]:.2f}±{100*self.relativeUncertainty:.2f}%"
+        return f"{self.pCRT[0]:.2f}±{100 * self.relativeUncertainty:.2f}%"
 
     # }}}
 

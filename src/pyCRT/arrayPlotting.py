@@ -144,6 +144,34 @@ def liveAvgIntensPlot(
     numPoints: int = 199, figSizePx: tuple[int, int] = (480, 300)
 ) -> Generator[None, ArrayTuple, None]:
     # {{{
+    """
+    Creates and manages a live-updating matplotlib plot of the average
+    intensities for the three BGR channels. This function returns a generator
+    that must be sent the timestamp/intensity pairs of each new frame in order
+    to update the plot dynamically.
+
+    Parameters
+    ----------
+    numPoints : int, default=199
+        The number of points to display on the X axis. Older values will be
+        shifted left as new ones arrive, creating a scrolling effect.
+
+    figSizePx : tuple of 2 ints, default=(480, 300)
+        The dimensions of the matplotlib figure in pixels.
+
+    Yields
+    ------
+    None
+        The generator should first be primed with `send(None)`. After that,
+        send a tuple of (timeScds, channelsAvgIntens), the plot will be
+        updated accordingly in real time.
+
+    Notes
+    -----
+    This function is designed to be used inside a video-reading loop (see
+    videoReading.readVideo) with `livePlot=True`.
+    """
+
     fig, ax = makeFigAxes(
         ("Time (normalized)", "Average Intensities (a.u.)"),
         figSizePx=figSizePx,
@@ -442,13 +470,13 @@ def makePCRTPlot(
     fig, ax = makeFigAxes(
         (
             "Time (s)",
-            #"Tempo (s)",
-            #"Média da intensidade do canal verde da ROI (u.a)"
-            #"Time since release of compression (s)"
+            # "Tempo (s)",
+            # "Média da intensidade do canal verde da ROI (u.a)"
+            # "Time since release of compression (s)"
             "Average intensities (u.a.)",
         ),
-       # "Average intensities and fitted functions ",
-       "", # sem titulo
+        # "Average intensities and fitted functions ",
+        "",  # sem titulo
     )
 
     if funcOptions is None:
@@ -493,7 +521,7 @@ def makePCRTPlot(
 
     addTextToLabel(
         ax,
-        f"pCRT={pCRT:.2f}±{error:.2f} {100*relativeUncertainty:.2f}%",
+        f"pCRT={pCRT:.2f}±{error:.2f} {100 * relativeUncertainty:.2f}%",
         loc="upper right",
     )
 

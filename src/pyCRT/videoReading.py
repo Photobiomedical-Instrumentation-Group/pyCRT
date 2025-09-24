@@ -12,17 +12,23 @@ Notes
     DIVX and MP4V codecs respectively.
 """
 
-
 from contextlib import contextmanager
 from os.path import isfile
 from time import sleep
-from typing import Any, Generator, Iterator, Optional, Sequence, Union
+from typing import (
+    Any,
+    Generator,
+    Iterator,
+    Optional,
+    Sequence,
+    Union,
+    Callable,
+)
 from warnings import warn
 
 import cv2 as cv
 import numpy as np
 from numpy.typing import NDArray
-from typing import Callable
 
 from .arrayOperations import stripArr
 from .arrayPlotting import liveAvgIntensPlot
@@ -207,7 +213,9 @@ def readVideo(
     avgIntenList: list[Array] = []
 
     if rescaleFactor != 1.0:
-        frameFunc = lambda frame: rescaleFrame(frame, rescaleFactor)
+
+        def frameFunc(frame):  # pylint: disable=function-redefined
+            return rescaleFrame(frame, rescaleFactor)
 
     with videoCapture(videoSource, cameraResolution) as cap:
         if camSettings is not None:
@@ -220,7 +228,7 @@ def readVideo(
         for frame in frameReader(cap, frameFunc):
             if roi is not None:
                 timeScds = cap.get(cv.CAP_PROP_POS_MSEC) / 1000.0
-                channelsAvgInten = calcAvgInten(frame, roi,gamma)
+                channelsAvgInten = calcAvgInten(frame, roi, gamma)
                 timeScdsList.append(timeScds)
                 avgIntenList.append(channelsAvgInten)
 
@@ -265,8 +273,6 @@ def readVideo(
 def videoCapture(
     videoSource: Union[int, str],
     cameraResolution: Optional[tuple[int, int]] = None,
-    cameraSettings: Optional[str] = None,
-    warningLevel=2,
 ) -> Iterator[cv.VideoCapture]:
     # {{{
     # {{{
@@ -394,7 +400,7 @@ def checkCaptureDevice(capDeviceIndex: int) -> bool:
 
 def frameReader(
     capture: cv.VideoCapture,
-    frameFunc = None,
+    frameFunc=None,
 ) -> Generator[Array, None, None]:
     # {{{
     # {{{
@@ -485,6 +491,43 @@ def frameWriter(
 
 def setSettings(cap, cameraSettings, verbose=False):
     # {{{
+    """
+    Sets the capture device's properties according to the values specified in a
+    TOML configuration file or a Python dictionary.
+
+    Parameters
+    ----------
+    cap : cv2.VideoCapture
+        The OpenCV VideoCapture instance on which to set the properties.
+
+    cameraSettings : str or dict
+        Either a path to a TOML configuration file (parsed with
+        configFiles.loadTOML) or a dictionary with the same structure.
+    verbose : bool, default=False
+        If True, print to stdout the value each property was set to.
+
+    Raises
+    ------
+    TypeError
+        If cameraSettings is neither a str (file path) nor a dict.
+
+    Notes
+    -----
+    The dictionary form is expected to follow the schema defined in the camera
+    specification TOML files. For example:
+
+    cameraSettings = {
+        "exposure": {"initial-value": -6},
+        "gain": {"default": 64},
+        "frameSize": {"default": [640, 480]}
+    }
+
+    See Also
+    --------
+    configFiles.loadTOML :
+        Used internally to load TOML files passed as a string path.
+    """
+
     if isinstance(cameraSettings, str):
         cameraSettings = loadTOML(cameraSettings)
     elif not isinstance(cameraSettings, dict):
@@ -518,6 +561,34 @@ def setSettings(cap, cameraSettings, verbose=False):
 
 class CaptureDevice(cv.VideoCapture):
     # {{{
+    # {{{
+    """
+    OpenCV-compatible capture device with settings management.
+
+    Subclasses :class:`cv2.VideoCapture` to accept human-readable property
+    names (e.g., "exposure", "width"), apply camera settings loaded from a
+    TOML spec, validate values, and control warning/exception behavior. The
+    public API remains compatible with OpenCV's VideoCapture.
+
+    Parameters
+    ----------
+    videoSource : int
+        Index of the camera device to open.
+    cameraSettings : str or dict, optional
+        Path to a TOML camera spec or an already-parsed dictionary in the same
+        schema. Used for default/initial values, valid ranges, and boolean
+        on/off encodings.
+    warningLevel : int, default=2
+        Controls error reporting. 2: raise exceptions and warnings.
+        1: warnings only (no exceptions). 0: silent.
+
+    Notes
+    -----
+    If a camera spec is provided, properties listed there are initialized via
+    :meth:`resetValues` as part of construction.
+    """
+
+    # }}}
     def __init__(
         self,
         videoSource: int,
@@ -525,6 +596,25 @@ class CaptureDevice(cv.VideoCapture):
         warningLevel: int = 2,
     ):
         # {{{
+        """
+        Initialize the device and optionally load and apply camera settings.
+
+        Parameters
+        ----------
+        videoSource : int
+            Index of the capture device (same semantics as cv2.VideoCapture).
+        cameraSettings : str or dict, optional
+            Camera spec file path or dict. See class docstring.
+        warningLevel : int, default=2
+            2 -> raise exceptions and warnings, 1 -> warnings only,
+            0 -> suppress both.
+
+        Raises
+        ------
+        TypeError
+            If ``cameraSettings`` is neither a str nor a dict when provided.
+        """
+        # }}}
         self.raiseExceptions = True
         self.raiseWarnings = True
 
@@ -545,7 +635,6 @@ class CaptureDevice(cv.VideoCapture):
                     "str (path to a "
                     "TOML settings file) or dict."
                 )
-
         else:
             self.cameraSettings = {}
 
@@ -555,10 +644,35 @@ class CaptureDevice(cv.VideoCapture):
         if self.cameraSettings != {}:
             self.resetValues()
 
-    # }}}
-
     def get(self, prop: Union[str, int]) -> Union[float, bool]:
         # {{{
+        """
+        Read a property by name or OpenCV code.
+
+        Parameters
+        ----------
+        prop : str or int
+            Either a human-readable property name (e.g., "exposure", "width")
+            or the corresponding OpenCV CAP_PROP_* integer.
+
+        Returns
+        -------
+        float or bool
+            The property value. Boolean-valued properties are mapped to
+            True/False using the spec's on/off encodings when available.
+
+        Warns
+        -----
+        RuntimeWarning
+            If the property is unsupported and warnings are enabled.
+
+        Notes
+        -----
+        When a boolean property is requested and the camera spec defines
+        ``values.on`` and ``values.off``, the numeric device value is converted
+        to a Python boolean by comparison with the ``on`` code.
+        """
+        # }}}
         propCode, propName = self.propCodeAndName(prop)
 
         receivedValue = super().get(propCode)
@@ -573,12 +687,32 @@ class CaptureDevice(cv.VideoCapture):
 
         return receivedValue
 
-    # }}}
-
     def _getBool(
         self, prop: Union[str, int], receivedValue: float
     ) -> Union[float, bool]:
         # {{{
+        """
+        Internal: map numeric device value to boolean using spec encodings.
+
+        Parameters
+        ----------
+        prop : str or int
+            Property identifier.
+        receivedValue : float
+            Raw numeric value returned by the device.
+
+        Returns
+        -------
+        bool or float
+            True/False if mapping is available, else the original numeric
+            value.
+
+        Warns
+        -----
+        RuntimeWarning
+            If the spec lacks ``on``/``off`` encodings.
+        """
+        # }}}
         _, propName = self.propCodeAndName(prop)
 
         if propName in self.cameraSettings:
@@ -606,10 +740,35 @@ class CaptureDevice(cv.VideoCapture):
 
         return receivedValue
 
-    # }}}
-
-    def set(self, prop: Union[str, int], value: Union[int, bool, float]):
+    def set(
+        self, prop: Union[str, int], value: Union[int, bool, float]
+    ) -> None:
         # {{{
+        """
+        Set a property by name or OpenCV code with validation and bool mapping.
+
+        Parameters
+        ----------
+        prop : str or int
+            Human-readable name or CAP_PROP_* code.
+        value : int or float or bool
+            Target value. Booleans are mapped to the spec's on/off codes when
+            possible. Numeric values are checked against the spec's valid
+            ranges or enumerations.
+
+        Raises
+        ------
+        TypeError
+            If ``value`` is not int, float, or bool.
+        RuntimeWarning
+            If the device rejects the set operation and warnings are enabled.
+
+        Notes
+        -----
+        After setting, a short sleep is applied using the spec's ``sleepTime``
+        (default 1 second) to allow hardware to settle.
+        """
+        # }}}
         propCode, propName = self.propCodeAndName(prop)
 
         if propName in self.cameraSettings and isinstance(value, bool):
@@ -644,10 +803,32 @@ class CaptureDevice(cv.VideoCapture):
             )
         sleep(sleepTime)
 
-    # }}}
-
-    def _setBool(self, prop: Union[str, int], value: bool):
+    def _setBool(
+        self, prop: Union[str, int], value: bool
+    ) -> Union[int, float, bool]:
         # {{{
+        """
+        Internal: map True/False to device-specific numeric codes.
+
+        Parameters
+        ----------
+        prop : str or int
+            Property identifier.
+        value : bool
+            Desired boolean state.
+
+        Returns
+        -------
+        int or float or bool
+            Encoded numeric value suitable for :meth:`cv2.VideoCapture.set`.
+            If mapping is unavailable, returns the original boolean.
+
+        Warns
+        -----
+        RuntimeWarning
+            If the spec lacks ``on``/``off`` encodings.
+        """
+        # }}}
         _, propName = self.propCodeAndName(prop)
 
         propTable = self.cameraSettings[propName]
@@ -676,11 +857,23 @@ class CaptureDevice(cv.VideoCapture):
 
         return value
 
-    # }}}
-
     @staticmethod
-    def propCodeAndName(prop: Union[str, int]):
+    def propCodeAndName(prop: Union[str, int]) -> tuple[int, str]:
         # {{{
+        """
+        Resolve a property identifier to (code, name).
+
+        Parameters
+        ----------
+        prop : str or int
+            Human-readable name or CAP_PROP_* code.
+
+        Returns
+        -------
+        (int, str)
+            The OpenCV property code and canonical name.
+        """
+        # }}}
         if isinstance(prop, str):
             propCode = ALL_CODES[prop]
             propName = prop
@@ -690,15 +883,37 @@ class CaptureDevice(cv.VideoCapture):
 
         return propCode, propName
 
-    # }}}
-
     @property
     def frameSize(self) -> tuple[int, int]:
+        # {{{
+        """
+        Width and height as a tuple.
+
+        Returns
+        -------
+        (int, int)
+            Current (width, height) as integers.
+        """
+        # }}}
         return (self.width, self.height)
 
     @frameSize.setter
-    def frameSize(self, value: Sequence[int]):
+    def frameSize(self, value: Sequence[int]) -> None:
         # {{{
+        """
+        Set width and height together.
+
+        Parameters
+        ----------
+        value : sequence of 2 ints
+            ``(width, height)`` in pixels.
+
+        Raises
+        ------
+        ValueError
+            If the sequence does not contain exactly two elements.
+        """
+        # }}}
         if len(value) != 2:
             raise ValueError(
                 f"{value} is an invalid value for the camera's frame size. "
@@ -709,19 +924,57 @@ class CaptureDevice(cv.VideoCapture):
         self.width = width
         self.height = height
 
-    # }}}
-
-    def handleWarnings(self, warningStr: str):
+    def handleWarnings(self, warningStr: str) -> None:
         # {{{
+        """
+        Emit a warning or raise an exception according to policy.
+
+        Parameters
+        ----------
+        warningStr : str
+            Message to report.
+
+        Raises
+        ------
+        ValueError
+            If exceptions are enabled.
+        """
+        # }}}
         if self.raiseExceptions:
             raise ValueError(warningStr)
         if self.raiseWarnings:
             warn(warningStr, RuntimeWarning)
 
-    # }}}
-
     def isValid(self, propName: str, value: Union[int, float]) -> bool:
         # {{{
+        """
+        Check if a value is allowed for a property per the camera spec.
+
+        Parameters
+        ----------
+        propName : str
+            Canonical property name.
+        value : int or float
+            Candidate value.
+
+        Returns
+        -------
+        bool
+            True if allowed. False otherwise.
+
+        Raises
+        ------
+        TypeError
+            If the property table in the spec is malformed.
+
+        Notes
+        -----
+        Supported schemas in ``values``:
+        * list of discrete allowed values;
+        * dict with ``min``, ``max``, ``step`` for ranged values;
+        * dict mapping labels to device codes.
+        """
+        # }}}
         try:
             propTable = self.cameraSettings[propName]
         except KeyError:
@@ -749,10 +1002,21 @@ class CaptureDevice(cv.VideoCapture):
                 return True
         return False
 
-    # }}}
-
-    def resetValues(self):
+    def resetValues(self) -> None:
         # {{{
+        """
+        Apply initial or default values from the camera spec.
+
+        For each property present in the spec, set the device property to the
+        ``"initial-value"`` if provided, otherwise to ``"default"``. Supports
+        both named properties and the special ``"frameSize"`` entry.
+
+        Warns
+        -----
+        RuntimeWarning
+            If the spec is empty and warnings are enabled.
+        """
+        # }}}
         if self.cameraSettings == {}:
             self.handleWarnings(
                 "The cameraSettings dict is empty; resetValues will have no "
@@ -764,8 +1028,6 @@ class CaptureDevice(cv.VideoCapture):
                     setattr(self, propName, table["initial-value"])
                 elif "default" in table:
                     setattr(self, propName, table["default"])
-
-    # }}}
 
 
 # }}}
