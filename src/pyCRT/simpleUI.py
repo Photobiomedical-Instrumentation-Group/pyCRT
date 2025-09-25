@@ -171,7 +171,7 @@ class PCRT:
         relativeUncertainty : float
             The pCRT's relative uncertainty.
 
-        exclusionMethod : str, default='best fit'
+        exclusionMethod : str, default='first that works'
             Which criticalTime and its associated fitted pCRT parameters and
             standard deviations are to be returned by calcPCRT. Possible values
             are 'best fit', 'strict' and 'first that works' (consult the
@@ -217,9 +217,12 @@ class PCRT:
             self.criticalTime = criticalTime
         else:
             (
-                self.pCRTParams,
-                self.pCRTStdDev,
-            ), self.criticalTime = self.calcPCRT(
+                (
+                    self.pCRTParams,
+                    self.pCRTStdDev,
+                ),
+                self.criticalTime,
+            ) = self.calcPCRT(
                 criticalTime,
                 self.initialGuesses.get("pCRT", None),
                 exclusionMethod,
@@ -843,7 +846,11 @@ class PCRT:
         with the pCRT and relative uncertainty.
         """
         # }}}
-        return f"{self.pCRT[0]:.2f}±{100*self.relativeUncertainty:.2f}%"
+        return (
+            f"{self.pCRT[0]:.2f} ± "
+            f"{self.pCRT[1]:.2f} s "
+            f"({100 * self.relativeUncertainty:.2f}%)"
+        )
 
     # }}}
 

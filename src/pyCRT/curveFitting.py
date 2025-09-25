@@ -10,7 +10,6 @@ from typing import Iterable, Optional, Sequence, Tuple, Union, overload
 from warnings import filterwarnings
 
 import numpy as np
-
 from numpy.typing import NDArray
 from scipy.optimize import OptimizeWarning, curve_fit
 from scipy.signal import find_peaks
@@ -337,11 +336,13 @@ def pCRTFromParameters(pCRTTuple: FitParametersTuple) -> tuple[float, float]:
 
     pCRTParams, pCRTStdDev = pCRTTuple
 
-    inversePCRT: float = pCRTParams[1]
-    inversePCRTStdDev: float = pCRTStdDev[1]
+    inversePCRT: float = float(pCRTParams[1])
+    inversePCRTStdDev: float = float(pCRTStdDev[1])
 
-    pCRT = -1 / inversePCRT
-    pCRTUncertainty = -2 * pCRT * (inversePCRTStdDev / inversePCRT)
+    pCRT = -1.0 / inversePCRT
+
+    # Uncertainty propagation
+    pCRTUncertainty = 2.0 * inversePCRTStdDev / (inversePCRT**2)
 
     return (pCRT, pCRTUncertainty)
 
@@ -357,23 +358,21 @@ def calculateRelativeUncertainty(pCRTTuple: FitParametersTuple) -> np.float64:
     respective standard deviations.
     """
 
-    pCRTParams, pCRTStdDev = pCRTTuple
-    return 2 * abs(pCRTStdDev[1] / pCRTParams[1])
+    pCRT, pCRTUncertainty = pCRTFromParameters(pCRTTuple)
+    return pCRTUncertainty / pCRT
 
 
 # }}}
 
 
 @overload
-def findMaxDivergencePeaks(x: Array, y: Array) -> list[int]:
-    ...
+def findMaxDivergencePeaks(x: Array, y: Array) -> list[int]: ...
 
 
 @overload
 def findMaxDivergencePeaks(
     x: Array, expTuple: FitParametersTuple, polyTuple: FitParametersTuple
-) -> list[int]:
-    ...
+) -> list[int]: ...
 
 
 def findMaxDivergencePeaks(

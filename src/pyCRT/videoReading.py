@@ -12,17 +12,17 @@ Notes
     DIVX and MP4V codecs respectively.
 """
 
-
 from contextlib import contextmanager
 from os.path import isfile
 from time import sleep
-from typing import Any, Generator, Iterator, Optional, Sequence, Union
+from typing import (Any, Callable, Generator, Iterator, Optional, Sequence,
+                    Union)
 from warnings import warn
 
 import cv2 as cv
 import numpy as np
+from matplotlib import pyplot as plt
 from numpy.typing import NDArray
-from typing import Callable
 
 from .arrayOperations import stripArr
 from .arrayPlotting import liveAvgIntensPlot
@@ -219,7 +219,7 @@ def readVideo(
         for frame in frameReader(cap, frameFunc):
             if roi is not None:
                 timeScds = cap.get(cv.CAP_PROP_POS_MSEC) / 1000.0
-                channelsAvgInten = calcAvgInten(frame, roi,gamma)
+                channelsAvgInten = calcAvgInten(frame, roi, gamma)
                 timeScdsList.append(timeScds)
                 avgIntenList.append(channelsAvgInten)
 
@@ -240,6 +240,7 @@ def readVideo(
                     timeScdsList, avgIntenList = [], []
                 elif key == ord("q"):
                     break
+    plt.close("livePlot")
 
     if not avgIntenList:
         raise RuntimeError(
@@ -393,7 +394,7 @@ def checkCaptureDevice(capDeviceIndex: int) -> bool:
 
 def frameReader(
     capture: cv.VideoCapture,
-    frameFunc = None,
+    frameFunc=None,
 ) -> Generator[Array, None, None]:
     # {{{
     # {{{

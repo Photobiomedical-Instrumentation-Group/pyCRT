@@ -82,6 +82,7 @@ confidence=HIGH,
 # import-error: perma disabled. It's ALE's fault
 # too-many-*-*: may be temporarily disabled to focus on other problems
 # missing-*-docstring: may be temporarily disabled to focus on other problems
+# design: who is this silly tool to tell me how to design my library?
 
 disable=raw-checker-failed,
         bad-inline-option,
@@ -92,6 +93,7 @@ disable=raw-checker-failed,
         deprecated-pragma,
         use-symbolic-message-instead,
 		import-error,
+		design,
 
 
 [REFACTORING]

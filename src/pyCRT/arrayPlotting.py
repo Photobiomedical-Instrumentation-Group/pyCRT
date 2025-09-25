@@ -144,9 +144,38 @@ def liveAvgIntensPlot(
     numPoints: int = 199, figSizePx: tuple[int, int] = (480, 300)
 ) -> Generator[None, ArrayTuple, None]:
     # {{{
+    """
+    Creates and manages a live-updating matplotlib plot of the average
+    intensities for the three BGR channels. This function returns a generator
+    that must be sent the timestamp/intensity pairs of each new frame in order
+    to update the plot dynamically.
+
+    Parameters
+    ----------
+    numPoints : int, default=199
+        The number of points to display on the X axis. Older values will be
+        shifted left as new ones arrive, creating a scrolling effect.
+
+    figSizePx : tuple of 2 ints, default=(480, 300)
+        The dimensions of the matplotlib figure in pixels.
+
+    Yields
+    ------
+    None
+        The generator should first be primed with `send(None)`. After that,
+        send a tuple of (timeScds, channelsAvgIntens), the plot will be
+        updated accordingly in real time.
+
+    Notes
+    -----
+    This function is designed to be used inside a video-reading loop (see
+    videoReading.readVideo) with `livePlot=True`.
+    """
+
     fig, ax = makeFigAxes(
         ("Time (normalized)", "Average Intensities (a.u.)"),
         figSizePx=figSizePx,
+        num="livePlot",
     )
 
     timeScdsArr = np.linspace(0.0, 1.0, numPoints)
@@ -295,6 +324,7 @@ def makeFigAxes(
     figTitle: Optional[str] = None,
     figSizePx: tuple[int, int] = (800, 400),
     dpi: Real = 100,
+    num: Optional[Union[int, str]] = None,
 ) -> FigAxTuple:
     # {{{
     # {{{
@@ -331,6 +361,7 @@ def makeFigAxes(
         constrained_layout=True,
         dpi=dpi,
         figsize=tuple(dim / dpi for dim in figSizePx),
+        num=num,
     )
 
     ax.set_xlabel(xlabel)
