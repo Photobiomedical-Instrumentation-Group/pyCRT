@@ -200,8 +200,8 @@ def liveAvgIntensPlot(
     while True:
         _, channelsAvgIntens = yield
 
-        channelsAvgIntensArr[1:] = channelsAvgIntensArr[:-1]
-        channelsAvgIntensArr[0] = channelsAvgIntens
+        channelsAvgIntensArr[:-1] = channelsAvgIntensArr[1:]
+        channelsAvgIntensArr[-1] = channelsAvgIntens
         bLine.set_data(timeScdsArr, channelsAvgIntensArr[:, 0])
         gLine.set_data(timeScdsArr, channelsAvgIntensArr[:, 1])
         rLine.set_data(timeScdsArr, channelsAvgIntensArr[:, 2])
