@@ -14,7 +14,7 @@ Notes
 
 from contextlib import contextmanager
 from os.path import isfile
-from time import sleep
+from time import perf_counter, sleep
 from typing import (Any, Callable, Generator, Iterator, Optional, Sequence,
                     Union)
 from warnings import warn
@@ -90,7 +90,7 @@ def readVideo(
     recordingPath: Optional[str] = None,
     rescaleFactor: Real = 1.0,
     frameFunc: Optional[Callable[[Array], Array]] = None,
-    waitKeyTime: int = 1,
+    playbackFPS: float = 0,
     cameraResolution: Optional[tuple[int, int]] = None,
     codecFourcc: str = "mp4v",
     recordingFps: float = 30.0,
@@ -136,11 +136,11 @@ def readVideo(
     frameFunc : Callable[[np.ndarray], np.ndarray], optional
         Function that is applied to every frame before processing.
 
-    waitKeyTime : int, optional
-        How many milliseconds to wait for user input between each frame. The
-        default value is 1, so on most machines the video will appear "sped up"
-        relative to it being played on a regular video player. See cv2.waitKey
-        for more information.
+    playbackFPS : float, default=inf
+        The FPS at which the video should be played, if displayVideo=True. This
+        will not affect the pCRT. If = 0, it will attempt to play the video at
+        its original FOS. The video will typically be played slower than the
+        specified FPS due to the per-frame processing time.
 
     cameraResolution : tuple of 2 ints, default=None
         Used to optionally change the camera resolution before handing over the
@@ -206,9 +206,18 @@ def readVideo(
     avgIntenList: list[Array] = []
 
     if rescaleFactor != 1.0:
-        frameFunc = lambda frame: rescaleFrame(frame, rescaleFactor)
+
+        def frameFunc(frame):
+            return rescaleFrame(frame, rescaleFactor)
 
     with videoCapture(videoSource, cameraResolution) as cap:
+        if playbackFPS == 0:
+            # Because usually openCV simply does not work
+            playbackFPS = estimateVideoFpsFromTimestamps(cap)
+            framePeriod = 1.0 / playbackFPS
+        else:
+            framePeriod = 1.0 / playbackFPS
+
         if camSettings is not None:
             setSettings(cap, camSettings, verbose=True)
 
@@ -217,6 +226,7 @@ def readVideo(
             livePlotter.send(None)
 
         for frame in frameReader(cap, frameFunc):
+            nextT = perf_counter()
             if roi is not None:
                 timeScds = cap.get(cv.CAP_PROP_POS_MSEC) / 1000.0
                 channelsAvgInten = calcAvgInten(frame, roi, gamma)
@@ -232,7 +242,7 @@ def readVideo(
             if displayVideo:
                 frame = drawRoi(frame, roi)
                 cv.imshow("Video stream", frame)
-                key = cv.waitKey(waitKeyTime)
+                key = cv.waitKey(1)
 
                 if key == ord(" "):
                     roi = cv.selectROI("Video stream", frame)
@@ -240,6 +250,15 @@ def readVideo(
                     timeScdsList, avgIntenList = [], []
                 elif key == ord("q"):
                     break
+
+                nextT += framePeriod
+                sleepT = nextT - perf_counter()
+                if sleepT > 0:
+                    sleep(sleepT)
+                else:
+                    # We are behind; drop scheduling drift so it doesn't accumulate
+                    nextT = perf_counter()
+
     plt.close("livePlot")
 
     if not avgIntenList:
@@ -511,6 +530,96 @@ def setSettings(cap, cameraSettings, verbose=False):
 
             if verbose:
                 print(f"set {propName} to {cap.get(ALL_CODES[propName])}")
+
+
+# }}}
+
+
+def estimateVideoFpsFromTimestamps(
+    cap: cv.VideoCapture,
+    maxFrames: int = 300,
+) -> float:
+    # {{{
+    # {{{
+    """
+    Estimate FPS from CAP_PROP_POS_MSEC timestamps of an *open* VideoCapture.
+
+    Important
+    ---------
+    - The capture position will be advanced by up to `maxFrames`.
+    - The capture is NOT released by this function.
+    - Safe if the stream has fewer than `maxFrames` frames.
+
+    Parameters
+    ----------
+    cap : cv.VideoCapture
+        An open capture device or video file.
+    maxFrames : int
+        Max number of frames to sample (default 300).
+
+    Returns
+    -------
+    float
+        Estimated FPS.
+
+    Raises
+    ------
+    ValueError
+        If the capture is not open or timestamps are unusable.
+    """
+    # }}}
+    if not cap.isOpened():
+        raise ValueError("VideoCapture is not opened.")
+
+    totalFrames = getFrameCount(cap)
+    if maxFrames <= 1 or maxFrames > totalFrames:
+        raise ValueError("maxFrames must be >= 2 and <= totalFrames.")
+
+    timesMs: list[float] = []
+
+    for _ in range(maxFrames):
+        ok, _frame = cap.read()
+        if not ok:
+            break
+        t = float(cap.get(cv.CAP_PROP_POS_MSEC))
+        timesMs.append(t)
+
+    if len(timesMs) < 2:
+        raise ValueError("Not enough frames/timestamps to estimate FPS.")
+
+    tArr = np.asarray(timesMs, dtype=float)
+    dtMs = np.diff(tArr)
+
+    # Drop duplicate or invalid timestamps
+    dtMs = dtMs[dtMs > 0.0]
+    if dtMs.size == 0:
+        raise ValueError("No valid timestamp deltas (dt > 0) to estimate FPS.")
+
+    cap.set(cv.CAP_PROP_POS_FRAMES, 0)
+    return 1000.0 / float(np.median(dtMs))
+
+
+# }}}
+
+
+def getFrameCount(cap: cv.VideoCapture, forceFallback: bool = False) -> int:
+    # {{{
+    if not cap.isOpened():
+        raise ValueError("VideoCapture not opened.")
+
+    if not forceFallback:
+        frameCount = int(cap.get(cv.CAP_PROP_FRAME_COUNT))
+        if frameCount > 0:
+            return frameCount
+
+    # Fallback: count by reading
+    count = 0
+    while True:
+        ok, _ = cap.read()
+        if not ok:
+            break
+        count += 1
+    return count
 
 
 # }}}

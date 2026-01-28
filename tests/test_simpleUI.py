@@ -1,10 +1,13 @@
 """Tests for the simpleUI module"""
 
 from pathlib import Path
+from time import perf_counter
 
 import numpy as np
 import pytest
 from pyCRT import PCRT
+from pyCRT.videoReading import (estimateVideoFpsFromTimestamps, getFrameCount,
+                                videoCapture)
 
 
 class TestPCRT:
@@ -23,8 +26,26 @@ class TestPCRT:
         "strict": (None, None),  # RuntimeException expected
     }
 
-    expectedPCRT, expectedUnc = expectedPCRTExclusionMethod["first that works"]
+    expectedPCRT, expectedUnc = expectedPCRTExclusionMethod[
+        "first positive peak"
+    ]
     expectedString = "4.60 ± 0.19 s (4.21%)"
+
+    expectedPCRTRescaleFactors = {
+        0.25: (5.216837599964007, 0.266823469797725),
+        0.5: (5.008278833876177, 0.23840868811616253),
+        0.75: (5.0276541887059905, 0.2258960764339057),
+    }
+
+    rescaleFactorsROIs = {
+        0.25: (105, 78, 76, 50),
+        0.5: (212, 165, 145, 90),
+        0.75: (318, 251, 229, 143),
+    }
+
+    testFPS = (20, 50, 100)
+    correctFPS = 21.73913043478089
+    frameNum = 852
 
     def testCheckTestVideo(self):
         # {{{
@@ -174,7 +195,67 @@ class TestPCRT:
         )
         assert str(pcrt) == self.expectedString
 
+    # }}}
+
+    def testRescaleFactor(self):
+        # {{{
+        for rescaleFactor, ROI in self.rescaleFactorsROIs.items():
+            pcrt = PCRT.fromVideoFile(
+                str(self.videoPath),
+                displayVideo=False,
+                livePlot=False,
+                rescaleFactor=rescaleFactor,
+                roi=ROI,
+                exclusionMethod="first positive peak",
+            )
+            pcrtValue, pcrtUnc = pcrt.pCRT
+            expectedValue, expectedUnc = self.expectedPCRTRescaleFactors[
+                rescaleFactor
+            ]
+            assert np.isclose(pcrtValue, expectedValue) and np.isclose(
+                pcrtUnc, expectedUnc
+            )
+        # }}}
+
+    def testEstimateFPS(self):
+        # {{{
+        with videoCapture(str(self.videoPath), None) as cap:
+            estimatedFPS = estimateVideoFpsFromTimestamps(cap, 500)
+        assert estimatedFPS == self.correctFPS
+
+    # }}}
+
+    def testFrameCount(self):
+        # {{{
+        with videoCapture(str(self.videoPath), None) as cap:
+            frameCount = getFrameCount(cap, forceFallback=True)
+        assert frameCount == self.frameNum
+
+    # }}}
+
+    def testPlaybackFPS(self):
+        # {{{
+        with videoCapture(str(self.videoPath), None) as cap:
+            frameCount = getFrameCount(cap, forceFallback=True)
+        for FPS in self.testFPS:
+            initial_time = perf_counter()
+            PCRT.fromVideoFile(
+                str(self.videoPath),
+                livePlot=False,
+                roi=self.rescaleFactorsROIs[0.25],
+                rescaleFactor=0.25,
+                playbackFPS = FPS,
+            )
+            timePassed = perf_counter() - initial_time
+            realFPS = frameCount / timePassed
+            print(f"Tested FPS: {FPS}")
+            print(f"Measured FPS: {round(realFPS, 2)}")
+            answer = "banana"
+            while answer not in ("y", "n"):
+                answer = input("Did it look alright? [y/n] ")
+            assert answer != "n"
+    # }}}
+
 
 # }}}
 
-# }}}

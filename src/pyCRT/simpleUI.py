@@ -224,7 +224,7 @@ class PCRT:
         displayVideo: bool = True,
         livePlot: bool = True,
         rescaleFactor: Real = 1.0,
-        waitKeyTime: int = 1,
+        playbackFPS: float = np.inf,
         **kwargs: Any,
     ) -> PCRT:
         # {{{
@@ -263,11 +263,11 @@ class PCRT:
             load on the hardware and speed up computation. By default the video
             won't be scaled.
 
-        waitKeyTime : int, optional
-            How many milliseconds to wait for user input between each frame.
-            The default value is 1, so on most machines the video will appear
-            "sped up" relative to it being played on a regular video player.
-            See cv2.waitKey for more information.
+        playbackFPS : float, default=inf
+            The FPS at which the video should be played, if displayVideo=True.
+            This will not affect the pCRT. If = 0, it will attempt to play the
+            video at its original FOS. The video will typically be played
+            slower than the specified FPS due to the per-frame processing time.
 
         kwargs : dict of str keys and any value
             These additional arguments will be passed to this class's __init__
@@ -293,7 +293,7 @@ class PCRT:
             roi=roi,
             displayVideo=displayVideo,
             rescaleFactor=rescaleFactor,
-            waitKeyTime=waitKeyTime,
+            playbackFPS=playbackFPS,
             livePlot=livePlot,
         )
 
