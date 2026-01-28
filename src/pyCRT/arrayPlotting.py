@@ -514,17 +514,41 @@ def makePCRTPlot(
         **funcOptions.get("intensities", {}),
     )
 
-    # pCRT, _ = pCRTFromParameters(pCRTTuple)
-    pCRT, error = pCRTFromParameters(pCRTTuple)
-    relativeUncertainty = calculateRelativeUncertainty(pCRTTuple)
-
     addTextToLabel(
         ax,
-        f"pCRT={pCRT:.2f}±{error:.2f} {100*relativeUncertainty:.2f}%",
+        f"pCRT={makePCRTString(pCRTTuple)}",
         loc="upper right",
     )
 
     return fig, ax
+
+
+# }}}
+
+
+def makePCRTString(pCRTParams: FitParametersTuple) -> str:
+    # {{{
+    """
+    Format the pCRT value, its uncertainty, and relative uncertainty as a
+    string.
+
+    Parameters
+    ----------
+    pCRTParams : tuple of sequences of float
+        The fitted pCRT exponential parameters and their standard deviations.
+        See fitPCRT and pCRTFromParameters.
+
+    Returns
+    -------
+    str
+        String of the form "<pCRT> ± <uncertainty> s (<relativeUncertainty>%)",
+        with two decimal places for all values.
+    """
+    pCRT, pCRTUnc = pCRTFromParameters(pCRTParams)
+    relativeUncertainty = calculateRelativeUncertainty(pCRTParams)
+    return (
+        f"{pCRT:.2f} ± {pCRTUnc:.2f} s ({100 * relativeUncertainty:.2f}%)"
+    )
 
 
 # }}}
@@ -563,7 +587,6 @@ def figVisualizationFunctions(
         figVisualizationFactory: showAvgIntensPlot and saveAvgIntensPlot are
         wrappers for makeAvgIntensPlot, and showPCRTPlot and savePCRTPlot are
         wrappers for makePCRTPlot.
-        .
     """
     # }}}
 

@@ -83,6 +83,7 @@ confidence=HIGH,
 # too-many-*-*: may be temporarily disabled to focus on other problems
 # missing-*-docstring: may be temporarily disabled to focus on other problems
 # design: who is this silly tool to tell me how to design my library?
+# invalid-name: I'll sometimes disable this temporarily
 
 disable=raw-checker-failed,
         bad-inline-option,

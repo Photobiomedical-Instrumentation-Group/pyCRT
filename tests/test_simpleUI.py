@@ -12,17 +12,19 @@ class TestPCRT:
     """Tests for the PCRT class"""
 
     baseDir = Path(__file__).resolve().parent
-    videoPath = baseDir / "P4CR4.wmv"
-    npzPath = baseDir / "test.npz"
+    videoPath = baseDir / "data" / "P4CR4.wmv"
+    npzPath = baseDir / "data" / "test.npz"
 
     roi = (436, 358, 270, 130)
     expectedPCRTExclusionMethod = {
         "first that works": (4.600165280378453, 0.19374687901749468),
+        "first positive peak": (4.600165280378453, 0.19374687901749468),
         "best fit": (3.00277714177836, 0.05735139417740891),
         "strict": (None, None),  # RuntimeException expected
     }
 
     expectedPCRT, expectedUnc = expectedPCRTExclusionMethod["first that works"]
+    expectedString = "4.60 ± 0.19 s (4.21%)"
 
     def testCheckTestVideo(self):
         # {{{
@@ -124,6 +126,18 @@ class TestPCRT:
             self.expectedPCRTExclusionMethod["first that works"],
         )
 
+        pcrtFirstPositivePeak = PCRT.fromVideoFile(
+            str(self.videoPath),
+            exclusionMethod="first positive peak",
+            roi=self.roi,
+            displayVideo=False,
+            livePlot=False,
+        )
+        assert np.allclose(
+            pcrtFirstPositivePeak.pCRT,
+            self.expectedPCRTExclusionMethod["first positive peak"],
+        )
+
         pcrtBestFit = PCRT.fromVideoFile(
             str(self.videoPath),
             exclusionMethod="best fit",
@@ -150,5 +164,17 @@ class TestPCRT:
             )
             # }}}
 
+    def testString(self):
+        # {{{
+        pcrt = PCRT.fromVideoFile(
+            str(self.videoPath),
+            roi=self.roi,
+            displayVideo=False,
+            livePlot=False,
+        )
+        assert str(pcrt) == self.expectedString
+
+
+# }}}
 
 # }}}

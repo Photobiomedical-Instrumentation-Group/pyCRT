@@ -9,7 +9,6 @@ from typing import Any, Optional, Union
 from warnings import warn
 
 import numpy as np
-
 # pylint: disable=no-name-in-module,import-error
 from numpy.typing import NDArray
 
@@ -49,7 +48,6 @@ def sliceByTime(
     # {{{
     # {{{
     """
-
     Creates a slice object specifying timeArr's section which is between
     fromTime and toTime.
 
@@ -114,10 +112,26 @@ def sliceFromLocalMax(
 # }}}
 
 
-def minMaxNormalize(array: Array) -> np.ndarray:
+def minMaxNormalize(array: Array) -> Array:
     # {{{
     """Performs min-max normalization on array."""
-    return (array - array.min()) / (array.max() - array.min())
+    arrMin = array.min()
+    arrMax = array.max()
+    return (array - arrMin) / (arrMax - arrMin)
+
+
+# }}}
+
+
+def minMaxNormalizeNegPos(array: Array) -> Array:
+    # {{{
+    """
+    Performs min-max normalization on the input array, rescaling its values to
+    lie between -1 and 1.
+    """
+    arrMin = array.min()
+    arrMax = array.max()
+    return 2.0 * (array - arrMin) / (arrMax - arrMin) - 1.0
 
 
 # }}}
@@ -156,15 +170,15 @@ def findValueIndex(arr: Array, value: Any) -> int:
     # {{{
     """
     Returns the index of the first element in arr which is greater than
-    valuea.
+    value.
     """
     try:
         index = int(np.where(arr >= float(value))[0][0])
         valueRatio = abs(arr[index] / value)
-        if valueRatio > 1.5:
+        if valueRatio > 1.1:
             warn(
                 f"The array's closest value greater than {value} is "
-                f"{arr[index]},  which is {100*valueRatio:.0f}% the "
+                f"{arr[index]},  which is {100 * valueRatio:.0f}% the "
                 "specified value. This may not be what you want."
             )
         return int(np.where(arr >= float(value))[0][0])

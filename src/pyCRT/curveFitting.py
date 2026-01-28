@@ -333,7 +333,6 @@ def pCRTFromParameters(pCRTTuple: FitParametersTuple) -> tuple[float, float]:
         function.
     """
     # }}}
-
     pCRTParams, pCRTStdDev = pCRTTuple
 
     inversePCRT: float = float(pCRTParams[1])
@@ -460,7 +459,7 @@ def calcPCRT(
     expTuple: Optional[FitParametersTuple] = None,
     polyTuple: Optional[FitParametersTuple] = None,
     pCRTInitialGuesses: Optional[ParameterSequence] = None,
-    exclusionMethod: str = "best fit",
+    exclusionMethod: str = "first positive peak",
     exclusionCriteria: float = np.inf,
 ) -> Tuple[ArrayTuple, float]:
     # {{{
@@ -502,14 +501,15 @@ def calcPCRT(
         -0.3, 0.0] will be used by default (see curveFitting.fitPCRT and
         curveFitting.fitExponential).
 
-    exclusionMethod : str, default='best fit'
+    exclusionMethod : str, default='first positive peak'
         Which criticalTime and its associated fitted pCRT parameters and
         standard deviations are to be returned. Possible values are 'best fit',
-        'strict' and 'first that works' (consult the documentation for the
-        calcPCRTBestFit, calcPCRTStrict and calcPCRTFirstThatWorks functions
-        for a description of the effect of these possible values). Of course,
-        this parameter has no effect if a single criticalTime is provided
-        (instead of a list of candidate criticalTimes or none at all)
+        'strict', 'first that works' and 'first positive peak' (consult the
+        documentation for the calcPCRTBestFit, calcPCRTStrict,
+        calcPCRTFirstThatWorks and calcPCRTFirstPositivePeak functions for a
+        description of the effect of these possible values). Of course, this
+        parameter has no effect if a single criticalTime is provided (instead
+        of a list of candidate criticalTimes or none at all)
 
     exclusionCriteria : float, default=np.inf
         The maximum relative uncertainty a pCRT measurement can have and not be
@@ -602,9 +602,18 @@ def calcPCRT(
             exclusionCriteria,
         )
 
+    if exclusionMethod == "first positive peak":
+        return calcPCRTFirstPositivePeak(
+            timeScdsArr,
+            avgIntensArr,
+            pCRTInitialGuesses,
+            exclusionCriteria,
+        )
+
     raise ValueError(
-        f"Invalid value of {exclusionMethod} passed as exclusionMethod. "
-        "Valid values: 'best fit', 'strict' and 'first that works'."
+        f"Invalid value of '{exclusionMethod}' passed as exclusionMethod. "
+        "Valid values: 'best fit', 'strict', 'first that works', and 'first"
+        "positive peak'."
     )
 
 
@@ -870,6 +879,77 @@ def calcPCRTFirstThatWorks(
         f"{exclusionCriteria}, with initial guesses = {pCRTInitialGuesses}"
         f"and critical time candidates = "
         f"{criticalTimeList}."
+    )
+
+
+# }}}
+
+
+def calcPCRTFirstPositivePeak(
+    timeScdsArr: Array,
+    avgIntensArr: Array,
+    pCRTInitialGuesses: Optional[ParameterSequence] = None,
+    exclusionCriteria: float = np.inf,
+) -> Tuple[ArrayTuple, float]:
+    # {{{
+    # {{{
+    """
+    Returns the pCRT from the pCRT from the first *positive* peak of the
+    function exp - poly (without taking the absolute value this time).
+
+    Parameters
+    ----------
+    timeScdsArr : np.ndarray of float
+        An array of time instants in seconds. Typically corresponding to the
+        timestamp of each frame in a video recording.
+
+    avgIntensArr : np.ndarray of float
+        The array of average intensities for a given channel inside the region
+        of interest (ROI), with respect to timeScdsArr.
+
+    pCRTInitialGuesses : sequence of float or None, default=None
+        The initial guesses for the rRCT exponential fitting. If None, p0=[1.0,
+        -0.3, 0.0] will be used by default (see curveFitting.fitPCRT and
+        curveFitting.fitExponential).
+
+    exclusionCriteria : float, default=np.inf
+        The maximum relative uncertainty a pCRT measurement can have and not be
+        rejected. If all fits on the criticalTime candidates fail this
+        criteria, a RuntimeError will be raised.
+
+    Returns
+    -------
+    pCRTTuple : tuple of np.ndarray of float
+        The first optimized parameters and their respective standard deviations
+        that passed the exclusion criteria.
+
+    criticalTime : float
+        The critical time associated with the aforementioned parameters.
+
+    Raises
+    ------
+    RuntimeError
+        If the fit failed or the resulting pCRT and uncertainty didn't pass the
+        exclusion criterium.
+
+    """
+    # }}}
+
+    expTuple = fitExponential(timeScdsArr, avgIntensArr)
+    polyTuple = fitPolynomial(timeScdsArr, avgIntensArr)
+
+    diffArray = exponential(timeScdsArr, *expTuple[0]) - polynomial(
+        timeScdsArr, *polyTuple[0]
+    )
+
+    firstPositivePeak = np.sort(find_peaks(diffArray, height=0)[0])[0]
+    criticalTime = timeScdsArr[firstPositivePeak]
+    return calcPCRTStrict(
+        timeScdsArr,
+        avgIntensArr,
+        criticalTime,
+        pCRTInitialGuesses,
+        exclusionCriteria,
     )
 
 

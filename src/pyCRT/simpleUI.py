@@ -15,28 +15,13 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from numpy.typing import NDArray
 
-from .arrayOperations import (
-    findValueIndex,
-    minMaxNormalize,
-    sliceByTime,
-    sliceFromLocalMax,
-    sliceFromMaxToEnd,
-    subtractMinimum,
-)
-from .arrayPlotting import (
-    saveAvgIntensPlot,
-    savePCRTPlot,
-    showAvgIntensPlot,
-    showPCRTPlot,
-)
-from .curveFitting import (
-    calcPCRT,
-    calculateRelativeUncertainty,
-    fitExponential,
-    fitPolynomial,
-    pCRTFromParameters,
-)
-
+from .arrayOperations import (findValueIndex, minMaxNormalize, sliceByTime,
+                              sliceFromLocalMax, sliceFromMaxToEnd,
+                              subtractMinimum)
+from .arrayPlotting import (makePCRTString, saveAvgIntensPlot, savePCRTPlot,
+                            showAvgIntensPlot, showPCRTPlot)
+from .curveFitting import (calcPCRT, calculateRelativeUncertainty,
+                           fitExponential, fitPolynomial, pCRTFromParameters)
 from .videoReading import readVideo
 
 # Type aliases for commonly used types
@@ -96,7 +81,7 @@ class PCRT:
         initialGuesses: Optional[dict[str, ParameterSequence]] = None,
         criticalTime: Optional[float] = None,
         exclusionCriteria: float = 0.12,
-        exclusionMethod: str = "first that works",
+        exclusionMethod: str = "first positive peak",
     ):
         # {{{
         # {{{
@@ -171,13 +156,13 @@ class PCRT:
         relativeUncertainty : float
             The pCRT's relative uncertainty.
 
-        exclusionMethod : str, default='first that works'
+        exclusionMethod : str, default='first positive peak'
             Which criticalTime and its associated fitted pCRT parameters and
             standard deviations are to be returned by calcPCRT. Possible values
-            are 'best fit', 'strict' and 'first that works' (consult the
-            documentation for the calcPCRTBestFit, calcPCRTStrict and
-            calcPCRTFirstThatWorks functions from the curveFitting module for a
-            description of the effect of these possible values).
+            are 'best fit', 'strict', 'first that works', 'first positive peak'
+            (consult the documentation for the calcPCRTBestFit, calcPCRTStrict
+            and calcPCRTFirstThatWorks functions from the curveFitting module
+            for a description of the effect of these possible values).
         """
         # }}}
 
@@ -846,11 +831,8 @@ class PCRT:
         with the pCRT and relative uncertainty.
         """
         # }}}
-        return (
-            f"{self.pCRT[0]:.2f} ± "
-            f"{self.pCRT[1]:.2f} s "
-            f"({100 * self.relativeUncertainty:.2f}%)"
-        )
+        # NIGGER
+        return makePCRTString(self.pCRTTuple)
 
     # }}}
 
