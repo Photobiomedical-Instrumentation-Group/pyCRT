@@ -240,7 +240,11 @@ def readVideo(
                 writer.send(frame)
 
             if displayVideo:
+                cv.namedWindow(
+                    "Video stream", cv.WINDOW_NORMAL | cv.WINDOW_GUI_NORMAL
+                )
                 frame = drawRoi(frame, roi)
+                cv.resizeWindow("Video stream", frame.shape[1], frame.shape[0])
                 cv.imshow("Video stream", frame)
                 key = cv.waitKey(1)
 
