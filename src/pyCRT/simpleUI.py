@@ -43,9 +43,6 @@ FitParametersTuple = tuple[ParameterSequence, ParameterSequence]
 
 Real = Union[float, int, np.float64, int]
 
-# This accounts for the fact that int doesn't inherit from int
-Integer = Union[int, int]
-
 FigAxTuple = tuple[Figure, Axes]
 
 # Standard ROI tuple used by OpenCV
@@ -213,6 +210,9 @@ class PCRT:
                 exclusionMethod,
                 exclusionCriteria,
             )
+
+        self.exclusionMethod: str = exclusionMethod
+        self.exclusionCriteria: float = exclusionCriteria
 
     # }}}
 
@@ -456,6 +456,8 @@ class PCRT:
             polyTuple=np.array(self.polyTuple),
             pCRTTuple=np.array(self.pCRTTuple),
             criticalTime=self.criticalTime,
+            exclusionMethod=self.exclusionMethod,
+            exclusionCriteria=self.exclusionCriteria,
         )
 
     # }}}

@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
@@ -42,4 +42,9 @@ include = [
 
 
 [tool.hatch.version]
-path = "src/pyCRT/__about__.py"
+source = "vcs"
+
+
+[tool.hatch.version.raw-options]
+version_scheme = "no-guess-dev"
+local_scheme = "no-local-version"
