@@ -2,4 +2,4 @@ opencv-python
 matplotlib
 scipy
 pandas
-tomli
+tomli; python_version < "3.11"

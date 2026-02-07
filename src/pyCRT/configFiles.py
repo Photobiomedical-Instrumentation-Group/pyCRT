@@ -5,7 +5,10 @@ configurations.
 
 from typing import Union, Any
 
-import tomli
+try:
+    import tomllib as tomli  # Python 3.11+
+except ModuleNotFoundError:
+    import tomli  # fallback for older Python
 
 # Type aliases for commonly used types
 # {{{
