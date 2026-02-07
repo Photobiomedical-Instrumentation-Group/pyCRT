@@ -7,7 +7,8 @@ use pyCRT's functions distributed among it's other modules.
 
 from __future__ import annotations
 
-from os.path import isfile
+from datetime import datetime as dt
+from os.path import basename, isfile
 from typing import Any, Optional, Sequence, Tuple, Union
 
 import numpy as np
@@ -54,6 +55,8 @@ RoiType = Union[RoiTuple, str]
 
 # Constants
 CHANNEL_INDICES_DICT = {"b": 0, "g": 1, "r": 2}
+DATETIME_FORMAT = "%Y-%m-%d_%H-%M-%S"
+DISPLAY_FORMAT = "%Y/%m/%d %H:%M:%S"
 
 
 class PCRT:
@@ -79,6 +82,8 @@ class PCRT:
         criticalTime: Optional[float] = None,
         exclusionCriteria: float = 0.12,
         exclusionMethod: str = "first positive peak",
+        name: str | None = None,
+        dateTime: dt | None = None,
     ):
         # {{{
         # {{{
@@ -160,6 +165,14 @@ class PCRT:
             (consult the documentation for the calcPCRTBestFit, calcPCRTStrict
             and calcPCRTFirstThatWorks functions from the curveFitting module
             for a description of the effect of these possible values).
+
+        name : str or None, default=None
+            An identifiable name for the measurement. If None, the measurement
+            will be named 'Untitled'.
+
+        dateTime : datetime or None, default=None
+            Time at which the measurement was performed. If None, it will be
+            set to datetime.now.
         """
         # }}}
 
@@ -213,6 +226,8 @@ class PCRT:
 
         self.exclusionMethod: str = exclusionMethod
         self.exclusionCriteria: float = exclusionCriteria
+        self.name = name
+        self.dateTime = dateTime if dateTime is not None else dt.now()
 
     # }}}
 
@@ -225,6 +240,7 @@ class PCRT:
         livePlot: bool = True,
         rescaleFactor: Real = 1.0,
         playbackFPS: float = np.inf,
+        name: str | None = None,
         **kwargs: Any,
     ) -> PCRT:
         # {{{
@@ -269,6 +285,10 @@ class PCRT:
             video at its original FOS. The video will typically be played
             slower than the specified FPS due to the per-frame processing time.
 
+        name : str or None, default=None
+            An identifiable name for the measurement. If None, the measurement
+            will be named after the stem of videoPath.
+
         kwargs : dict of str keys and any value
             These additional arguments will be passed to this class's __init__
             method.
@@ -297,7 +317,16 @@ class PCRT:
             livePlot=livePlot,
         )
 
-        return cls(fullTimeScdsArr, channelsAvgIntensArr, **kwargs)
+        if name is None:
+            name = basename(videoPath).split(".", 1)[0]
+
+        return cls(
+            fullTimeScdsArr=fullTimeScdsArr,
+            channelsAvgIntensArr=channelsAvgIntensArr,
+            name=name,
+            dateTime=dt.now(),
+            **kwargs,
+        )
 
     # }}}
 
@@ -311,6 +340,7 @@ class PCRT:
         recordingPath: Optional[str] = None,
         codecFourcc: str = "mp4v",
         recordingFps: float = 30.0,
+        name: str | None = None,
         **kwargs: Any,
     ) -> PCRT:
         # {{{
@@ -361,6 +391,10 @@ class PCRT:
             These additional arguments will be passed to this class's __init__
             method.
 
+        name : str or None, default=None
+            An identifiable name for the measurement. If None, the measurement
+            will be named after capDeviceIndex.
+
         See Also
         --------
         videoReading.readVideo :
@@ -387,7 +421,17 @@ class PCRT:
             recordingFps=recordingFps,
             livePlot=livePlot,
         )
-        return cls(fullTimeScdsArr, channelsAvgIntensArr, **kwargs)
+
+        if name is None:
+            name = f"pCRT Cap {capDeviceIndex}"
+
+        return cls(
+            fullTimeScdsArr=fullTimeScdsArr,
+            channelsAvgIntensArr=channelsAvgIntensArr,
+            name=name,
+            dateTime=dt.now(),
+            **kwargs,
+        )
 
     # }}}
 
@@ -431,6 +475,10 @@ class PCRT:
             },
             criticalTime=float(archive["criticalTime"]),
             sliceMethod="from local max",
+            name=None
+            if archive["name"] == "Untitled"
+            else str(archive["name"]),
+            dateTime=dt.strptime(str(archive["dateTime"]), DATETIME_FORMAT),
         )
         # }}}}}}
 
@@ -458,6 +506,8 @@ class PCRT:
             criticalTime=self.criticalTime,
             exclusionMethod=self.exclusionMethod,
             exclusionCriteria=self.exclusionCriteria,
+            name=self.strName,
+            dateTime=self.dateTime.strftime(DATETIME_FORMAT),
         )
 
     # }}}
@@ -573,7 +623,11 @@ class PCRT:
         arrayPlotting.makeAvgIntensPlot and arrayPlotting.showAvgIntensPlot.
         """
         # }}}
-        showAvgIntensPlot(self.fullTimeScdsArr, self.channelsAvgIntensArr)
+        showAvgIntensPlot(
+            self.fullTimeScdsArr,
+            self.channelsAvgIntensArr,
+            title=self.plotTitle,
+        )
 
     # }}}
 
@@ -587,7 +641,10 @@ class PCRT:
         """
         # }}}
         saveAvgIntensPlot(
-            figPath, self.fullTimeScdsArr, self.channelsAvgIntensArr
+            figPath,
+            self.fullTimeScdsArr,
+            self.channelsAvgIntensArr,
+            title=self.plotTitle,
         )
 
     # }}}
@@ -614,6 +671,7 @@ class PCRT:
             },
             self.criticalTime,
             self.channel,
+            title=self.plotTitle,
         )
 
     # }}}
@@ -640,12 +698,22 @@ class PCRT:
             },
             self.criticalTime,
             self.channel,
+            title=self.plotTitle,
         )
 
     # }}}
     # }}}
 
     # Several properties, mostly for convenience and organization{{{
+    
+    @property
+    def strName(self) -> str:
+        return "Untitled" if self.name is None else self.name
+
+    @property
+    def plotTitle(self) -> str:
+        return f"{self.strName} {self.dateTime.strftime(DISPLAY_FORMAT)}"
+
     @property
     def B(self) -> Array:
         # {{{
@@ -833,7 +901,6 @@ class PCRT:
         with the pCRT and relative uncertainty.
         """
         # }}}
-        # NIGGER
         return makePCRTString(self.pCRTTuple)
 
     # }}}
@@ -845,7 +912,7 @@ class PCRT:
         Representation of the pCRT measurement. Just returns PCRT.pCRT.
         """
         # }}}
-        return str(self.pCRT)
+        return f"{self.name}-{self.__str__}"
 
 
 # }}}

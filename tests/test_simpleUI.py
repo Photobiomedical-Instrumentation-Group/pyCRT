@@ -1,5 +1,6 @@
 """Tests for the simpleUI module"""
 
+from datetime import timedelta
 from pathlib import Path
 from time import perf_counter
 
@@ -10,9 +11,11 @@ from pyCRT.videoReading import (estimateVideoFpsFromTimestamps, getFrameCount,
                                 videoCapture)
 
 
-class TestPCRT:
+class TestPCRTAuto:
     # {{{
-    """Tests for the PCRT class"""
+    """
+    Tests for the PCRT class that run without user input in the background
+    """
 
     baseDir = Path(__file__).resolve().parent
     videoPath = baseDir / "data" / "P4CR4.wmv"
@@ -30,6 +33,8 @@ class TestPCRT:
         "first positive peak"
     ]
     expectedString = "4.60 ± 0.19 s (4.21%)"
+
+    timeTolerance = timedelta(seconds=1)
 
     expectedPCRTRescaleFactors = {
         0.25: (5.216837599964007, 0.266823469797725),
@@ -72,36 +77,6 @@ class TestPCRT:
 
     # }}}
 
-    def testDisplayVideo(self):
-        # {{{
-        """
-        Test that video display and live plotting work by creating a PCRT
-        instance with display enabled, and visually confirming that the plots
-        appear as expected.
-        """
-        pcrt = PCRT.fromVideoFile(
-            str(self.videoPath), roi=self.roi, displayVideo=True, livePlot=True
-        )
-        pcrtValue, pcrtUnc = pcrt.pCRT
-        assert np.isclose(pcrtValue, self.expectedPCRT)
-        assert np.isclose(pcrtUnc, self.expectedUnc)
-
-        answer = "banana"
-        while answer not in ("y", "n"):
-            pcrt.showAvgIntensPlot()
-            answer = input("Did it look alright? [y/n] ")
-
-        assert answer != "n"
-
-        answer = "banana"
-        while answer not in ("y", "n"):
-            pcrt.showPCRTPlot()
-            answer = input("Did it look alright? [y/n] ")
-
-        assert answer != "n"
-
-    # }}}
-
     def testSavingLoading(self):
         # {{{
         """
@@ -123,6 +98,11 @@ class TestPCRT:
         assert np.allclose(pcrtLoaded.avgIntensArr, pcrtOriginal.avgIntensArr)
         assert np.allclose(pcrtLoaded.timeScdsArr, pcrtOriginal.timeScdsArr)
         assert np.allclose(pcrtLoaded.pCRT, pcrtOriginal.pCRT)
+        assert pcrtLoaded.name == pcrtOriginal.name
+        assert (
+            abs(pcrtLoaded.dateTime - pcrtOriginal.dateTime)
+            <= self.timeTolerance
+        )
 
         if self.npzPath.exists():
             self.npzPath.unlink()
@@ -233,6 +213,68 @@ class TestPCRT:
 
     # }}}
 
+
+# }}}
+
+
+class TestPCRTInteractive:
+    # {{{
+    """
+    Tests for the PCRT class that require displaying a video or user input
+    """
+
+    baseDir = Path(__file__).resolve().parent
+    videoPath = baseDir / "data" / "P4CR4.wmv"
+    roi = (436, 358, 270, 130)
+    testFPS = (20, 50, 100)
+
+    rescaleFactorsROIs = {
+        0.25: (105, 78, 76, 50),
+        0.5: (212, 165, 145, 90),
+        0.75: (318, 251, 229, 143),
+    }
+
+    expectedPCRTExclusionMethod = {
+        "first that works": (4.600165280378453, 0.19374687901749468),
+        "first positive peak": (4.600165280378453, 0.19374687901749468),
+        "best fit": (3.00277714177836, 0.05735139417740891),
+        "strict": (None, None),  # RuntimeException expected
+    }
+
+    expectedPCRT, expectedUnc = expectedPCRTExclusionMethod[
+        "first positive peak"
+    ]
+
+    def testDisplayVideo(self):
+        # {{{
+        """
+        Test that video display and live plotting work by creating a PCRT
+        instance with display enabled, and visually confirming that the plots
+        appear as expected.
+        """
+        pcrt = PCRT.fromVideoFile(
+            str(self.videoPath), roi=self.roi, displayVideo=True, livePlot=True
+        )
+        pcrtValue, pcrtUnc = pcrt.pCRT
+        assert np.isclose(pcrtValue, self.expectedPCRT)
+        assert np.isclose(pcrtUnc, self.expectedUnc)
+
+        answer = "banana"
+        while answer not in ("y", "n"):
+            pcrt.showAvgIntensPlot()
+            answer = input("Did it look alright? [y/n] ")
+
+        assert answer != "n"
+
+        answer = "banana"
+        while answer not in ("y", "n"):
+            pcrt.showPCRTPlot()
+            answer = input("Did it look alright? [y/n] ")
+
+        assert answer != "n"
+
+    # }}}
+
     def testPlaybackFPS(self):
         # {{{
         with videoCapture(str(self.videoPath), None) as cap:
@@ -244,7 +286,7 @@ class TestPCRT:
                 livePlot=False,
                 roi=self.rescaleFactorsROIs[0.25],
                 rescaleFactor=0.25,
-                playbackFPS = FPS,
+                playbackFPS=FPS,
             )
             timePassed = perf_counter() - initial_time
             realFPS = frameCount / timePassed
@@ -254,7 +296,23 @@ class TestPCRT:
             while answer not in ("y", "n"):
                 answer = input("Did it look alright? [y/n] ")
             assert answer != "n"
+
     # }}}
 
 
 # }}}
+
+
+if __name__ == "__main__":
+    pcrt = PCRT.fromVideoFile(
+        str(TestPCRTAuto.videoPath),
+        roi=TestPCRTAuto.roi,
+        displayVideo=False,
+        livePlot=False,
+    )
+    pcrt.save("trololo.npz")
+
+    pcrt2 = PCRT.fromArchive("trololo.npz")
+    print(pcrt2)
+    print(type(pcrt2.dateTime))
+    print(pcrt2.name)

@@ -16,12 +16,8 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import AutoLocator, AutoMinorLocator
 from numpy.typing import NDArray
 
-from .curveFitting import (
-    calculateRelativeUncertainty,
-    exponential,
-    pCRTFromParameters,
-    polynomial,
-)
+from .curveFitting import (calculateRelativeUncertainty, exponential,
+                           pCRTFromParameters, polynomial)
 
 # Type aliases for commonly used types
 # {{{
@@ -382,6 +378,7 @@ def makeFigAxes(
 def makeAvgIntensPlot(
     timeScdsArr: Array,
     channelsAvgIntensArr: Array,
+    title: Optional[str] = None,
 ) -> FigAxTuple:
     # {{{
 
@@ -393,7 +390,7 @@ def makeAvgIntensPlot(
 
     fig, ax = makeFigAxes(
         ("Time (s)", "Average intensities (u.a.)"),
-        "Channel average intensities",
+        title if title is not None else "Channel average intensities",
     )
 
     plotAvgIntens(
@@ -415,6 +412,7 @@ def makePCRTPlot(
     criticalTime: Optional[float] = None,
     channel: Optional[str] = None,
     funcOptions: Optional[dict[str, Any]] = None,
+    title: Optional[str] = None,
 ) -> FigAxTuple:
     # {{{
     # {{{
@@ -458,6 +456,9 @@ def makePCRTPlot(
         the funcParamsTuples parameter is used, but with the addition of the
         optional 'intensities' key.
 
+    title : str or None, default=None
+        The title of the figure. If None, a default title appropriate to the
+        plot type will be used.
 
     Returns
     -------
@@ -475,7 +476,9 @@ def makePCRTPlot(
             "Time since release of compression (s)",
             "Average intensities (u.a.)",
         ),
-        "Average intensities and fitted functions",
+        title
+        if title is not None
+        else "Average intensities and fitted functions",
     )
 
     if funcOptions is None:
@@ -546,9 +549,7 @@ def makePCRTString(pCRTParams: FitParametersTuple) -> str:
     """
     pCRT, pCRTUnc = pCRTFromParameters(pCRTParams)
     relativeUncertainty = calculateRelativeUncertainty(pCRTParams)
-    return (
-        f"{pCRT:.2f} ± {pCRTUnc:.2f} s ({100 * relativeUncertainty:.2f}%)"
-    )
+    return f"{pCRT:.2f} ± {pCRTUnc:.2f} s ({100 * relativeUncertainty:.2f}%)"
 
 
 # }}}
