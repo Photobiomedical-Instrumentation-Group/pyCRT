@@ -185,17 +185,18 @@ def readVideo(
     """
     # }}}
 
-    if isinstance(roi, (tuple, str, list)):
-        if not (len(roi) == 4 or roi == "all"):
+    if isinstance(roi, (list, tuple)):
+        if len(roi) != 4:
             raise ValueError(
-                "Invalid value for the ROI. The roi parameter should be "
-                "either a list or tuple of 4 ints or 'all' to use the entire "
-                "frame."
+                "Invalid type for the ROI. The roi parameter should be "
+                "either a tuple/list of 4 ints or 'all' to use "
+                "the entire frame."
             )
-    elif roi is not None:
+        roi = tuple(roi)
+    elif roi not in (None, "all"):
         raise TypeError(
             "Invalid type for the ROI. The roi parameter should be either a "
-            "tuple of 4 ints or 'all' to use the entire frame."
+            "tuple/list of 4 ints or 'all' to use the entire frame."
         )
 
     if recordingPath:
@@ -203,8 +204,8 @@ def readVideo(
         # initialize generator
         writer.send(None)  # type: ignore
 
-    # Yup, I just assume the ROI is valid if it's a tuple of 4 elements. I'll
-    # probably have to change this later.
+    # Yup, I just assume the ROI is valid if it's a tuple or list of 4
+    # elements. I'll probably have to change this later.
 
     timeScdsList: list[float] = []
     avgIntenList: list[Array] = []
