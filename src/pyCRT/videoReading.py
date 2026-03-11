@@ -34,8 +34,11 @@ from .frameOperations import calcAvgInten, doNothing, drawRoi, rescaleFrame
 # Array of arbitraty size with float elements.
 Array = NDArray[np.float64]
 
-# Standard ROI tuple used by OpenCV
-RoiTuple = tuple[int, int, int, int]
+# Standard ROI tuple or list used by OpenCV
+RoiTuple = Union[
+    tuple[int, int, int, int],
+    list[int, int, int, int]
+]
 
 # Either a RoiTuple, or "all"
 RoiType = Union[RoiTuple, str]
@@ -182,11 +185,12 @@ def readVideo(
     """
     # }}}
 
-    if isinstance(roi, (tuple, str)):
+    if isinstance(roi, (tuple, str, list)):
         if not (len(roi) == 4 or roi == "all"):
             raise ValueError(
                 "Invalid value for the ROI. The roi parameter should be "
-                "either a tuple of 4 ints or 'all' to use the entire frame."
+                "either a list or tuple of 4 ints or 'all' to use the entire "
+                "frame."
             )
     elif roi is not None:
         raise TypeError(
@@ -250,7 +254,7 @@ def readVideo(
 
                 if key == ord(" "):
                     roi = cv.selectROI("Video stream", frame)
-                    print(f"Selected ROI: {roi}")
+                    print(f"Selected ROI: {list(roi)}")
                     timeScdsList, avgIntenList = [], []
                 elif key == ord("q"):
                     break

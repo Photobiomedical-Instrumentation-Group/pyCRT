@@ -19,7 +19,10 @@ from numpy.typing import NDArray
 Array = NDArray[np.float64]
 
 # Standard ROI tuple used by OpenCV
-RoiTuple = tuple[int, int, int, int]
+RoiTuple = Union[
+    tuple[int, int, int, int],
+    list[int, int, int, int]
+]
 
 # Either a RoiTuple, or "all"
 RoiType = Union[RoiTuple, str]

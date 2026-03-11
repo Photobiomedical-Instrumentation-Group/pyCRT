@@ -47,7 +47,10 @@ Real = Union[float, int, np.float64, int]
 FigAxTuple = tuple[Figure, Axes]
 
 # Standard ROI tuple used by OpenCV
-RoiTuple = tuple[int, int, int, int]
+RoiTuple = Union[
+    tuple[int, int, int, int],
+    list[int, int, int, int]
+]
 
 # Either a RoiTuple, or "all"
 RoiType = Union[RoiTuple, str]
@@ -705,7 +708,7 @@ class PCRT:
     # }}}
 
     # Several properties, mostly for convenience and organization{{{
-    
+
     @property
     def strName(self) -> str:
         return "Untitled" if self.name is None else self.name
@@ -907,12 +910,16 @@ class PCRT:
 
     def __repr__(self) -> str:
         # {{{
-        # {{{
         """
         Representation of the pCRT measurement. Just returns PCRT.pCRT.
         """
-        # }}}
-        return f"{self.name}-{self.__str__}"
+        return (
+            f"PCRT: name={self.name!r}, channel={self.channel!r}, "
+            f"pCRT={self.pCRT[0]:.3f}, uncertainty={self.pCRT[1]:.3f}"
+        )
+
+
+# }}}
 
 
 # }}}
