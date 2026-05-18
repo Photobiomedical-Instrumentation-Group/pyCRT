@@ -204,7 +204,7 @@ def colorConvertFactory(to_space, from_space="BGR", to_f32bits=True):
     if to_f32bits:
 
         def convertFunc(frame):
-            frame = (frame / 255).astype(np.float32)
+            frame = frame.astype(np.float32) / 255
             return cv.cvtColor(frame, cvAttr)
 
     else:
