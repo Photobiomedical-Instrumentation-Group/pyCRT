@@ -12,6 +12,7 @@ from warnings import filterwarnings
 import numpy as np
 from numpy.typing import NDArray
 from scipy.optimize import OptimizeWarning, curve_fit
+from scipy.optimize import least_squares
 from scipy.signal import find_peaks
 
 from .arrayOperations import findValueIndex
@@ -82,51 +83,44 @@ def fitExponential(
     p0: Optional[ParameterSequence] = None,
 ) -> tuple[Array, Array]:
     # {{{
-    # {{{
-    """
-    Fits an exponential function of the form a*exp(b*x)+c on the data, and
-    returns a tuple of two arrays, one with the optimized parameters and
-    another with their standard deviations. Refer to the documentation of
-    scipy.optimize.curve_fit for more information.
-
-    Parameters
-    ----------
-    x, y : np.ndarray
-        Self-explanatory.
-    p0 : sequence of 3 real numbers or None, default=None
-        The initial guesses for each parameter, in order of a, b and c (see
-        summary above). If None, will use p0=[1.0, -0.3, 0].
-
-    Returns
-    -------
-    expParams
-        The optimized parameters
-    expStdDev
-        The optimized parameters' respective standard deviations
-
-    Raises
-    ------
-    RuntimeError
-        If the curve fit failed.
-    """
-    # }}}
-
     if p0 is None:
-        p0 = [1.0, -0.3, 0.0]
+        p0 = [1.2, -0.45, -0.05]
+
+    bounds = (
+        [0.5, -1.5, -2.0],
+        [3.0, -0.05, 0.5],
+    )
+
+    def residuals(params):
+        return exponential(x, *params) - y
 
     try:
-        # pylint: disable=unbalanced-tuple-unpacking
-        expParams, expCov = curve_fit(
-            f=exponential,
-            xdata=x,
-            ydata=y,
-            p0=p0,
-            bounds=([0.0, -np.inf, -np.inf], [np.inf, 0.0, np.inf]),
-            full_output=False,
+        result = least_squares(
+            residuals,
+            x0=p0,
+            bounds=bounds,
+            loss="soft_l1",
+            f_scale=0.05,
+            max_nfev=10000,
         )
-        expStdDev = covToStdDev(expCov)
+
+        if not result.success:
+            raise RuntimeError(result.message)
+
+        expParams = result.x
+
+        dof = len(y) - len(expParams)
+        if dof <= 0:
+            expStdDev = np.full_like(expParams, np.nan, dtype=float)
+        else:
+            residualVariance = np.sum(result.fun**2) / dof
+            expStdDev = covToStdDev(
+                residualVariance * np.linalg.inv(result.jac.T @ result.jac)
+            )
+
         return expParams, expStdDev
-    except (RuntimeError, OptimizeWarning) as err:
+
+    except (RuntimeError, ValueError, np.linalg.LinAlgError) as err:
         raise RuntimeError(
             f"Exponential fit failed with p0={np.array(p0)}."
         ) from err

@@ -16,22 +16,30 @@ for entry in testDataDir.iterdir():
 
     destPath = npzDataDir / f"{entry.stem}.npz"
 
-    pcrt = PCRT.fromVideoFile(
-        str(entry),
-        roi="all",
-        displayVideo=False,
-        livePlot=False,
-        exclusionCriteria=np.inf,
-        exclusionMethod="first that works",
-    )
-    fromIndex, toIndex, _ = pcrt.slice.indices(len(pcrt.fullTimeScdsArr))
+    try:
+        pcrt = PCRT.fromVideoFile(
+            str(entry),
+            roi="all",
+            displayVideo=False,
+            livePlot=False,
+            exclusionCriteria=np.inf,
+            exclusionMethod="first positive peak",
+        )
+        fromIndex, toIndex, _ = pcrt.slice.indices(len(pcrt.fullTimeScdsArr))
 
-    np.savez(
-        str(destPath),
-        channelFullAvgIntens=pcrt.channelFullAvgIntens,
-        timeScdsArr=pcrt.fullTimeScdsArr,
-        fromIndex=fromIndex,
-        toIndex=toIndex,
-    )
+        np.savez(
+            str(destPath),
+            channelFullAvgIntens=pcrt.channelFullAvgIntens,
+            timeScdsArr=pcrt.fullTimeScdsArr,
+            fromIndex=fromIndex,
+            toIndex=toIndex,
+            pCRTTuple=pcrt.pCRTTuple,
+            polyTuple=pcrt.polyTuple,
+            expTuple=pcrt.expTuple,
+            criticalTime=pcrt.criticalTime,
+            pCRT=pcrt.pCRT,
+        )
 
-    print(destPath)
+        print(destPath)
+    except RuntimeError:
+        print(f"Error with {destPath}")
